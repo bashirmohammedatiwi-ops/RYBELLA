@@ -11,6 +11,7 @@ import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
 import BrandsScreen from '../screens/BrandsScreen';
+import ProductsScreen from '../screens/ProductsScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import CartScreen from '../screens/CartScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
@@ -58,21 +59,16 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user ? (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="MainTabs" component={MainTabs} />
-            <Stack.Screen name="Brands" component={BrandsScreen} />
-            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-            <Stack.Screen name="Checkout" component={CheckoutScreen} />
-            <Stack.Screen name="Wishlist" component={WishlistScreen} />
-          </>
-        )}
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="MainTabs">
+        <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen name="Brands" component={BrandsScreen} />
+        <Stack.Screen name="Products" component={ProductsScreen} />
+        <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+        <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Checkout" component={CheckoutScreen} />
+        <Stack.Screen name="Wishlist" component={WishlistScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

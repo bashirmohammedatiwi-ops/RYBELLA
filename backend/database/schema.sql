@@ -178,6 +178,30 @@ CREATE TABLE IF NOT EXISTS wishlist (
     UNIQUE(user_id, product_id)
 );
 
+-- Banners
+CREATE TABLE IF NOT EXISTS banners (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    image TEXT NOT NULL,
+    link_type TEXT DEFAULT 'none' CHECK(link_type IN ('none', 'category', 'brand', 'product', 'url')),
+    link_value TEXT,
+    sort_order INTEGER DEFAULT 0,
+    active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Banners (for app home screen)
+CREATE TABLE IF NOT EXISTS banners (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    image TEXT NOT NULL,
+    link_type TEXT DEFAULT 'none' CHECK(link_type IN ('none', 'product', 'category', 'url')),
+    link_value TEXT,
+    sort_order INTEGER DEFAULT 0,
+    active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Product offers
 CREATE TABLE IF NOT EXISTS product_offers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

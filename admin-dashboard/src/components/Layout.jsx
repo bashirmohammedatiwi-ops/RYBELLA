@@ -27,6 +27,7 @@ import {
   RateReview as ReviewIcon,
   LocalShipping as DeliveryIcon,
   Assessment as ReportIcon,
+  ViewCarousel as BannerIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -38,6 +39,7 @@ const menuItems = [
   { path: '/products', label: 'المنتجات', icon: <ProductsIcon /> },
   { path: '/brands', label: 'العلامات التجارية', icon: <BrandIcon /> },
   { path: '/categories', label: 'الفئات', icon: <CategoryIcon /> },
+  { path: '/banners', label: 'البانرات', icon: <BannerIcon /> },
   { path: '/orders', label: 'الطلبات', icon: <OrdersIcon /> },
   { path: '/customers', label: 'العملاء', icon: <PeopleIcon /> },
   { path: '/coupons', label: 'الكوبونات', icon: <CouponIcon /> },

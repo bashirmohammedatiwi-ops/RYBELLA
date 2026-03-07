@@ -41,9 +41,13 @@ export const categoriesAPI = {
   getAll: () => api.get('/categories'),
 };
 
+export const bannersAPI = {
+  getAll: () => api.get('/banners'),
+};
+
 export const cartAPI = {
   get: () => api.get('/cart'),
-  addItem: (data) => api.post('/cart/add', data),
+  addItem: (variantId, quantity = 1) => api.post('/cart/add', { variant_id: variantId, quantity }),
   updateItem: (itemId, data) => api.put(`/cart/${itemId}`, data),
   removeItem: (itemId) => api.delete(`/cart/${itemId}`),
   clear: () => api.delete('/cart'),

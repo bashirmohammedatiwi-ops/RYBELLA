@@ -14,9 +14,9 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { productsAPI, reviewsAPI, cartAPI, wishlistAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE } from '../config';
 
 const { width } = Dimensions.get('window');
-const API_BASE = 'http://localhost:5000';
 
 export default function ProductDetailScreen() {
   const route = useRoute();
@@ -39,6 +39,8 @@ export default function ProductDetailScreen() {
       setProduct(data);
       if (data.variants?.length) {
         setSelectedVariant(data.variants.find((v) => v.stock > 0) || data.variants[0]);
+      } else {
+        setSelectedVariant(null);
       }
     } catch (err) {
       console.error(err);
@@ -48,7 +50,11 @@ export default function ProductDetailScreen() {
   };
 
   const handleAddToCart = async () => {
-    if (!user || !selectedVariant) return;
+    if (!user) {
+      navigation.navigate('Login');
+      return;
+    }
+    if (!selectedVariant) return;
     try {
       await cartAPI.addItem(selectedVariant.id, quantity);
       navigation.navigate('Cart');
@@ -92,6 +98,9 @@ export default function ProductDetailScreen() {
     ? getImageUrl(product.images[0])
     : null;
 
+  const hasVariants = product.variants?.length > 0;
+  const canAddToCart = hasVariants && selectedVariant && selectedVariant.stock > 0;
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -114,7 +123,7 @@ export default function ProductDetailScreen() {
           <Text style={styles.description}>{product.description}</Text>
         )}
 
-        {product.variants?.length > 0 && (
+        {hasVariants && (
           <>
             <Text style={styles.sectionTitle}>الظلال المتاحة</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.variantsRow}>
@@ -145,7 +154,7 @@ export default function ProductDetailScreen() {
           </>
         )}
 
-        {selectedVariant && (
+        {selectedVariant ? (
           <View style={styles.priceRow}>
             <Text style={styles.price}>
               {Number(selectedVariant.price).toLocaleString('ar-IQ')} د.ع
@@ -155,6 +164,10 @@ export default function ProductDetailScreen() {
                 ? `متوفر (${selectedVariant.stock})`
                 : 'غير متوفر'}
             </Text>
+          </View>
+        ) : (
+          <View style={styles.priceRow}>
+            <Text style={styles.unavailableText}>سيتوفر قريباً</Text>
           </View>
         )}
 
@@ -171,7 +184,13 @@ export default function ProductDetailScreen() {
           </View>
         )}
 
-        {user && selectedVariant && selectedVariant.stock > 0 && (
+        {!hasVariants && (
+          <View style={styles.noVariants}>
+            <Icon name="info-outline" size={32} color="#888" />
+            <Text style={styles.noVariantsText}>سيتوفر قريباً - تواصل معنا للاستفسار</Text>
+          </View>
+        )}
+        {canAddToCart && (
           <View style={styles.quantityRow}>
             <Text style={styles.quantityLabel}>الكمية</Text>
             <View style={styles.quantityControls}>
@@ -194,7 +213,7 @@ export default function ProductDetailScreen() {
           </View>
         )}
 
-        {user && selectedVariant && selectedVariant.stock > 0 && (
+        {canAddToCart && (
           <TouchableOpacity style={styles.addToCartBtn} onPress={handleAddToCart}>
             <Icon name="shopping-cart" size={24} color="#fff" />
             <Text style={styles.addToCartText}>أضف للسلة</Text>
@@ -235,6 +254,8 @@ const styles = StyleSheet.create({
   colorDot: { width: 20, height: 20, borderRadius: 10, marginRight: 8 },
   variantName: { fontSize: 14, maxWidth: 80 },
   outOfStock: { fontSize: 12, color: '#f44336', marginRight: 4 },
+  noVariants: { padding: 16, backgroundColor: '#FFF3E0', borderRadius: 12, marginBottom: 16 },
+  noVariantsText: { color: '#E65100', textAlign: 'right', fontSize: 14 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   price: { fontSize: 24, fontWeight: 'bold', color: '#C2185B' },
   stock: { fontSize: 14, color: '#4CAF50' },

@@ -125,6 +125,17 @@ export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),
 };
 
+export const bannersAPI = {
+  getAll: () => api.get('/banners/admin'),
+  create: (formData) => api.post('/banners', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  update: (id, formData) => api.put(`/banners/${id}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  delete: (id) => api.delete(`/banners/${id}`),
+};
+
 export const notificationsAPI = {
   getAll: () => api.get('/notifications'),
   create: (data) => api.post('/notifications', data),

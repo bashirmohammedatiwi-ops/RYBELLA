@@ -12,9 +12,11 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { cartAPI } from '../services/api';
 import { API_BASE } from '../config';
+import { useAuth } from '../context/AuthContext';
 
 export default function CartScreen() {
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,14 +24,18 @@ export default function CartScreen() {
     const unsubscribe = navigation.addListener('focus', loadCart);
     loadCart();
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, user]);
 
   const loadCart = async () => {
+    if (!user) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     try {
       const { data } = await cartAPI.get();
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
       setItems([]);
     } finally {
       setLoading(false);
@@ -64,6 +70,27 @@ export default function CartScreen() {
   }
 
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  if (!user) {
+    return (
+      <View style={styles.empty}>
+        <Icon name="shopping-cart" size={80} color="#ccc" />
+        <Text style={styles.emptyText}>سجّل الدخول لعرض سلة التسوق</Text>
+        <TouchableOpacity
+          style={styles.shopBtn}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.shopBtnText}>تسجيل الدخول</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.guestBtn}
+          onPress={() => navigation.navigate('Home')}
+        >
+          <Text style={styles.guestText}>تصفح كضيف</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -142,9 +169,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyText: { fontSize: 18, color: '#666', marginVertical: 16 },
+  emptyText: { fontSize: 18, color: '#666', marginVertical: 16, textAlign: 'center' },
   shopBtn: { backgroundColor: '#C2185B', padding: 16, borderRadius: 12 },
   shopBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  guestBtn: { marginTop: 12, padding: 12 },
+  guestText: { color: '#666', fontSize: 15 },
   item: {
     flexDirection: 'row',
     backgroundColor: '#fff',

@@ -12,6 +12,7 @@ import Customers from './pages/Customers'
 import Coupons from './pages/Coupons'
 import Reviews from './pages/Reviews'
 import DeliveryZones from './pages/DeliveryZones'
+import Banners from './pages/Banners'
 import Reports from './pages/Reports'
 import { useAuth } from './context/AuthContext'
 
@@ -43,6 +44,7 @@ function App() {
         <Route path="coupons" element={<Coupons />} />
         <Route path="reviews" element={<Reviews />} />
         <Route path="delivery-zones" element={<DeliveryZones />} />
+        <Route path="banners" element={<Banners />} />
         <Route path="reports" element={<Reports />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

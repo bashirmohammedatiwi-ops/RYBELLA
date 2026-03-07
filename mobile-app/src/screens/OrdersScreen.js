@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ordersAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_LABELS = {
   pending: 'قيد الانتظار',
@@ -23,17 +24,23 @@ const STATUS_LABELS = {
 
 export default function OrdersScreen() {
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadOrders();
-  }, []);
+  }, [user]);
 
   const loadOrders = async () => {
+    if (!user) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
     try {
-      const { data } = await ordersAPI.getOrders();
+      const { data } = await ordersAPI.getAll();
       setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
@@ -53,6 +60,21 @@ export default function OrdersScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#C2185B" />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.empty}>
+        <Icon name="receipt-long" size={80} color="#ccc" />
+        <Text style={styles.emptyText}>سجّل الدخول لعرض طلباتك</Text>
+        <TouchableOpacity
+          style={styles.shopBtn}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.shopBtnText}>تسجيل الدخول</Text>
+        </TouchableOpacity>
       </View>
     );
   }

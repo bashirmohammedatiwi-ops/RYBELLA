@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#E91E63"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rybella.iraq"
@@ -22,6 +24,22 @@
         "backgroundColor": "#E91E63"
       },
       "package": "com.rybella.iraq"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "minSdkVersion": 21
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2acff593-bc19-4683-ae5e-a38e457c7e69"
+      }
     }
   }
 }

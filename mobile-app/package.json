@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "main": "expo/AppEntry.js",
   "scripts": {
+    "postinstall": "node scripts/fix-node-sea-windows.js",
+    "generate-assets": "node scripts/generate-assets.js",
+    "fix:windows": "node scripts/fix-node-sea-windows.js",
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "build:apk": "eas build --platform android --profile production",
+    "build:apk:local": "expo prebuild && cd android && .\\gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "1.21.0",
@@ -15,15 +20,18 @@
     "@react-navigation/native-stack": "^6.9.17",
     "axios": "^1.6.2",
     "expo": "~50.0.0",
-    "react-native-vector-icons": "^10.0.3",
+    "expo-build-properties": "~0.11.0",
     "expo-status-bar": "~1.11.1",
     "react": "18.2.0",
-    "react-native": "0.73.2",
+    "react-native": "0.73.6",
     "react-native-safe-area-context": "4.8.2",
-    "react-native-screens": "~3.29.0"
+    "react-native-screens": "~3.29.0",
+    "react-native-vector-icons": "^10.0.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "babel-preset-expo": "~10.0.0",
+    "jimp": "^0.22.12"
   },
   "private": true
 }

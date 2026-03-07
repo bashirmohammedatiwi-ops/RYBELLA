@@ -10,7 +10,7 @@ import {
   RefreshControl,
   StyleSheet,
 } from 'react-native';
-import { productsAPI, brandsAPI } from '../services/api';
+import { productsAPI, brandsAPI, bannersAPI } from '../services/api';
 import { API_BASE } from '../config';
 
 const formatPrice = (price) => `${Number(price).toLocaleString('ar-IQ')} د.ع`;
@@ -20,6 +20,7 @@ export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -28,12 +29,14 @@ export default function HomeScreen({ navigation }) {
 
   const loadData = async () => {
     try {
-      const [productsRes, brandsRes] = await Promise.all([
+      const [productsRes, brandsRes, bannersRes] = await Promise.all([
         productsAPI.getAll(),
         brandsAPI.getAll(),
+        bannersAPI.getAll().catch(() => ({ data: [] })),
       ]);
       setProducts(productsRes.data || []);
       setBrands(brandsRes.data || []);
+      setBanners(bannersRes.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -116,6 +119,37 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.searchPlaceholder}>ابحث عن منتجات...</Text>
       </TouchableOpacity>
 
+      {banners.length > 0 && (
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          style={styles.bannerScroll}
+          contentContainerStyle={styles.bannerContent}
+        >
+          {banners.map((b) => (
+            <TouchableOpacity
+              key={b.id}
+              style={styles.bannerSlide}
+              onPress={() => {
+                if (b.link_type === 'product' && b.link_value) {
+                  navigation.navigate('ProductDetail', { productId: parseInt(b.link_value, 10) });
+                } else if (b.link_type === 'category' && b.link_value) {
+                  navigation.navigate('Products', { categoryId: parseInt(b.link_value, 10) });
+                }
+              }}
+              activeOpacity={1}
+            >
+              <Image
+                source={{ uri: b.image ? `${API_BASE}${b.image}` : null }}
+                style={styles.bannerImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>الأكثر مبيعاً</Text>
         <FlatList
@@ -175,6 +209,10 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
   },
   searchPlaceholder: { color: '#999', fontSize: 15, textAlign: 'right' },
+  bannerScroll: { marginTop: 16, maxHeight: 180 },
+  bannerContent: { paddingHorizontal: 16 },
+  bannerSlide: { width: 340, height: 160, marginHorizontal: 4, borderRadius: 16, overflow: 'hidden', backgroundColor: '#eee' },
+  bannerImage: { width: '100%', height: '100%' },
   section: { marginTop: 24, paddingHorizontal: 16 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#1a1a1a', marginBottom: 12, textAlign: 'right' },

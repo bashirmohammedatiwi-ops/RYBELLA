@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../services/api';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -25,12 +26,18 @@ export default function LoginScreen({ navigation }) {
     }
     try {
       setLoading(true);
-      await login(email, password);
+      const { data } = await authAPI.login({ email, password });
+      await login(data.user, data.token);
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (err) {
       Alert.alert('خطأ', err.response?.data?.message || 'فشل تسجيل الدخول');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGuest = () => {
+    navigation.navigate('MainTabs');
   };
 
   return (
@@ -74,6 +81,10 @@ export default function LoginScreen({ navigation }) {
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')} style={styles.link}>
           <Text style={styles.linkText}>ليس لديك حساب؟ سجل الآن</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleGuest} style={styles.guestBtn}>
+          <Text style={styles.guestText}>الدخول كضيف</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -134,5 +145,17 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#C2185B',
     fontSize: 16,
+  },
+  guestBtn: {
+    marginTop: 16,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+  },
+  guestText: {
+    color: '#666',
+    fontSize: 15,
   },
 });

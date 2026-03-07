@@ -212,7 +212,7 @@ export default function ProductVariants() {
             <TextField label="اسم الظل" value={form.shade_name} onChange={(e) => setForm({ ...form, shade_name: e.target.value })} required fullWidth />
             <TextField label="كود اللون" type="color" value={form.color_code} onChange={(e) => setForm({ ...form, color_code: e.target.value })} sx={{ width: 80, height: 40 }} />
             <TextField label="كود اللون (hex)" value={form.color_code} onChange={(e) => setForm({ ...form, color_code: e.target.value })} fullWidth />
-            <TextField label="الباركود" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} fullWidth />
+            <TextField label="الباركود *" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} required fullWidth helperText="مطلوب لكل منتج حتى ذو اللون الواحد" />
             <TextField label="SKU" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} fullWidth />
             <TextField label="السعر" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required fullWidth />
             <TextField label="المخزون" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} fullWidth />

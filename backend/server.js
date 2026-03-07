@@ -17,6 +17,7 @@ const deliveryZoneRoutes = require('./routes/deliveryZones');
 const dashboardRoutes = require('./routes/dashboard');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
+const bannerRoutes = require('./routes/banners');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -44,6 +45,7 @@ app.use('/api/delivery-zones', deliveryZoneRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/banners', bannerRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

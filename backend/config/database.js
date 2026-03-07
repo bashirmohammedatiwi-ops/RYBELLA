@@ -52,6 +52,20 @@ const initDb = async () => {
     saveDb();
     console.log('Database initialized. Admin: admin@rybella.iq / Admin@123');
   }
+  // Migration: ensure banners table exists
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS banners (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
+      image TEXT NOT NULL,
+      link_type TEXT DEFAULT 'none',
+      link_value TEXT,
+      sort_order INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    saveDb();
+  } catch (e) {}
 };
 
 // Async query - returns [rows] for SELECT, [{ insertId }] for INSERT (mysql2 compatible)

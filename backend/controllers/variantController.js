@@ -9,6 +9,9 @@ exports.create = async (req, res) => {
     if (!shade_name || !price) {
       return res.status(400).json({ message: 'اسم الظل والسعر مطلوبان' });
     }
+    if (!barcode || !barcode.trim()) {
+      return res.status(400).json({ message: 'الباركود مطلوب لكل منتج/ظل' });
+    }
 
     const [result] = await db.query(
       `INSERT INTO product_variants (product_id, shade_name, color_code, barcode, sku, price, stock, image, expiration_date)

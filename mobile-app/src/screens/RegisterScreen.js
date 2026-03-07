@@ -29,8 +29,7 @@ export default function RegisterScreen({ navigation }) {
     try {
       setLoading(true);
       await register({ name, email, phone, password });
-      navigation.navigate('Login');
-      Alert.alert('نجاح', 'تم إنشاء الحساب بنجاح. يمكنك تسجيل الدخول الآن');
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (err) {
       Alert.alert('خطأ', err.response?.data?.message || 'فشل إنشاء الحساب');
     } finally {
