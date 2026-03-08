@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { categoriesAPI } from '../services/api';
 import { API_BASE } from '../config';
+import { colors, borderRadius, shadows } from '../theme';
 
 export default function CategoriesScreen({ navigation }) {
   const [categories, setCategories] = useState([]);
@@ -52,14 +53,17 @@ export default function CategoriesScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C2185B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>الفئات</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>الفئات</Text>
+        <Text style={styles.subtitle}>تصفح حسب التصنيف</Text>
+      </View>
       <FlatList
         data={categories}
         renderItem={renderCategory}
@@ -73,26 +77,31 @@ export default function CategoriesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', padding: 20, textAlign: 'right', color: '#1a1a1a' },
-  list: { padding: 16, paddingBottom: 100 },
+  header: {
+    backgroundColor: colors.primary,
+    paddingTop: 48,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  title: { fontSize: 24, fontWeight: 'bold', color: colors.white, textAlign: 'right' },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 4, textAlign: 'right' },
+  list: { padding: 16, paddingTop: 20, paddingBottom: 100 },
   row: { justifyContent: 'flex-end', gap: 12, marginBottom: 12 },
   card: {
     flex: 1,
     maxWidth: '48%',
-    height: 140,
-    borderRadius: 12,
+    height: 150,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
     position: 'relative',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...shadows.card,
   },
   image: { width: '100%', height: '100%' },
-  placeholder: { backgroundColor: '#E0E0E0' },
+  placeholder: { backgroundColor: colors.borderLight },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.3)',

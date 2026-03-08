@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
+import { colors, borderRadius, shadows } from '../theme';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -18,13 +19,17 @@ export default function ProfileScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Text style={styles.guestText}>يرجى تسجيل الدخول</Text>
-        <TouchableOpacity
-          style={styles.loginBtn}
-          onPress={() => navigation.navigate('Login')}
-        >
-          <Text style={styles.loginBtnText}>تسجيل الدخول</Text>
-        </TouchableOpacity>
+        <View style={styles.guestCard}>
+          <Icon name="person-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.guestText}>سجّل الدخول للوصول لطلباتك وقائمة الأمنيات</Text>
+          <TouchableOpacity
+            style={styles.loginBtn}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loginBtnText}>تسجيل الدخول</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -68,38 +73,61 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  guestText: { fontSize: 18, textAlign: 'center', marginTop: 48 },
-  loginBtn: {
-    backgroundColor: '#C2185B',
+  container: { flex: 1, backgroundColor: colors.background, padding: 16 },
+  guestCard: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
     marginTop: 24,
-    padding: 16,
-    borderRadius: 12,
-    alignSelf: 'center',
+    marginHorizontal: 16,
+    borderRadius: borderRadius.xl,
+    padding: 32,
+    ...shadows.card,
   },
-  loginBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  header: { alignItems: 'center', paddingVertical: 32, backgroundColor: '#fff', borderRadius: 12, marginBottom: 16 },
+  guestText: { fontSize: 16, textAlign: 'center', color: colors.textSecondary, marginTop: 16, lineHeight: 24 },
+  loginBtn: {
+    backgroundColor: colors.primary,
+    marginTop: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: borderRadius.lg,
+  },
+  loginBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  header: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    marginBottom: 16,
+    ...shadows.card,
+  },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#C2185B',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
-  name: { fontSize: 22, fontWeight: 'bold', marginTop: 12 },
-  email: { fontSize: 14, color: '#666', marginTop: 4 },
-  menu: { backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' },
+  avatarText: { color: colors.white, fontSize: 36, fontWeight: 'bold' },
+  name: { fontSize: 22, fontWeight: 'bold', marginTop: 14, color: colors.text },
+  email: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+  menu: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    ...shadows.card,
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 18,
     borderBottomWidth: 1,
-    borderColor: '#eee',
-    gap: 12,
+    borderColor: colors.borderLight,
+    gap: 14,
   },
-  menuText: { flex: 1, fontSize: 16 },
+  menuText: { flex: 1, fontSize: 16, color: colors.text },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -108,5 +136,5 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
   },
-  logoutText: { fontSize: 16, color: '#f44336', fontWeight: '600' },
+  logoutText: { fontSize: 16, color: colors.error, fontWeight: '600' },
 });

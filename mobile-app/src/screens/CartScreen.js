@@ -13,6 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { cartAPI } from '../services/api';
 import { API_BASE } from '../config';
 import { useAuth } from '../context/AuthContext';
+import { colors, borderRadius, shadows } from '../theme';
 
 export default function CartScreen() {
   const navigation = useNavigation();
@@ -64,7 +65,7 @@ export default function CartScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C2185B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -74,11 +75,15 @@ export default function CartScreen() {
   if (!user) {
     return (
       <View style={styles.empty}>
-        <Icon name="shopping-cart" size={80} color="#ccc" />
-        <Text style={styles.emptyText}>سجّل الدخول لعرض سلة التسوق</Text>
+        <View style={styles.emptyIconWrap}>
+          <Icon name="shopping-cart" size={64} color={colors.primary} />
+        </View>
+        <Text style={styles.emptyTitle}>سلة التسوق</Text>
+        <Text style={styles.emptyText}>سجّل الدخول لعرض سلة التسوق وإتمام طلبك</Text>
         <TouchableOpacity
           style={styles.shopBtn}
           onPress={() => navigation.navigate('Login')}
+          activeOpacity={0.85}
         >
           <Text style={styles.shopBtnText}>تسجيل الدخول</Text>
         </TouchableOpacity>
@@ -95,11 +100,15 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <View style={styles.empty}>
-        <Icon name="shopping-cart" size={80} color="#ccc" />
-        <Text style={styles.emptyText}>سلة التسوق فارغة</Text>
+        <View style={styles.emptyIconWrap}>
+          <Icon name="shopping-cart" size={64} color={colors.primary} />
+        </View>
+        <Text style={styles.emptyTitle}>سلة التسوق فارغة</Text>
+        <Text style={styles.emptyText}>أضف منتجاتك المفضلة وابدأ التسوق</Text>
         <TouchableOpacity
           style={styles.shopBtn}
           onPress={() => navigation.navigate('Home')}
+          activeOpacity={0.85}
         >
           <Text style={styles.shopBtnText}>تسوق الآن</Text>
         </TouchableOpacity>
@@ -166,41 +175,62 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyText: { fontSize: 18, color: '#666', marginVertical: 16, textAlign: 'center' },
-  shopBtn: { backgroundColor: '#C2185B', padding: 16, borderRadius: 12 },
-  shopBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  guestBtn: { marginTop: 12, padding: 12 },
-  guestText: { color: '#666', fontSize: 15 },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emptyIconWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  emptyText: { fontSize: 15, color: colors.textSecondary, marginVertical: 12, textAlign: 'center', lineHeight: 22 },
+  shopBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: borderRadius.lg,
+    marginTop: 8,
+    ...shadows.button,
+  },
+  shopBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  guestBtn: { marginTop: 16, padding: 12 },
+  guestText: { color: colors.textSecondary, fontSize: 15 },
   item: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 16,
-    margin: 8,
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    padding: borderRadius.lg,
+    marginHorizontal: 16,
+    marginVertical: 6,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
+    ...shadows.soft,
   },
-  itemImage: { width: 80, height: 80, borderRadius: 8 },
-  itemInfo: { flex: 1, marginHorizontal: 12 },
-  itemName: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  itemPrice: { fontSize: 14, color: '#C2185B', marginBottom: 8 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  qty: { fontSize: 16 },
+  itemImage: { width: 88, height: 88, borderRadius: borderRadius.md },
+  itemInfo: { flex: 1, marginHorizontal: 14 },
+  itemName: { fontSize: 15, fontWeight: '600', marginBottom: 4, color: colors.text },
+  itemPrice: { fontSize: 15, color: colors.primary, marginBottom: 8, fontWeight: '700' },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  qty: { fontSize: 16, fontWeight: '600', minWidth: 24, textAlign: 'center' },
   footer: {
-    backgroundColor: '#fff',
-    padding: 16,
+    backgroundColor: colors.surface,
+    padding: 20,
     borderTopWidth: 1,
-    borderColor: '#eee',
+    borderColor: colors.borderLight,
+    ...shadows.soft,
   },
-  totalLabel: { fontSize: 14, color: '#666' },
-  total: { fontSize: 24, fontWeight: 'bold', color: '#C2185B', marginVertical: 8 },
+  totalLabel: { fontSize: 14, color: colors.textSecondary },
+  total: { fontSize: 24, fontWeight: '800', color: colors.primary, marginVertical: 10 },
   checkoutBtn: {
-    backgroundColor: '#C2185B',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
+    ...shadows.button,
   },
-  checkoutText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  checkoutText: { color: colors.white, fontSize: 17, fontWeight: '700' },
 });

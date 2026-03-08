@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { brandsAPI } from '../services/api';
 import { API_BASE } from '../config';
+import { colors, borderRadius, shadows } from '../theme';
 
 export default function BrandsScreen({ navigation }) {
   const [brands, setBrands] = useState([]);
@@ -74,33 +75,37 @@ export default function BrandsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', padding: 20, textAlign: 'right', color: '#1a1a1a' },
+  header: {
+    backgroundColor: colors.primary,
+    paddingTop: 48,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', color: colors.white },
   list: { padding: 16, paddingBottom: 100 },
   row: { justifyContent: 'flex-end', gap: 12, marginBottom: 12 },
   card: {
     flex: 1,
     maxWidth: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
     padding: 16,
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...shadows.card,
   },
   logo: { width: 80, height: 80 },
   placeholder: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#E8E8E8',
+    backgroundColor: colors.borderLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderText: { fontSize: 28, color: '#999', fontWeight: 'bold' },
-  name: { marginTop: 10, fontSize: 14, color: '#333', textAlign: 'center' },
+  placeholderText: { fontSize: 28, color: colors.textMuted, fontWeight: 'bold' },
+  name: { marginTop: 10, fontSize: 14, color: colors.text, textAlign: 'center' },
 });

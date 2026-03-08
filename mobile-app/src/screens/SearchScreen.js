@@ -13,6 +13,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { productsAPI } from '../services/api';
 import { API_BASE } from '../config';
+import { colors, borderRadius, shadows } from '../theme';
 
 export default function SearchScreen({ navigation }) {
   const [query, setQuery] = useState('');
@@ -69,12 +70,12 @@ export default function SearchScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name={I18nManager.isRTL ? 'arrow-right' : 'arrow-left'} size={24} color="#333" />
+          <Icon name={I18nManager.isRTL ? 'arrow-right' : 'arrow-left'} size={24} color={colors.white} />
         </TouchableOpacity>
         <TextInput
           style={styles.searchInput}
           placeholder="ابحث عن منتج..."
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
           value={query}
           onChangeText={setQuery}
           autoFocus
@@ -100,20 +101,22 @@ export default function SearchScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    padding: 16,
+    paddingTop: 48,
+    backgroundColor: colors.primary,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   backBtn: { padding: 8 },
   searchInput: {
     flex: 1,
-    height: 44,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
+    height: 46,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
     paddingHorizontal: 16,
     fontSize: 16,
     marginHorizontal: 8,
@@ -121,15 +124,16 @@ const styles = StyleSheet.create({
   list: { padding: 16 },
   productCard: {
     flexDirection: 'row',
-    padding: 12,
-    marginBottom: 8,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    ...shadows.card,
   },
-  productImage: { width: 80, height: 80, borderRadius: 8 },
-  productInfo: { flex: 1, marginLeft: 12, justifyContent: 'center' },
-  productName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  productPrice: { fontSize: 14, color: '#C2185B', marginTop: 4 },
+  productImage: { width: 80, height: 80, borderRadius: borderRadius.md },
+  productInfo: { flex: 1, marginLeft: 14, justifyContent: 'center' },
+  productName: { fontSize: 16, fontWeight: '600', color: colors.text },
+  productPrice: { fontSize: 15, color: colors.primary, marginTop: 4, fontWeight: '700' },
   loader: { marginTop: 40 },
-  emptyText: { textAlign: 'center', marginTop: 40, color: '#999' },
+  emptyText: { textAlign: 'center', marginTop: 40, color: colors.textMuted },
 });

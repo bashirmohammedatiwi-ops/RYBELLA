@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { productsAPI, reviewsAPI, cartAPI, wishlistAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
+import { colors, borderRadius, shadows } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -84,7 +85,7 @@ export default function ProductDetailScreen() {
   if (loading || !product) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C2185B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -104,11 +105,11 @@ export default function ProductDetailScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-forward" size={28} color="#333" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
+          <Icon name="arrow-forward" size={26} color={colors.text} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleWishlist}>
-          <Icon name={inWishlist ? 'favorite' : 'favorite-border'} size={28} color="#C2185B" />
+        <TouchableOpacity onPress={handleWishlist} style={styles.headerBtn}>
+          <Icon name={inWishlist ? 'favorite' : 'favorite-border'} size={26} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -225,31 +226,36 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
     paddingTop: 48,
+    backgroundColor: colors.white,
+    ...shadows.soft,
   },
-  mainImage: { width, height: width, backgroundColor: '#f5f5f5' },
-  content: { padding: 16 },
-  brand: { fontSize: 14, color: '#888', marginBottom: 4 },
-  name: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-  description: { fontSize: 16, color: '#555', lineHeight: 24, marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  variantsRow: { marginBottom: 16 },
+  headerBtn: { padding: 8 },
+  mainImage: { width, height: width, backgroundColor: colors.borderLight, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' },
+  content: { padding: 20, backgroundColor: colors.white, marginTop: -20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  brand: { fontSize: 13, color: colors.textMuted, marginBottom: 4, fontWeight: '600' },
+  name: { fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 10, letterSpacing: 0.3 },
+  description: { fontSize: 15, color: colors.textSecondary, lineHeight: 24, marginBottom: 18 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 12, color: colors.text },
+  variantsRow: { marginBottom: 18 },
   variantChip: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    marginRight: 8,
-    borderRadius: 12,
+    marginRight: 10,
+    borderRadius: borderRadius.lg,
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  variantChipSelected: { borderColor: '#C2185B', backgroundColor: '#FCE4EC' },
+  variantChipSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft, ...shadows.soft },
   variantOutOfStock: { opacity: 0.5 },
   colorDot: { width: 20, height: 20, borderRadius: 10, marginRight: 8 },
   variantName: { fontSize: 14, maxWidth: 80 },
@@ -257,8 +263,8 @@ const styles = StyleSheet.create({
   noVariants: { padding: 16, backgroundColor: '#FFF3E0', borderRadius: 12, marginBottom: 16 },
   noVariantsText: { color: '#E65100', textAlign: 'right', fontSize: 14 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  price: { fontSize: 24, fontWeight: 'bold', color: '#C2185B' },
-  stock: { fontSize: 14, color: '#4CAF50' },
+  price: { fontSize: 26, fontWeight: '800', color: colors.primary },
+  stock: { fontSize: 14, color: colors.success, fontWeight: '600' },
   reviewsSection: { marginBottom: 24 },
   reviewItem: { marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderColor: '#eee' },
   reviewUser: { fontWeight: 'bold', marginBottom: 4 },
@@ -271,12 +277,13 @@ const styles = StyleSheet.create({
   quantity: { fontSize: 18, marginHorizontal: 16 },
   addToCartBtn: {
     flexDirection: 'row',
-    backgroundColor: '#C2185B',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    padding: 18,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
+    ...shadows.button,
   },
-  addToCartText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  addToCartText: { color: colors.white, fontSize: 18, fontWeight: '700' },
 });

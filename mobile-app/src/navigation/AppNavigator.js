@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors } from '../theme';
 
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -37,7 +38,18 @@ function MainTabs() {
           };
           return <Icon name={icons[route.name] || 'circle'} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#C2185B',
+        tabBarActiveTintColor: colors.white,
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.65)',
+        tabBarStyle: {
+          backgroundColor: colors.primary,
+          borderTopWidth: 0,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 8,
+        },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
         headerShown: false,
       })}
     >

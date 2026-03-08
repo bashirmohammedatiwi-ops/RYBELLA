@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { colors, borderRadius, shadows } from '../theme';
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');
@@ -42,13 +43,15 @@ export default function RegisterScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>ريبيلا العراق</Text>
+        <Text style={styles.headerSubtitle}>إنشاء حساب جديد</Text>
+      </View>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>إنشاء حساب جديد</Text>
-
         <TextInput
           style={styles.input}
           placeholder="الاسم"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
           value={name}
           onChangeText={setName}
           textAlign="right"
@@ -103,52 +106,52 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  container: { flex: 1, backgroundColor: colors.white },
+  header: {
+    backgroundColor: colors.primary,
+    paddingTop: 56,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: colors.white,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    marginTop: 6,
   },
   scroll: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 60,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'right',
-    marginBottom: 32,
+    paddingTop: 28,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 14,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    padding: 16,
     fontSize: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     textAlign: 'right',
+    backgroundColor: colors.surface,
   },
   button: {
-    backgroundColor: '#C2185B',
+    backgroundColor: colors.primary,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     marginTop: 8,
+    ...shadows.button,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  link: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#C2185B',
-    fontSize: 16,
-  },
+  buttonDisabled: { opacity: 0.7 },
+  buttonText: { color: colors.white, fontSize: 18, fontWeight: '700' },
+  link: { marginTop: 20, alignItems: 'center' },
+  linkText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
 });

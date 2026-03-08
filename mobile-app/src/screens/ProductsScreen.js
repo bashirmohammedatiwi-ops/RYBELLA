@@ -13,6 +13,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { productsAPI, categoriesAPI, brandsAPI } from '../services/api';
 import { API_BASE } from '../config';
+import { colors, borderRadius, shadows } from '../theme';
 
 const formatPrice = (price) => `${Number(price).toLocaleString('ar-IQ')} د.ع`;
 

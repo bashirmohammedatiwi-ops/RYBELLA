@@ -1,12 +1,16 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { colors } from '../theme';
 
 export default function SplashScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>Rybella</Text>
-      <Text style={styles.subtitle}>العراق</Text>
-      <ActivityIndicator size="large" color="#C2185B" style={styles.loader} />
+      <View style={styles.logoBox}>
+        <Text style={styles.logo}>Rybella</Text>
+        <Text style={styles.subtitle}>العراق</Text>
+      </View>
+      <Text style={styles.tagline}>مستحضرات تجميل أصلية</Text>
+      <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
     </View>
   );
 }
@@ -16,19 +20,27 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.primary,
+  },
+  logoBox: {
+    alignItems: 'center',
   },
   logo: {
-    fontSize: 42,
+    fontSize: 44,
     fontWeight: 'bold',
-    color: '#C2185B',
+    color: colors.white,
   },
   subtitle: {
-    fontSize: 24,
-    color: '#666',
+    fontSize: 22,
+    color: 'rgba(255,255,255,0.95)',
     marginTop: 4,
   },
+  tagline: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 24,
+  },
   loader: {
-    marginTop: 40,
+    marginTop: 48,
   },
 });

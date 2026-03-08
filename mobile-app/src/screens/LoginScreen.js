@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
+import { colors, borderRadius, shadows } from '../theme';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -45,14 +46,16 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <View style={styles.header}>
+        <Text style={styles.title}>ريبيلا العراق</Text>
+        <Text style={styles.subtitle}>مستحضرات تجميل على هاتفك</Text>
+      </View>
       <View style={styles.form}>
-        <Text style={styles.title}>Rybella العراق</Text>
-        <Text style={styles.subtitle}>تسجيل الدخول</Text>
-
+        <Text style={styles.formTitle}>تسجيل الدخول</Text>
         <TextInput
           style={styles.input}
           placeholder="البريد الإلكتروني"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -61,7 +64,7 @@ export default function LoginScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="كلمة المرور"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -71,6 +74,7 @@ export default function LoginScreen({ navigation }) {
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleLogin}
           disabled={loading}
+          activeOpacity={0.9}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -94,68 +98,85 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    padding: 24,
+    backgroundColor: colors.white,
   },
-  form: {
-    width: '100%',
+  header: {
+    backgroundColor: colors.primary,
+    paddingTop: 56,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#C2185B',
+    color: colors.white,
     textAlign: 'center',
-    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 18,
-    color: '#666',
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
-    marginBottom: 32,
+    marginTop: 6,
+  },
+  form: {
+    flex: 1,
+    padding: 24,
+    paddingTop: 28,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'right',
+    marginBottom: 20,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 14,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    padding: 16,
     fontSize: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     textAlign: 'right',
+    backgroundColor: colors.surface,
   },
   button: {
-    backgroundColor: '#C2185B',
+    backgroundColor: colors.primary,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     marginTop: 8,
+    ...shadows.button,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   link: {
-    marginTop: 24,
+    marginTop: 20,
     alignItems: 'center',
   },
   linkText: {
-    color: '#C2185B',
-    fontSize: 16,
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '600',
   },
   guestBtn: {
-    marginTop: 16,
+    marginTop: 14,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
   },
   guestText: {
-    color: '#666',
+    color: colors.textSecondary,
     fontSize: 15,
   },
 });

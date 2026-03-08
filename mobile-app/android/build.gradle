@@ -1,5 +1,8 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+// Fix for Expo SDK 50+ "components.release" error - use legacy publishing config
+ext.expoProvidesDefaultConfig = { false }
+
 buildscript {
     ext {
         buildToolsVersion = findProperty('android.buildToolsVersion') ?: '34.0.0'

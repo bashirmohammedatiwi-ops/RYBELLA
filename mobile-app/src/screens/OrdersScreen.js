@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ordersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { colors, borderRadius, shadows } from '../theme';
 
 const STATUS_LABELS = {
   pending: 'قيد الانتظار',
@@ -59,7 +60,7 @@ export default function OrdersScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C2185B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -67,11 +68,15 @@ export default function OrdersScreen() {
   if (!user) {
     return (
       <View style={styles.empty}>
-        <Icon name="receipt-long" size={80} color="#ccc" />
-        <Text style={styles.emptyText}>سجّل الدخول لعرض طلباتك</Text>
+        <View style={styles.emptyIconWrap}>
+          <Icon name="receipt-long" size={56} color={colors.primary} />
+        </View>
+        <Text style={styles.emptyTitle}>طلباتك</Text>
+        <Text style={styles.emptyText}>سجّل الدخول لعرض طلباتك ومتابعتها</Text>
         <TouchableOpacity
           style={styles.shopBtn}
           onPress={() => navigation.navigate('Login')}
+          activeOpacity={0.85}
         >
           <Text style={styles.shopBtnText}>تسجيل الدخول</Text>
         </TouchableOpacity>
@@ -82,11 +87,15 @@ export default function OrdersScreen() {
   if (orders.length === 0) {
     return (
       <View style={styles.empty}>
-        <Icon name="receipt-long" size={80} color="#ccc" />
-        <Text style={styles.emptyText}>لا توجد طلبات</Text>
+        <View style={styles.emptyIconWrap}>
+          <Icon name="receipt-long" size={56} color={colors.primary} />
+        </View>
+        <Text style={styles.emptyTitle}>لا توجد طلبات</Text>
+        <Text style={styles.emptyText}>عندما تطلب سنعرض طلباتك هنا</Text>
         <TouchableOpacity
           style={styles.shopBtn}
           onPress={() => navigation.navigate('Home')}
+          activeOpacity={0.85}
         >
           <Text style={styles.shopBtnText}>تسوق الآن</Text>
         </TouchableOpacity>
