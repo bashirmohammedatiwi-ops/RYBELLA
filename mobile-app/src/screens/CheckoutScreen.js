@@ -12,6 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { cartAPI, deliveryZonesAPI, couponsAPI, ordersAPI } from '../services/api';
+import { colors, borderRadius, shadows } from '../theme';
 
 export default function CheckoutScreen() {
   const navigation = useNavigation();
@@ -98,7 +99,7 @@ export default function CheckoutScreen() {
   if (loading || cart === null) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C2185B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -130,14 +131,14 @@ export default function CheckoutScreen() {
           placeholder="العنوان الكامل"
           value={address}
           onChangeText={setAddress}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
         />
         <TextInput
           style={styles.input}
           placeholder="المدينة"
           value={city}
           onChangeText={handleCityChange}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
         />
         <TextInput
           style={styles.input}
@@ -145,7 +146,7 @@ export default function CheckoutScreen() {
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
         />
         <TextInput
           style={styles.input}
@@ -153,7 +154,7 @@ export default function CheckoutScreen() {
           value={notes}
           onChangeText={setNotes}
           multiline
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
         />
       </View>
 
@@ -165,7 +166,7 @@ export default function CheckoutScreen() {
             placeholder="أدخل الكود"
             value={couponCode}
             onChangeText={setCouponCode}
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textMuted}
           />
           <TouchableOpacity
             style={styles.applyBtn}
@@ -210,7 +211,7 @@ export default function CheckoutScreen() {
         disabled={submitting}
       >
         {submitting ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.white} />
         ) : (
           <Text style={styles.placeOrderText}>تأكيد الطلب</Text>
         )}
@@ -220,36 +221,41 @@ export default function CheckoutScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  section: { backgroundColor: '#fff', padding: 16, marginBottom: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  section: { backgroundColor: colors.surface, padding: 20, marginBottom: 12, borderRadius: borderRadius.lg, marginHorizontal: 16, ...shadows.soft },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 14, color: colors.text, textAlign: 'right' },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    padding: 14,
     marginBottom: 12,
     fontSize: 16,
     textAlign: 'right',
+    color: colors.text,
   },
   couponRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  applyBtn: { backgroundColor: '#C2185B', padding: 12, borderRadius: 8 },
-  applyBtnText: { color: '#fff', fontWeight: 'bold' },
-  couponSuccess: { color: '#4CAF50', marginTop: 8 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  totalRow: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderColor: '#eee' },
-  totalLabel: { fontSize: 18, fontWeight: 'bold' },
-  total: { fontSize: 20, fontWeight: 'bold', color: '#C2185B' },
-  discount: { color: '#4CAF50' },
-  paymentNote: { fontSize: 14, color: '#666', marginTop: 8 },
+  applyBtn: { backgroundColor: colors.primary, padding: 14, borderRadius: borderRadius.md, ...shadows.soft },
+  applyBtnText: { color: colors.white, fontWeight: '700' },
+  couponSuccess: { color: colors.success, marginTop: 10, fontSize: 14 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, alignItems: 'center' },
+  totalRow: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.borderLight },
+  totalLabel: { fontSize: 18, fontWeight: '700', color: colors.text },
+  total: { fontSize: 22, fontWeight: '800', color: colors.primary },
+  discount: { color: colors.success },
+  paymentNote: { fontSize: 14, color: colors.textSecondary, marginTop: 10, textAlign: 'right' },
+  emptyText: { fontSize: 16, color: colors.textSecondary, marginBottom: 16 },
+  shopBtn: { backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 28, borderRadius: borderRadius.lg },
+  shopBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
   placeOrderBtn: {
-    backgroundColor: '#C2185B',
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    margin: 20,
+    padding: 18,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
+    ...shadows.button,
   },
-  placeOrderText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  placeOrderText: { color: colors.white, fontSize: 18, fontWeight: '700' },
   disabled: { opacity: 0.7 },
 });

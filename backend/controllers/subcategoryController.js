@@ -7,7 +7,7 @@ exports.getAll = async (req, res) => {
       SELECT s.*, c.name as category_name
       FROM subcategories s
       LEFT JOIN categories c ON s.category_id = c.id
-      ORDER BY c.name, COALESCE(s.sort_order, 999), s.name
+      ORDER BY c.name, s.name
     `;
     const params = [];
     if (categoryId) {
@@ -16,7 +16,7 @@ exports.getAll = async (req, res) => {
         FROM subcategories s
         LEFT JOIN categories c ON s.category_id = c.id
         WHERE s.category_id = ?
-        ORDER BY COALESCE(s.sort_order, 999), s.name
+        ORDER BY s.name
       `;
       params.push(categoryId);
     }

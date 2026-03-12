@@ -8,10 +8,11 @@ import {
   ActivityIndicator,
   StyleSheet,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { productsAPI, categoriesAPI, brandsAPI } from '../services/api';
+import { productsAPI, categoriesAPI, brandsAPI, subcategoriesAPI } from '../services/api';
 import { API_BASE } from '../config';
 import { colors, borderRadius, shadows } from '../theme';
 
@@ -20,16 +21,23 @@ const formatPrice = (price) => `${Number(price).toLocaleString('ar-IQ')} د.ع`;
 export default function ProductsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { categoryId, brandId } = route.params || {};
+  const { categoryId, brandId, subcategoryId } = route.params || {};
   const [products, setProducts] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterName, setFilterName] = useState('');
+  const [selectedSubId, setSelectedSubId] = useState(subcategoryId || null);
 
   useEffect(() => {
     loadProducts();
     loadFilterName();
-  }, [categoryId, brandId]);
+    if (categoryId) {
+      subcategoriesAPI.getAll({ category_id: categoryId }).then((r) => setSubcategories(r?.data || [])).catch(() => []);
+    } else {
+      setSubcategories([]);
+    }
+  }, [categoryId, brandId, selectedSubId]);
 
   const loadFilterName = async () => {
     if (categoryId) {
@@ -58,6 +66,7 @@ export default function ProductsScreen() {
       const params = {};
       if (categoryId) params.category_id = categoryId;
       if (brandId) params.brand_id = brandId;
+      if (selectedSubId) params.subcategory_id = selectedSubId;
       const { data } = await productsAPI.getAll(params);
       setProducts(data || []);
     } catch (err) {
@@ -84,10 +93,20 @@ export default function ProductsScreen() {
     return prices?.length ? Math.min(...prices) : product.min_price || 0;
   };
 
+  const isProductNew = (p) => {
+    if (p.new_until && p.new_until >= new Date().toISOString().slice(0, 10)) return true;
+    if (p.created_at) return (Date.now() - new Date(p.created_at)) / (1000 * 60 * 60 * 24) <= 30;
+    return false;
+  };
+
   const renderProduct = ({ item }) => {
     const imgUrl = getImageUrl(item);
     const minPrice = getMinPrice(item);
     const inStock = item.variants?.some((v) => v.stock > 0);
+    const badges = [];
+    if (item.is_featured) badges.push('مميز');
+    if (item.is_best_seller) badges.push('أكثر مبيعاً');
+    if (isProductNew(item)) badges.push('جديد');
 
     return (
       <TouchableOpacity
@@ -100,6 +119,11 @@ export default function ProductsScreen() {
             <Image source={{ uri: imgUrl }} style={styles.productImage} resizeMode="cover" />
           ) : (
             <View style={[styles.productImage, styles.placeholder]} />
+          )}
+          {badges.length > 0 && (
+            <View style={styles.badgesRow}>
+              <View style={styles.badge}><Text style={styles.badgeText}>{badges[0]}</Text></View>
+            </View>
           )}
           {!inStock && (
             <View style={styles.outOfStockBadge}>
@@ -116,7 +140,7 @@ export default function ProductsScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C2185B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -125,10 +149,23 @@ export default function ProductsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-forward" size={24} color="#333" />
+          <Icon name="arrow-forward" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>{filterName}</Text>
       </View>
+
+      {subcategories.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.subcatScroll} contentContainerStyle={styles.subcatRow}>
+          <TouchableOpacity style={[styles.subcatChip, !selectedSubId && styles.subcatChipActive]} onPress={() => setSelectedSubId(null)}>
+            <Text style={[styles.subcatText, !selectedSubId && styles.subcatTextActive]}>الكل</Text>
+          </TouchableOpacity>
+          {subcategories.map((s) => (
+            <TouchableOpacity key={s.id} style={[styles.subcatChip, selectedSubId === s.id && styles.subcatChipActive]} onPress={() => setSelectedSubId(s.id)}>
+              <Text style={[styles.subcatText, selectedSubId === s.id && styles.subcatTextActive]}>{s.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       <FlatList
         data={products}
@@ -138,11 +175,11 @@ export default function ProductsScreen() {
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#C2185B']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Icon name="inventory-2" size={64} color="#ccc" />
+            <Icon name="inventory-2" size={64} color={colors.textMuted} />
             <Text style={styles.emptyText}>لا توجد منتجات</Text>
           </View>
         }
@@ -152,39 +189,44 @@ export default function ProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     paddingTop: 48,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.borderLight,
   },
   backBtn: { padding: 8, marginLeft: 8 },
-  title: { flex: 1, fontSize: 20, fontWeight: 'bold', color: '#1a1a1a', textAlign: 'right' },
+  title: { flex: 1, fontSize: 20, fontWeight: '700', color: colors.text, textAlign: 'right' },
+  subcatScroll: { maxHeight: 48 },
+  subcatRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, flexDirection: 'row' },
+  subcatChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.borderLight },
+  subcatChipActive: { backgroundColor: colors.primary },
+  subcatText: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
+  subcatTextActive: { color: colors.white },
   list: { padding: 16, paddingBottom: 100 },
   row: { justifyContent: 'flex-end', gap: 12, marginBottom: 12 },
   productCard: {
     flex: 1,
     maxWidth: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...shadows.card,
   },
   imageContainer: { position: 'relative' },
   productImage: { width: '100%', aspectRatio: 1 },
-  placeholder: { backgroundColor: '#E8E8E8' },
+  placeholder: { backgroundColor: colors.borderLight },
+  badgesRow: { position: 'absolute', top: 8, right: 8 },
+  badge: { backgroundColor: colors.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
+  badgeText: { color: colors.white, fontSize: 10, fontWeight: '600' },
   outOfStockBadge: {
     position: 'absolute',
-    top: 8,
+    bottom: 8,
     right: 8,
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 8,
@@ -192,15 +234,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   outOfStockText: { color: '#fff', fontSize: 12 },
-  productName: { padding: 12, fontSize: 14, color: '#333', textAlign: 'right' },
+  productName: { padding: 12, fontSize: 14, color: colors.text, textAlign: 'right' },
   productPrice: {
     paddingHorizontal: 12,
     paddingBottom: 12,
     fontSize: 15,
     fontWeight: '700',
-    color: '#C2185B',
+    color: colors.primary,
     textAlign: 'right',
   },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
-  emptyText: { fontSize: 16, color: '#999', marginTop: 12 },
+  emptyText: { fontSize: 16, color: colors.textMuted, marginTop: 12 },
 });

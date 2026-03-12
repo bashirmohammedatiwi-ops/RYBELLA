@@ -29,7 +29,7 @@ export const authAPI = {
 };
 
 export const productsAPI = {
-  getAll: (params) => api.get('/products', { params }),
+  getAll: (params = {}) => api.get('/products', { params: { ...params, status: params.status ?? 'published' } }),
   getById: (id) => api.get(`/products/${id}`),
 };
 
@@ -39,6 +39,10 @@ export const brandsAPI = {
 
 export const categoriesAPI = {
   getAll: () => api.get('/categories'),
+};
+
+export const subcategoriesAPI = {
+  getAll: (params) => api.get('/subcategories', { params }),
 };
 
 export const bannersAPI = {
@@ -55,11 +59,13 @@ export const cartAPI = {
 
 export const ordersAPI = {
   getAll: () => api.get('/orders'),
+  getById: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
 };
 
 export const wishlistAPI = {
   getAll: () => api.get('/wishlist'),
+  getWishlist: () => api.get('/wishlist'),
   add: (productId) => api.post(`/wishlist/${productId}`),
   remove: (productId) => api.delete(`/wishlist/${productId}`),
 };

@@ -20,6 +20,7 @@ import OrdersScreen from '../screens/OrdersScreen';
 import WishlistScreen from '../screens/WishlistScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SearchScreen from '../screens/SearchScreen';
+import OrderDetailScreen from '../screens/OrderDetailScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -81,6 +82,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Checkout" component={CheckoutScreen} />
         <Stack.Screen name="Wishlist" component={WishlistScreen} />
+        <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

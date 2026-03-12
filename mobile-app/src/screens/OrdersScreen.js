@@ -108,7 +108,7 @@ export default function OrdersScreen() {
       data={orders}
       keyExtractor={(item) => String(item.id)}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#C2185B']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
       }
       renderItem={({ item }) => (
         <TouchableOpacity
@@ -135,35 +135,46 @@ export default function OrdersScreen() {
 }
 
 function getStatusColor(status) {
-  const colors = {
-    pending: '#FF9800',
-    confirmed: '#2196F3',
-    processing: '#9C27B0',
+  const statusColors = {
+    pending: colors.warning,
+    confirmed: colors.info,
+    processing: colors.primary,
     shipped: '#3F51B5',
-    delivered: '#4CAF50',
-    cancelled: '#f44336',
+    delivered: colors.success,
+    cancelled: colors.error,
   };
-  return colors[status] || '#999';
+  return statusColors[status] || colors.textMuted;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyText: { fontSize: 18, color: '#666', marginVertical: 16 },
-  shopBtn: { backgroundColor: '#C2185B', padding: 16, borderRadius: 12 },
-  shopBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  list: { padding: 16 },
-  orderCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+  emptyIconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  orderId: { fontSize: 16, fontWeight: 'bold' },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  statusText: { color: '#fff', fontSize: 12 },
-  orderDate: { fontSize: 14, color: '#666', marginBottom: 4 },
-  orderTotal: { fontSize: 18, fontWeight: 'bold', color: '#C2185B' },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  emptyText: { fontSize: 16, color: colors.textSecondary, marginVertical: 12, textAlign: 'center' },
+  shopBtn: { backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 28, borderRadius: borderRadius.lg, ...shadows.button },
+  shopBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  list: { padding: 16, paddingBottom: 100 },
+  orderCard: {
+    backgroundColor: colors.surface,
+    padding: 18,
+    borderRadius: borderRadius.lg,
+    marginBottom: 12,
+    ...shadows.card,
+  },
+  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  orderId: { fontSize: 17, fontWeight: '700', color: colors.text },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: borderRadius.sm },
+  statusText: { color: colors.white, fontSize: 12, fontWeight: '600' },
+  orderDate: { fontSize: 14, color: colors.textSecondary, marginBottom: 6, textAlign: 'right' },
+  orderTotal: { fontSize: 18, fontWeight: '800', color: colors.primary, textAlign: 'right' },
 });

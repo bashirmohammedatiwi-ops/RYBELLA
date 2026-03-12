@@ -1,19 +1,23 @@
-# Rybella Iraq - تصدير APK
+# Rybella Iraq - تصدير APK للتوزيع الخارجي
 
 ## الإعدادات الحالية
-- **السيرفر:** http://187.124.23.65
-- **API:** http://187.124.23.65/api
+- **السيرفر:** http://187.124.23.65:4000
+- **API:** http://187.124.23.65:4000/api
 
 ---
 
 ## الطريقة 1: EAS Build (موصى بها - سحابي)
 
-### المتطلبات
-- حساب Expo (مجاني): https://expo.dev/signup
-- تثبيت EAS CLI: `npm install -g eas-cli`
-- تسجيل الدخول: `eas login`
+### 1. التثبيت والتهيئة (مرة واحدة)
 
-### الأمر الكامل للتصدير
+```bash
+npm install -g eas-cli
+eas login
+```
+
+> حساب Expo مجاني: https://expo.dev/signup
+
+### 2. أوامر التصدير
 
 ```bash
 cd mobile-app
@@ -27,59 +31,81 @@ cd mobile-app
 npm run build:apk
 ```
 
-### النتيجة
-- بعد اكتمال البناء (حوالي 10–15 دقيقة)، ستظهر روابط لتحميل:
-  - **APK** (للتثبيت المباشر)
-  - **AAB** (لرفعه على Google Play)
-
----
-
-## الطريقة 2: البناء المحلي (بدون EAS)
-
-### المتطلبات
-- Android Studio
-- Java 17
-- Node.js
-
-### الأوامر
+### 3. مع تغيير عنوان السيرفر
 
 ```bash
 cd mobile-app
+EXPO_PUBLIC_API_URL=http://187.124.23.65:4000 eas build --platform android --profile production
+```
+
+### النتيجة
+- بعد اكتمال البناء (حوالي 10–15 دقيقة) على https://expo.dev ستظهر:
+  - **رابط APK** — للتثبيت المباشر على الأجهزة
+  - **رابط AAB** — لرفعه على Google Play
+
+---
+
+## الطريقة 2: البناء المحلي (بدون اتصال سحابي)
+
+### المتطلبات
+- Android Studio
+- Java 17 (أو أحدث)
+- Node.js
+- JDK 17
+
+### إذا ظهر خطأ: GradleWrapperMain ClassNotFoundException
+
+أضف أمر الإصلاح قبل البناء:
+
+```powershell
+cd "c:\Users\hp\Desktop\تطبيقات الحياة\rybella-application\mobile-app"
+node scripts/fix-gradle-wrapper.js
+```
+
+أو: `npm run fix:gradle`
+
+### الأوامر الكاملة (PowerShell)
+
+```powershell
+cd "c:\Users\hp\Desktop\تطبيقات الحياة\rybella-application\mobile-app"
 npm install
-npx expo prebuild
+npx expo prebuild --clean
+npm run fix:gradle
 cd android
-./gradlew assembleRelease
+.\gradlew.bat assembleRelease
 ```
 
-### موقع ملف APK
-```
-mobile-app/android/app/build/outputs/apk/release/app-release.apk
-```
+### موقع ملف APK الناتج
 
-### ملاحظة Windows
-استخدم بدلاً من `./gradlew`:
-```bash
-gradlew.bat assembleRelease
+```
+mobile-app\android\app\build\outputs\apk\release\app-release.apk
 ```
 
 ---
 
 ## تغيير عنوان السيرفر
-عدّل الملف `src/config.js`:
+
+عدّل `mobile-app/src/config.js`:
 ```javascript
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://YOUR_NEW_IP';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://187.124.23.65:4000';
 ```
 
 أو عند البناء:
 ```bash
-EXPO_PUBLIC_API_URL=http://your-server.com eas build --platform android
+EXPO_PUBLIC_API_URL=http://your-server.com:4000 eas build --platform android --profile production
 ```
 
 ---
 
-## توقيع APK للنشر (البناء المحلي)
-للتوزيع الخارجي، تحتاج لتوقيع التطبيق:
-1. إنشاء keystore
-2. إضافة بيانات التوقيع في `android/gradle.properties`
+## توقيع APK (للتوزيع الخارجي الرسمي)
+
+للبناء المحلي وللتوزيع خارجياً بشكل رسمي، يمكنك توقيع APK باستخدام keystore:
+
+1. إنشاء keystore:
+```bash
+keytool -genkeypair -v -storetype PKCS12 -keystore rybella.keystore -alias rybella -keyalg RSA -keysize 2048 -validity 10000
+```
+
+2. إضافة التوقيع في `android/gradle.properties` أو عبر EAS credentials.
 
 راجع: https://docs.expo.dev/build-reference/local-builds/

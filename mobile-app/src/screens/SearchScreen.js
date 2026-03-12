@@ -44,23 +44,48 @@ export default function SearchScreen({ navigation }) {
   };
 
   const formatPrice = (price) => `${Number(price).toLocaleString('ar-IQ')} د.ع`;
+  const getImageUrl = (p) => {
+    const img = p.main_image || p.images?.[0] || p.variants?.[0]?.image;
+    return img ? `${API_BASE}${img}` : null;
+  };
+  const getMinPrice = (p) => {
+    const prices = p.variants?.map((v) => parseFloat(v.price)).filter(Boolean);
+    return prices?.length ? Math.min(...prices) : p.min_price || 0;
+  };
+  const isProductNew = (p) => {
+    if (p.new_until && p.new_until >= new Date().toISOString().slice(0, 10)) return true;
+    if (p.created_at) return (Date.now() - new Date(p.created_at)) / (1000 * 60 * 60 * 24) <= 30;
+    return false;
+  };
 
   const renderProduct = ({ item }) => {
-    const img = item.main_image || (item.images && item.images[0]) || (item.variants?.[0]?.image);
-    const minPrice = item.min_price || item.variants?.[0]?.price;
+    const imgUrl = getImageUrl(item);
+    const minPrice = getMinPrice(item);
+    const badges = [];
+    if (item.is_featured) badges.push('مميز');
+    if (item.is_best_seller) badges.push('أكثر مبيعاً');
+    if (isProductNew(item)) badges.push('جديد');
     return (
       <TouchableOpacity
         style={styles.productCard}
         onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
         activeOpacity={0.8}
       >
-        <Image
-          source={{ uri: img ? `${API_BASE}${img}` : 'https://via.placeholder.com/100' }}
-          style={styles.productImage}
-        />
+        <View style={styles.imageWrap}>
+          {imgUrl ? (
+            <Image source={{ uri: imgUrl }} style={styles.productImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.productImage, styles.placeholderImg]} />
+          )}
+          {badges.length > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badges[0]}</Text>
+            </View>
+          )}
+        </View>
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <Text style={styles.productPrice}>{minPrice ? formatPrice(minPrice) : '-'}</Text>
+          <Text style={styles.productPrice}>{formatPrice(minPrice)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -82,7 +107,7 @@ export default function SearchScreen({ navigation }) {
         />
       </View>
       {loading ? (
-        <ActivityIndicator size="large" color="#C2185B" style={styles.loader} />
+        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
       ) : (
         <FlatList
           data={results}
@@ -121,17 +146,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginHorizontal: 8,
   },
-  list: { padding: 16 },
+  list: { padding: 16, paddingBottom: 100 },
   productCard: {
     flexDirection: 'row',
-    padding: 14,
-    marginBottom: 10,
+    padding: 12,
+    marginBottom: 12,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
+    alignItems: 'center',
     ...shadows.card,
   },
-  productImage: { width: 80, height: 80, borderRadius: borderRadius.md },
-  productInfo: { flex: 1, marginLeft: 14, justifyContent: 'center' },
+  imageWrap: { position: 'relative' },
+  productImage: { width: 88, height: 88, borderRadius: borderRadius.md },
+  placeholderImg: { backgroundColor: colors.borderLight },
+  badge: { position: 'absolute', top: 6, right: 6, backgroundColor: colors.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  badgeText: { color: colors.white, fontSize: 10, fontWeight: '600' },
+  productInfo: { flex: 1, marginRight: 14, justifyContent: 'center' },
   productName: { fontSize: 16, fontWeight: '600', color: colors.text },
   productPrice: { fontSize: 15, color: colors.primary, marginTop: 4, fontWeight: '700' },
   loader: { marginTop: 40 },

@@ -49,23 +49,23 @@ export default function ProfileScreen() {
           style={styles.menuItem}
           onPress={() => navigation.navigate('Orders')}
         >
-          <Icon name="receipt-long" size={24} color="#333" />
+          <Icon name="receipt-long" size={24} color={colors.primary} />
           <Text style={styles.menuText}>طلباتي</Text>
-          <Icon name="chevron-right" size={24} color="#999" />
+          <Icon name="chevron-right" size={24} color={colors.textMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => navigation.navigate('Wishlist')}
         >
-          <Icon name="favorite" size={24} color="#333" />
+          <Icon name="favorite" size={24} color={colors.primary} />
           <Text style={styles.menuText}>قائمة الأمنيات</Text>
-          <Icon name="chevron-right" size={24} color="#999" />
+          <Icon name="chevron-right" size={24} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Icon name="logout" size={24} color="#f44336" />
+        <Icon name="logout" size={24} color={colors.error} />
         <Text style={styles.logoutText}>تسجيل الخروج</Text>
       </TouchableOpacity>
     </View>

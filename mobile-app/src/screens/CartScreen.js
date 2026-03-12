@@ -155,7 +155,7 @@ export default function CartScreen() {
               </View>
             </View>
             <TouchableOpacity onPress={() => handleRemove(item.id)}>
-              <Icon name="delete" size={24} color="#f44336" />
+              <Icon name="delete" size={24} color={colors.error} />
             </TouchableOpacity>
           </View>
         )}

@@ -40,6 +40,7 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [products, setProducts] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [banners, setBanners] = useState([]);
   const [search, setSearch] = useState('');
@@ -51,12 +52,14 @@ export default function HomeScreen({ navigation }) {
 
   const loadData = async () => {
     try {
-      const [productsRes, brandsRes, bannersRes] = await Promise.all([
+      const [productsRes, featuredRes, brandsRes, bannersRes] = await Promise.all([
         productsAPI.getAll(),
+        productsAPI.getAll({ featured: '1' }),
         brandsAPI.getAll(),
         bannersAPI.getAll().catch(() => ({ data: [] })),
       ]);
       setProducts(productsRes.data || []);
+      setFeaturedProducts(featuredRes.data || []);
       setBrands(brandsRes.data || []);
       setBanners(bannersRes.data || []);
     } catch (err) {
@@ -82,10 +85,23 @@ export default function HomeScreen({ navigation }) {
     return prices?.length ? Math.min(...prices) : 0;
   };
 
+  const isProductNew = (p) => {
+    if (p.new_until && p.new_until >= new Date().toISOString().slice(0, 10)) return true;
+    if (p.created_at) {
+      const days = (Date.now() - new Date(p.created_at)) / (1000 * 60 * 60 * 24);
+      return days <= 30;
+    }
+    return false;
+  };
+
   const renderProduct = ({ item }) => {
     const imgUrl = getImageUrl(item);
     const minPrice = getMinPrice(item);
     const inStock = item.variants?.some((v) => v.stock > 0);
+    const badges = [];
+    if (item.is_featured) badges.push({ label: 'مميز', style: styles.badgeFeatured });
+    if (item.is_best_seller) badges.push({ label: 'أكثر مبيعاً', style: styles.badgeBestSeller });
+    if (isProductNew(item)) badges.push({ label: 'جديد', style: styles.badgeNew });
 
     return (
       <TouchableOpacity
@@ -99,6 +115,13 @@ export default function HomeScreen({ navigation }) {
           ) : (
             <View style={[styles.productImage, styles.placeholderImage]} />
           )}
+          <View style={styles.badgesRow}>
+            {badges.slice(0, 2).map((b, i) => (
+              <View key={i} style={[styles.badge, b.style]}>
+                <Text style={styles.badgeText}>{b.label}</Text>
+              </View>
+            ))}
+          </View>
           {!inStock && (
             <View style={styles.outOfStockBadge}>
               <Text style={styles.outOfStockText}>نفذ</Text>
@@ -111,8 +134,10 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  const bestSelling = products.slice(0, 8);
-  const newArrivals = [...products].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 8);
+  const bestSelling = products.filter((p) => p.is_best_seller).slice(0, 8);
+  const displayBestSelling = bestSelling.length > 0 ? bestSelling : products.slice(0, 8);
+  const newArrivals = [...products].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 8);
+  const displayFeatured = featuredProducts.length > 0 ? featuredProducts.slice(0, 8) : displayBestSelling;
 
   if (loading) {
     return (
@@ -189,9 +214,9 @@ export default function HomeScreen({ navigation }) {
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>الأكثر مبيعاً</Text>
+          <Text style={styles.sectionTitle}>المنتجات المميزة</Text>
           <FlatList
-            data={bestSelling}
+            data={displayFeatured}
             renderItem={renderProduct}
             keyExtractor={(item) => String(item.id)}
             horizontal
@@ -211,6 +236,33 @@ export default function HomeScreen({ navigation }) {
           contentContainerStyle={styles.horizontalList}
         />
       </View>
+
+      {brands.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>العلامات التجارية</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Brands')}>
+              <Text style={styles.seeAll}>عرض الكل</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandsRow}>
+            {brands.slice(0, 8).map((b) => (
+              <TouchableOpacity
+                key={b.id}
+                style={styles.brandCard}
+                onPress={() => navigation.navigate('Products', { brandId: b.id })}
+              >
+                {b.logo ? (
+                  <Image source={{ uri: `${API_BASE}${b.logo}` }} style={styles.brandLogo} resizeMode="contain" />
+                ) : (
+                  <View style={[styles.brandLogo, styles.placeholderImage]} />
+                )}
+                <Text style={styles.brandName} numberOfLines={1}>{b.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -312,9 +364,15 @@ const styles = StyleSheet.create({
   productImageContainer: { position: 'relative' },
   productImage: { width: '100%', height: 165 },
   placeholderImage: { backgroundColor: colors.borderLight },
+  badgesRow: { position: 'absolute', top: 8, right: 8, flexDirection: 'column', gap: 4 },
+  badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
+  badgeFeatured: { backgroundColor: '#9C27B0' },
+  badgeBestSeller: { backgroundColor: '#2E7D32' },
+  badgeNew: { backgroundColor: '#2196F3' },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '600' },
   outOfStockBadge: {
     position: 'absolute',
-    top: 8,
+    bottom: 8,
     right: 8,
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 8,
@@ -331,4 +389,17 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: 'right',
   },
+  brandsRow: { paddingRight: 4, gap: 12 },
+  brandCard: {
+    width: 80,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: 12,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...shadows.soft,
+  },
+  brandLogo: { width: 56, height: 56, borderRadius: 8 },
+  brandName: { fontSize: 12, marginTop: 6, color: colors.text, fontWeight: '600', textAlign: 'center' },
 });

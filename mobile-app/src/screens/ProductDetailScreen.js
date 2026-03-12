@@ -32,7 +32,7 @@ export default function ProductDetailScreen() {
 
   useEffect(() => {
     loadProduct();
-  }, [productId]);
+  }, [productId, user]);
 
   const loadProduct = async () => {
     try {
@@ -42,6 +42,15 @@ export default function ProductDetailScreen() {
         setSelectedVariant(data.variants.find((v) => v.stock > 0) || data.variants[0]);
       } else {
         setSelectedVariant(null);
+      }
+      if (user) {
+        try {
+          const { data: list } = await wishlistAPI.getWishlist();
+          const ids = (list || []).map((p) => p.id);
+          setInWishlist(ids.includes(parseInt(productId, 10)));
+        } catch (_) { /* ignore */ }
+      } else {
+        setInWishlist(false);
       }
     } catch (err) {
       console.error(err);
@@ -109,6 +118,12 @@ export default function ProductDetailScreen() {
   const hasVariants = product.variants?.length > 0;
   const canAddToCart = hasVariants && selectedVariant && selectedVariant.stock > 0;
 
+  const badges = [];
+  if (product.is_featured) badges.push('مميز');
+  if (product.is_best_seller) badges.push('أكثر مبيعاً');
+  if (product.new_until && product.new_until >= new Date().toISOString().slice(0, 10)) badges.push('جديد');
+  else if (product.created_at && (Date.now() - new Date(product.created_at)) / (1000 * 60 * 60 * 24) <= 30) badges.push('جديد');
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -136,6 +151,15 @@ export default function ProductDetailScreen() {
       )}
 
       <View style={styles.content}>
+        {badges.length > 0 && (
+          <View style={styles.badgesRow}>
+            {badges.map((b, i) => (
+              <View key={i} style={styles.badge}>
+                <Text style={styles.badgeText}>{b}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         <Text style={styles.brand}>{product.brand_name}</Text>
         <Text style={styles.name}>{product.name}</Text>
         {product.description && (
@@ -205,7 +229,7 @@ export default function ProductDetailScreen() {
 
         {!hasVariants && (
           <View style={styles.noVariants}>
-            <Icon name="info-outline" size={32} color="#888" />
+            <Icon name="info-outline" size={32} color={colors.textMuted} />
             <Text style={styles.noVariantsText}>سيتوفر قريباً - تواصل معنا للاستفسار</Text>
           </View>
         )}
@@ -278,17 +302,20 @@ const styles = StyleSheet.create({
   variantOutOfStock: { opacity: 0.5 },
   colorDot: { width: 20, height: 20, borderRadius: 10, marginRight: 8 },
   variantName: { fontSize: 14, maxWidth: 80 },
-  outOfStock: { fontSize: 12, color: '#f44336', marginRight: 4 },
-  noVariants: { padding: 16, backgroundColor: '#FFF3E0', borderRadius: 12, marginBottom: 16 },
-  noVariantsText: { color: '#E65100', textAlign: 'right', fontSize: 14 },
+  outOfStock: { fontSize: 12, color: colors.error, marginRight: 4 },
+  badgesRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  badge: { backgroundColor: colors.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  badgeText: { color: colors.white, fontSize: 12, fontWeight: '600' },
+  noVariants: { padding: 16, backgroundColor: colors.primarySoft, borderRadius: borderRadius.md, marginBottom: 16 },
+  noVariantsText: { color: colors.primaryDark, textAlign: 'right', fontSize: 14 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   price: { fontSize: 26, fontWeight: '800', color: colors.primary },
   stock: { fontSize: 14, color: colors.success, fontWeight: '600' },
   reviewsSection: { marginBottom: 24 },
-  reviewItem: { marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderColor: '#eee' },
-  reviewUser: { fontWeight: 'bold', marginBottom: 4 },
-  reviewRating: { color: '#FFC107', marginBottom: 4 },
-  reviewComment: { color: '#666', fontSize: 14 },
+  reviewItem: { marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderColor: colors.borderLight },
+  reviewUser: { fontWeight: 'bold', marginBottom: 4, color: colors.text },
+  reviewRating: { color: colors.accent, marginBottom: 4 },
+  reviewComment: { color: colors.textSecondary, fontSize: 14 },
   quantityRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   quantityLabel: { fontSize: 16, marginRight: 16 },
   quantityControls: { flexDirection: 'row', alignItems: 'center' },

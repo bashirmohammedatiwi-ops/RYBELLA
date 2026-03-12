@@ -40,7 +40,7 @@ exports.getAll = async (req, res) => {
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
-    query += ' ORDER BY COALESCE(s.sort_order, 999), COALESCE(b.sort_order, 999), COALESCE(p.sort_order, 999), p.name';
+    query += ' ORDER BY p.name';
 
     const [products] = await db.query(query, params);
     let filteredProducts = products;

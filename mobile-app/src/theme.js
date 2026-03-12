@@ -1,23 +1,24 @@
 /**
- * Rybella - Fashion Store inspired theme
- * ألوان وتصميم مستوحى من Fashion Store - نسخة محسّنة
+ * Rybella Iraq - ثيم مميز لمتجر التجميل
  */
 export const colors = {
-  primary: '#E91E63',
-  primaryDark: '#AD1457',
-  primaryLight: '#F8BBD9',
-  primarySoft: '#FCE4EC',
+  primary: '#6B4FA3',
+  primaryDark: '#4A3575',
+  primaryLight: '#8B6BB8',
+  primarySoft: '#EDE7F6',
+  accent: '#E8A87C',
   white: '#FFFFFF',
-  background: '#F5F5F5',
+  background: '#F8F7FC',
   surface: '#FFFFFF',
-  text: '#1A1A1A',
-  textSecondary: '#616161',
-  textMuted: '#9E9E9E',
-  border: '#E8E8E8',
-  borderLight: '#F0F0F0',
+  text: '#1A1A2E',
+  textSecondary: '#5C5C6D',
+  textMuted: '#9E9EAB',
+  border: '#E8E6F0',
+  borderLight: '#F0EEF5',
   success: '#2E7D32',
   error: '#C62828',
   warning: '#EF6C00',
+  info: '#2196F3',
 };
 
 export const spacing = {
@@ -57,14 +58,14 @@ export const shadows = {
     elevation: 4,
   },
   cardHover: {
-    shadowColor: '#E91E63',
+    shadowColor: '#6B4FA3',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 6,
   },
   button: {
-    shadowColor: '#E91E63',
+    shadowColor: '#6B4FA3',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,

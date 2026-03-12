@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { brandsAPI } from '../services/api';
 import { API_BASE } from '../config';
 import { colors, borderRadius, shadows } from '../theme';
@@ -54,14 +55,19 @@ export default function BrandsScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C2185B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>العلامات التجارية</Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Icon name="arrow-forward" size={24} color={colors.white} />
+        </TouchableOpacity>
+        <Text style={styles.title}>العلامات التجارية</Text>
+      </View>
       <FlatList
         data={brands}
         renderItem={renderBrand}
@@ -78,14 +84,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.primary,
     paddingTop: 48,
     paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'right', color: colors.white },
+  backBtn: { padding: 8, marginLeft: 8 },
+  title: { flex: 1, fontSize: 22, fontWeight: '700', textAlign: 'right', color: colors.white },
   list: { padding: 16, paddingBottom: 100 },
   row: { justifyContent: 'flex-end', gap: 12, marginBottom: 12 },
   card: {

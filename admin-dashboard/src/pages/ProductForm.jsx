@@ -61,7 +61,9 @@ export default function ProductForm() {
 
   useEffect(() => {
     if (form.category_id) {
-      subcategoriesAPI.getAll({ category_id: form.category_id }).then((r) => setSubcategories(r.data || []));
+      subcategoriesAPI.getAll({ category_id: form.category_id })
+        .then((r) => setSubcategories(r.data || []))
+        .catch(() => setSubcategories([]));
     } else {
       setSubcategories([]);
       setForm((f) => ({ ...f, subcategory_id: '' }));
@@ -239,7 +241,7 @@ export default function ProductForm() {
                 ))}
               </Select>
             </FormControl>
-            {form.category_id && subcategories.length > 0 && (
+            {form.category_id && (
               <FormControl fullWidth>
                 <InputLabel>الفئة الثانوية (اختياري)</InputLabel>
                 <Select value={form.subcategory_id} label="الفئة الثانوية (اختياري)" onChange={(e) => setForm({ ...form, subcategory_id: e.target.value })}>
