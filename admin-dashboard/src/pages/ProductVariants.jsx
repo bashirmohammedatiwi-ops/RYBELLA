@@ -30,7 +30,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { productsAPI, variantsAPI } from '../services/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { IMG_BASE } from '../services/api';
+import ImageDisplay from '../components/ImageDisplay';
 
 export default function ProductVariants() {
   const { id } = useParams();
@@ -110,10 +111,10 @@ export default function ProductVariants() {
 
       if (editingVariant) {
         await variantsAPI.update(editingVariant.id, form, imageFile ? formData : null);
-        setMessage({ type: 'success', text: 'تم تحديث الظل بنجاح' });
+        setMessage({ type: 'success', text: 'تم تحديث العنصر بنجاح' });
       } else {
         await variantsAPI.create(id, form, formData);
-        setMessage({ type: 'success', text: 'تم إضافة الظل بنجاح' });
+        setMessage({ type: 'success', text: 'تم إضافة العنصر بنجاح' });
       }
       handleCloseDialog();
       loadProduct();
@@ -123,7 +124,7 @@ export default function ProductVariants() {
   };
 
   const handleDelete = async (variantId) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذا الظل؟')) return;
+    if (!window.confirm('هل أنت متأكد من حذف هذا العنصر؟')) return;
     try {
       await variantsAPI.delete(variantId);
       setMessage({ type: 'success', text: 'تم الحذف بنجاح' });
@@ -142,9 +143,9 @@ export default function ProductVariants() {
         <IconButton onClick={() => navigate('/products')}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h5">ظلال المنتج: {product.name}</Typography>
+        <Typography variant="h5">العناصر الإضافية للمنتج: {product.name}</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-          إضافة ظل
+          إضافة عنصر إضافي
         </Button>
       </Box>
 
@@ -159,7 +160,7 @@ export default function ProductVariants() {
           <TableHead>
             <TableRow>
               <TableCell>الصورة</TableCell>
-              <TableCell>اسم الظل</TableCell>
+              <TableCell>اسم العنصر / اللون</TableCell>
               <TableCell>اللون</TableCell>
               <TableCell>الباركود</TableCell>
               <TableCell>السعر (د.ع)</TableCell>
@@ -172,11 +173,7 @@ export default function ProductVariants() {
             {(product.variants || []).map((v) => (
               <TableRow key={v.id}>
                 <TableCell>
-                  {v.image ? (
-                    <Box component="img" src={`${API_URL.replace('/api', '')}${v.image}`} sx={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 1 }} />
-                  ) : (
-                    <Box sx={{ width: 50, height: 50, bgcolor: 'grey.200', borderRadius: 1 }} />
-                  )}
+                  <ImageDisplay src={v.image} size="md" fit="cover" />
                 </TableCell>
                 <TableCell>{v.shade_name}</TableCell>
                 <TableCell>
@@ -206,10 +203,10 @@ export default function ProductVariants() {
       </TableContainer>
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingVariant ? 'تعديل الظل' : 'إضافة ظل جديد'}</DialogTitle>
+        <DialogTitle>{editingVariant ? 'تعديل العنصر الإضافي' : 'إضافة عنصر إضافي جديد'}</DialogTitle>
         <DialogContent>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
-            <TextField label="اسم الظل" value={form.shade_name} onChange={(e) => setForm({ ...form, shade_name: e.target.value })} required fullWidth />
+            <TextField label="اسم العنصر / اللون" value={form.shade_name} onChange={(e) => setForm({ ...form, shade_name: e.target.value })} required fullWidth />
             <TextField label="كود اللون" type="color" value={form.color_code} onChange={(e) => setForm({ ...form, color_code: e.target.value })} sx={{ width: 80, height: 40 }} />
             <TextField label="كود اللون (hex)" value={form.color_code} onChange={(e) => setForm({ ...form, color_code: e.target.value })} fullWidth />
             <TextField label="الباركود *" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} required fullWidth helperText="مطلوب لكل منتج حتى ذو اللون الواحد" />
@@ -217,10 +214,23 @@ export default function ProductVariants() {
             <TextField label="السعر" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required fullWidth />
             <TextField label="المخزون" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} fullWidth />
             <TextField label="تاريخ الانتهاء" type="date" value={form.expiration_date} onChange={(e) => setForm({ ...form, expiration_date: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
-            <Button type="button" variant="outlined" component="label">
-              {imageFile ? imageFile.name : 'اختر صورة'}
-              <input type="file" hidden accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
-            </Button>
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>صورة العنصر</Typography>
+              {(editingVariant?.image || imageFile) && (
+                <Box sx={{ mb: 1 }}>
+                  <Box
+                    component="img"
+                    src={imageFile ? URL.createObjectURL(imageFile) : `${IMG_BASE}${editingVariant?.image}`}
+                    alt=""
+                    sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee' }}
+                  />
+                </Box>
+              )}
+              <Button type="button" variant="outlined" component="label">
+                {imageFile ? imageFile.name : editingVariant?.image ? 'تغيير الصورة' : 'اختر صورة'}
+                <input type="file" hidden accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
+              </Button>
+            </Box>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button onClick={handleCloseDialog}>إلغاء</Button>
               <Button type="submit" variant="contained">

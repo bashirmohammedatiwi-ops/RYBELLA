@@ -91,13 +91,20 @@ export default function ProductDetailScreen() {
   }
 
   const getImageUrl = (path) => (path ? `${API_BASE}${path}` : null);
-  const mainImage = selectedVariant?.image
-    ? getImageUrl(selectedVariant.image)
-    : product.main_image
-    ? getImageUrl(product.main_image)
-    : product.images?.[0]
-    ? getImageUrl(product.images[0])
-    : null;
+
+  // تجميع كل الصور: صورة العنصر المختار + الرئيسية + الإضافية (بدون تكرار)
+  const allImages = [];
+  const seen = new Set();
+  const addImg = (path) => {
+    if (path && !seen.has(path)) {
+      seen.add(path);
+      allImages.push(getImageUrl(path));
+    }
+  };
+  if (selectedVariant?.image) addImg(selectedVariant.image);
+  if (product.main_image) addImg(product.main_image);
+  (product.images || []).forEach(addImg);
+  const mainImage = allImages[0] || null;
 
   const hasVariants = product.variants?.length > 0;
   const canAddToCart = hasVariants && selectedVariant && selectedVariant.stock > 0;
@@ -113,8 +120,19 @@ export default function ProductDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {mainImage && (
-        <Image source={{ uri: mainImage }} style={styles.mainImage} resizeMode="contain" />
+      {allImages.length > 0 && (
+        <FlatList
+          data={allImages}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(_, i) => String(i)}
+          renderItem={({ item }) => (
+            <View style={styles.imageSlide}>
+              <Image source={{ uri: item }} style={styles.mainImage} resizeMode="contain" />
+            </View>
+          )}
+        />
       )}
 
       <View style={styles.content}>
@@ -238,6 +256,7 @@ const styles = StyleSheet.create({
     ...shadows.soft,
   },
   headerBtn: { padding: 8 },
+  imageSlide: { width, height: width },
   mainImage: { width, height: width, backgroundColor: colors.borderLight, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' },
   content: { padding: 20, backgroundColor: colors.white, marginTop: -20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   brand: { fontSize: 13, color: colors.textMuted, marginBottom: 4, fontWeight: '600' },

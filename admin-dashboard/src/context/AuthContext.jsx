@@ -2,11 +2,20 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
+// محلياً: تخطي تسجيل الدخول - الدخول مباشرة للوحة التحكم
+const SKIP_AUTH = import.meta.env.DEV;
+const FAKE_ADMIN = { id: 1, name: 'مدير النظام', email: 'admin@rybella.iq', role: 'admin' };
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (SKIP_AUTH) {
+      setUser(FAKE_ADMIN);
+      setLoading(false);
+      return;
+    }
     const stored = localStorage.getItem('user');
     if (stored) {
       try {

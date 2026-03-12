@@ -38,17 +38,44 @@ export default function Login() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: '#f5f5f5',
+        bgcolor: 'grey.50',
         direction: 'rtl',
+        p: 2,
       }}
     >
-      <Paper sx={{ p: 4, maxWidth: 400, width: '100%' }}>
-        <Typography variant="h4" sx={{ mb: 3, textAlign: 'center', color: '#880e4f', fontWeight: 700 }}>
-          Rybella Iraq
-        </Typography>
-        <Typography variant="body1" sx={{ mb: 3, textAlign: 'center', color: '#666' }}>
-          لوحة تحكم المسؤول
-        </Typography>
+      <Paper
+        sx={{
+          p: 4,
+          maxWidth: 420,
+          width: '100%',
+          borderRadius: 4,
+          boxShadow: '0 8px 40px rgba(0,0,0,0.08)',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, mb: 3 }}>
+          <Box
+            sx={{
+              width: 52,
+              height: 52,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #5e35b1 0%, #7e57c2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 800,
+              fontSize: '1.5rem',
+            }}
+          >
+            R
+          </Box>
+          <Box>
+            <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700 }}>
+              Rybella Iraq
+            </Typography>
+            <Typography variant="body2" color="text.secondary">لوحة تحكم المسؤول</Typography>
+          </Box>
+        </Box>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
@@ -78,11 +105,7 @@ export default function Login() {
             fullWidth
             variant="contained"
             disabled={loading}
-            sx={{
-              py: 1.5,
-              bgcolor: '#880e4f',
-              '&:hover': { bgcolor: '#ad1457' },
-            }}
+            sx={{ py: 1.5, borderRadius: 2 }}
           >
             {loading ? 'جاري الدخول...' : 'تسجيل الدخول'}
           </Button>

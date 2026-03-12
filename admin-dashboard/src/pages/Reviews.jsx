@@ -24,7 +24,7 @@ export default function Reviews() {
     const load = async () => {
       try {
         const { data } = await reviewsAPI.getAll()
-        setReviews(data)
+        setReviews(Array.isArray(data) ? data : [])
       } catch (err) {
         console.error(err)
       } finally {

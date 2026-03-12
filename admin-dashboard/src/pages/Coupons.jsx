@@ -32,7 +32,7 @@ export default function Coupons() {
   const loadCoupons = async () => {
     try {
       const { data } = await couponsAPI.getAll()
-      setCoupons(data)
+      setCoupons(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err.response?.data?.message || 'فشل تحميل الكوبونات')
     } finally {

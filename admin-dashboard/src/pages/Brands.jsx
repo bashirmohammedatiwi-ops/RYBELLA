@@ -21,12 +21,13 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import { brandsAPI } from '../services/api';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import SortableTableRow, { DragHandleCell } from '../components/SortableTableRow';
+import ImageDisplay from '../components/ImageDisplay';
 
 export default function Brands() {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [draggedIndex, setDraggedIndex] = useState(-1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
   const [form, setForm] = useState({ name: '' });
@@ -40,9 +41,9 @@ export default function Brands() {
   const loadBrands = async () => {
     try {
       const { data } = await brandsAPI.getAll();
-      setBrands(data);
+      setBrands(Array.isArray(data) ? data : []);
     } catch (err) {
-      setMessage({ type: 'error', text: 'فشل تحميل العلامات التجارية' });
+      setMessage({ type: 'error', text: 'فشل تحميل العلامات التجارية. تأكد من تشغيل Backend (نافذة Rybella Backend) على المنفذ 5000 ثم اضغط إعادة المحاولة' });
     } finally {
       setLoading(false);
     }
@@ -51,10 +52,10 @@ export default function Brands() {
   const handleOpenDialog = (brand = null) => {
     if (brand) {
       setEditingBrand(brand);
-      setForm({ name: brand.name });
+      setForm({ name: brand.name, sort_order: brand.sort_order ?? '' });
     } else {
       setEditingBrand(null);
-      setForm({ name: '' });
+      setForm({ name: '', sort_order: '' });
     }
     setLogoFile(null);
     setDialogOpen(true);
@@ -65,6 +66,7 @@ export default function Brands() {
     try {
       const formData = new FormData();
       formData.append('name', form.name);
+      if (form.sort_order !== '' && form.sort_order != null) formData.append('sort_order', form.sort_order);
       if (logoFile) formData.append('logo', logoFile);
 
       if (editingBrand) {
@@ -81,6 +83,21 @@ export default function Brands() {
     }
   };
 
+  const handleReorder = async (fromIndex, toIndex) => {
+    const reordered = [...brands];
+    const [removed] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, removed);
+    const items = reordered.map((b, i) => ({ id: b.id, sort_order: i }));
+    try {
+      await brandsAPI.reorder(items);
+      setBrands(reordered.map((b, i) => ({ ...b, sort_order: i })));
+      setMessage({ type: 'success', text: 'تم تحديث الترتيب بنجاح' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'فشل تحديث الترتيب' });
+    }
+    setDraggedIndex(-1);
+  };
+
   if (loading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
 
   return (
@@ -93,29 +110,42 @@ export default function Brands() {
       </Box>
 
       {message.text && (
-        <Alert severity={message.type} onClose={() => setMessage({ type: '', text: '' })} sx={{ mb: 2 }}>
+        <Alert
+          severity={message.type}
+          onClose={() => setMessage({ type: '', text: '' })}
+          sx={{ mb: 2 }}
+          action={message.type === 'error' && <Button size="small" onClick={loadBrands}>إعادة المحاولة</Button>}
+        >
           {message.text}
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell sx={{ width: 40 }}></TableCell>
+              <TableCell sx={{ width: 60 }}>التسلسل</TableCell>
               <TableCell>الشعار</TableCell>
               <TableCell>الاسم</TableCell>
               <TableCell align="left">إجراءات</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {brands.map((b) => (
-              <TableRow key={b.id}>
+            {brands.map((b, i) => (
+              <SortableTableRow
+                key={b.id}
+                item={b}
+                index={i}
+                isDragging={draggedIndex === i}
+                onDragStart={setDraggedIndex}
+                onDrop={handleReorder}
+                onDragEnd={() => setDraggedIndex(-1)}
+              >
+                <DragHandleCell />
+                <TableCell>{b.sort_order ?? i}</TableCell>
                 <TableCell>
-                  {b.logo ? (
-                    <Box component="img" src={`${API_URL.replace('/api', '')}${b.logo}`} sx={{ width: 50, height: 50, objectFit: 'contain' }} />
-                  ) : (
-                    <Box sx={{ width: 50, height: 50, bgcolor: 'grey.200' }} />
-                  )}
+                  <ImageDisplay src={b.logo} size="md" fit="contain" />
                 </TableCell>
                 <TableCell>{b.name}</TableCell>
                 <TableCell align="left">
@@ -123,21 +153,32 @@ export default function Brands() {
                     <EditIcon />
                   </IconButton>
                 </TableCell>
-              </TableRow>
+              </SortableTableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingBrand ? 'تعديل العلامة التجارية' : 'إضافة علامة تجارية'}</DialogTitle>
-        <DialogContent>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'grey.200' }}>{editingBrand ? 'تعديل العلامة التجارية' : 'إضافة علامة تجارية'}</DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
-            <TextField label="الاسم" value={form.name} onChange={(e) => setForm({ name: e.target.value })} required fullWidth />
-            <Button variant="outlined" component="label">
-              {logoFile ? logoFile.name : 'اختر الشعار'}
-              <input type="file" hidden accept="image/*" onChange={(e) => setLogoFile(e.target.files[0])} />
-            </Button>
+            <TextField label="الاسم" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required fullWidth />
+            <TextField label="التسلسل" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} fullWidth placeholder="رقم أقل = ظهور أولاً" inputProps={{ min: 0 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              {(editingBrand?.logo || logoFile) && (
+                <ImageDisplay
+                  src={logoFile ? URL.createObjectURL(logoFile) : editingBrand?.logo}
+                  size="lg"
+                  fit="contain"
+                  baseUrl={logoFile ? '' : undefined}
+                />
+              )}
+              <Button variant="outlined" component="label">
+                {logoFile ? logoFile.name : editingBrand?.logo ? 'تغيير الشعار' : 'اختر الشعار'}
+                <input type="file" hidden accept="image/*" onChange={(e) => setLogoFile(e.target.files[0])} />
+              </Button>
+            </Box>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button onClick={() => setDialogOpen(false)}>إلغاء</Button>
               <Button type="submit" variant="contained">حفظ</Button>

@@ -38,19 +38,33 @@ CREATE TABLE categories (
     INDEX idx_name (name)
 );
 
+-- Subcategories (linked to main category)
+CREATE TABLE subcategories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    image VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    INDEX idx_category (category_id)
+);
+
 -- Products table
 CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     brand_id INT NOT NULL,
     category_id INT NOT NULL,
+    subcategory_id INT NULL,
     description TEXT,
     main_image VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE SET NULL,
     INDEX idx_brand (brand_id),
     INDEX idx_category (category_id),
+    INDEX idx_subcategory (subcategory_id),
     FULLTEXT idx_search (name, description)
 );
 

@@ -1,13 +1,19 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
+
+// التأكد من وجود مجلد uploads محلياً
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const variantRoutes = require('./routes/variants');
 const brandRoutes = require('./routes/brands');
 const categoryRoutes = require('./routes/categories');
+const subcategoryRoutes = require('./routes/subcategories');
 const orderRoutes = require('./routes/orders');
 const reviewRoutes = require('./routes/reviews');
 const couponRoutes = require('./routes/coupons');
@@ -20,7 +26,7 @@ const notificationRoutes = require('./routes/notifications');
 const bannerRoutes = require('./routes/banners');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT, 10) || 5000;
 
 // Middleware
 app.use(cors());
@@ -36,6 +42,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/variants', variantRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/subcategories', subcategoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/coupons', couponRoutes);
@@ -78,8 +85,18 @@ app.use((err, req, res, next) => {
   });
 });
 
+// بدء التشغيل فوراً (قاعدة البيانات تُحمّل عند أول طلب)
 app.listen(PORT, () => {
-  console.log(`Rybella Iraq API running on port ${PORT}`);
+  console.log(`Rybella Iraq API running on http://localhost:${PORT}`);
+  console.log(`Health: http://localhost:${PORT}/api/health`);
+  require('./config/database').query('SELECT 1').catch((e) => console.error('DB init:', e.message));
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error('\nالمنفذ 5000 مشغول. أغلق نافذة Backend السابقة أو نفّذ:');
+    console.error('  netstat -ano | findstr :5000');
+    console.error('  taskkill /F /PID <الرقم_المعروض>\n');
+  }
+  throw err;
 });
 
 module.exports = app;

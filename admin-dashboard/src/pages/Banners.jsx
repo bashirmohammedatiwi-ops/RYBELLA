@@ -27,8 +27,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { bannersAPI } from '../services/api';
-
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');
+import ImageDisplay from '../components/ImageDisplay';
 
 export default function Banners() {
   const [banners, setBanners] = useState([]);
@@ -151,15 +150,7 @@ export default function Banners() {
             {banners.map((b) => (
               <TableRow key={b.id}>
                 <TableCell>
-                  {b.image ? (
-                    <Box
-                      component="img"
-                      src={`${API_BASE}${b.image}`}
-                      sx={{ width: 80, height: 50, objectFit: 'cover', borderRadius: 1 }}
-                    />
-                  ) : (
-                    <Box sx={{ width: 80, height: 50, bgcolor: 'grey.200', borderRadius: 1 }} />
-                  )}
+                  <ImageDisplay src={b.image} width={96} height={56} fit="cover" />
                 </TableCell>
                 <TableCell>{b.title || '-'}</TableCell>
                 <TableCell>

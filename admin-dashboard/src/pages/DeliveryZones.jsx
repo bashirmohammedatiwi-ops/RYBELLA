@@ -34,7 +34,7 @@ export default function DeliveryZones() {
   const loadZones = async () => {
     try {
       const { data } = await deliveryZonesAPI.getAll()
-      setZones(data)
+      setZones(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err.response?.data?.message || 'فشل تحميل المناطق')
     } finally {

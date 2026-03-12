@@ -2,12 +2,13 @@ const db = require('../config/database');
 
 exports.create = async (req, res) => {
   try {
-    const { product_id } = req.params;
+    const product_id = req.params.id;
     const { shade_name, color_code, barcode, sku, price, stock, expiration_date } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!shade_name || !price) {
-      return res.status(400).json({ message: 'اسم الظل والسعر مطلوبان' });
+    const shadeLabel = shade_name || color_code || 'عنصر إضافي';
+    if (!price) {
+      return res.status(400).json({ message: 'السعر مطلوب' });
     }
     if (!barcode || !barcode.trim()) {
       return res.status(400).json({ message: 'الباركود مطلوب لكل منتج/ظل' });
@@ -16,7 +17,7 @@ exports.create = async (req, res) => {
     const [result] = await db.query(
       `INSERT INTO product_variants (product_id, shade_name, color_code, barcode, sku, price, stock, image, expiration_date)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [product_id, shade_name, color_code || null, barcode || null, sku || null, price, stock || 0, image, expiration_date || null]
+      [product_id, shadeLabel, color_code || null, barcode || null, sku || null, price, stock || 0, image, expiration_date || null]
     );
 
     res.status(201).json({ message: 'تم إنشاء الظل بنجاح', id: result.insertId });

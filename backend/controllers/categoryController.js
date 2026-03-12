@@ -2,7 +2,7 @@ const db = require('../config/database');
 
 exports.getAll = async (req, res) => {
   try {
-    const [categories] = await db.query('SELECT * FROM categories ORDER BY name');
+    const [categories] = await db.query('SELECT * FROM categories ORDER BY COALESCE(sort_order, 999), name');
     res.json(categories);
   } catch (error) {
     console.error('Get categories error:', error);
@@ -25,14 +25,20 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, sort_order } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     if (!name) {
       return res.status(400).json({ message: 'اسم الفئة مطلوب' });
     }
 
-    const [result] = await db.query('INSERT INTO categories (name, image) VALUES (?, ?)', [name, image]);
+    let order = sort_order !== undefined && sort_order !== '' ? parseInt(sort_order, 10) : null;
+    if (order === null || isNaN(order)) {
+      const [maxRow] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM categories');
+      order = maxRow[0]?.next_order ?? 0;
+    }
+
+    const [result] = await db.query('INSERT INTO categories (name, image, sort_order) VALUES (?, ?, ?)', [name, image, order]);
     res.status(201).json({ message: 'تم إنشاء الفئة بنجاح', id: result.insertId });
   } catch (error) {
     console.error('Create category error:', error);
@@ -42,11 +48,15 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, sort_order } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : undefined;
 
     let query = 'UPDATE categories SET name = ?';
     const params = [name];
+    if (sort_order !== undefined && sort_order !== '') {
+      query += ', sort_order = ?';
+      params.push(parseInt(sort_order, 10) || 0);
+    }
     if (image) {
       query += ', image = ?';
       params.push(image);
@@ -67,6 +77,24 @@ exports.delete = async (req, res) => {
     res.json({ message: 'تم حذف الفئة بنجاح' });
   } catch (error) {
     console.error('Delete category error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
+
+exports.reorder = async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'items مطلوب (مصفوفة من {id, sort_order})' });
+    }
+    for (const item of items) {
+      if (item.id != null && item.sort_order != null) {
+        await db.query('UPDATE categories SET sort_order = ? WHERE id = ?', [parseInt(item.sort_order, 10) || 0, item.id]);
+      }
+    }
+    res.json({ message: 'تم تحديث الترتيب بنجاح' });
+  } catch (error) {
+    console.error('Reorder categories error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };
