@@ -7,16 +7,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { cartAPI, deliveryZonesAPI, couponsAPI, ordersAPI } from '../services/api';
+import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
+import { deliveryZonesAPI, couponsAPI, ordersAPI } from '../services/api';
 import { colors, borderRadius, shadows } from '../theme';
 
 export default function CheckoutScreen() {
   const navigation = useNavigation();
-  const [cart, setCart] = useState(null);
+  const { items: cartItems, loadCart } = useCart();
+  const toast = useToast();
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -34,11 +36,7 @@ export default function CheckoutScreen() {
 
   const loadData = async () => {
     try {
-      const [cartRes, zonesRes] = await Promise.all([
-        cartAPI.get(),
-        deliveryZonesAPI.getAll(),
-      ]);
-      setCart(Array.isArray(cartRes.data) ? cartRes.data : []);
+      const zonesRes = await deliveryZonesAPI.getAll();
       setZones(zonesRes.data || []);
     } catch (err) {
       console.error(err);
@@ -48,14 +46,15 @@ export default function CheckoutScreen() {
   };
 
   const handleApplyCoupon = async () => {
-    const cartItems = Array.isArray(cart) ? cart : (cart?.items || []);
-    if (!couponCode.trim() || !cartItems.length) return;
-    const total = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+    const items = Array.isArray(cartItems) ? cartItems : [];
+    if (!couponCode.trim() || !items.length) return;
+    const total = items.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0);
     try {
       const { data } = await couponsAPI.apply({ code: couponCode.trim(), total_price: total });
       setCouponApplied(data);
+      toast.success('تم تطبيق الكود بنجاح');
     } catch (err) {
-      alert(err.response?.data?.message || 'كود غير صالح');
+      toast.error(err.response?.data?.message || 'كود غير صالح');
     }
   };
 
@@ -67,18 +66,22 @@ export default function CheckoutScreen() {
 
   const handlePlaceOrder = async () => {
     if (!address.trim() || !city.trim() || !phone.trim()) {
-      alert('يرجى إدخال العنوان والمدينة ورقم الهاتف');
+      toast.error('يرجى إدخال العنوان والمدينة ورقم الهاتف');
+      return;
+    }
+    const items = Array.isArray(cartItems) ? cartItems : [];
+    if (!items.length) {
+      toast.error('سلة التسوق فارغة');
       return;
     }
     setSubmitting(true);
     try {
-      const cartItems = Array.isArray(cart) ? cart : (cart?.items || []);
-      const items = cartItems.map((i) => ({
+      const orderItems = items.map((i) => ({
         variant_id: i.variant_id,
-        quantity: i.quantity,
+        quantity: i.quantity || 1,
       }));
       await ordersAPI.create({
-        items,
+        items: orderItems,
         address,
         city,
         phone,
@@ -86,17 +89,17 @@ export default function CheckoutScreen() {
         payment_method: 'cash',
         coupon_code: couponApplied ? couponCode.trim() : null,
       });
-      Alert.alert('نجاح', 'تم تقديم الطلب بنجاح', [
-        { text: 'حسناً', onPress: () => navigation.navigate('MainTabs', { screen: 'Orders' }) },
-      ]);
+      toast.success('تم تقديم الطلب بنجاح');
+      loadCart();
+      navigation.navigate('MainTabs', { screen: 'Orders' });
     } catch (err) {
-      alert(err.response?.data?.message || 'فشل تقديم الطلب');
+      toast.error(err.response?.data?.message || 'فشل تقديم الطلب');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading || cart === null) {
+  if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -104,7 +107,7 @@ export default function CheckoutScreen() {
     );
   }
 
-  const items = Array.isArray(cart) ? cart : (cart?.items || []);
+  const items = Array.isArray(cartItems) ? cartItems : [];
   if (items.length === 0) {
     return (
       <View style={[styles.centered, { padding: 24 }]}>

@@ -1,21 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Image,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Share,
+  Animated,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { productsAPI, reviewsAPI, cartAPI, wishlistAPI } from '../services/api';
+import * as Haptics from 'expo-haptics';
+import { productsAPI, wishlistAPI, reviewsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useRecentlyViewed } from '../context/RecentlyViewedContext';
+import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import { API_BASE } from '../config';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, gradients } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -23,12 +30,19 @@ export default function ProductDetailScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { addItem } = useCart();
+  const toast = useToast();
+  const { addProduct: addRecentlyViewed } = useRecentlyViewed();
   const { productId } = route.params;
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [inWishlist, setInWishlist] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     loadProduct();
@@ -59,21 +73,64 @@ export default function ProductDetailScreen() {
     }
   };
 
+  useEffect(() => {
+    if (product?.id) addRecentlyViewed(product.id);
+  }, [product?.id]);
+
   const handleAddToCart = async () => {
-    if (!user) {
-      navigation.navigate('Login');
-      return;
-    }
     if (!selectedVariant) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await cartAPI.addItem(selectedVariant.id, quantity);
+      const guestData = !user
+        ? {
+            product_name: product.name,
+            shade_name: selectedVariant.shade_name,
+            price: selectedVariant.price,
+            image: selectedVariant.image || product.main_image,
+          }
+        : null;
+      await addItem(selectedVariant.id, quantity, guestData);
+      toast.show('تمت الإضافة للسلة');
       navigation.navigate('Cart');
     } catch (err) {
-      alert(err.response?.data?.message || 'فشل الإضافة للسلة');
+      toast.show(err.response?.data?.message || 'فشل الإضافة للسلة');
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `شوف هذا المنتج: ${product.name} - Rybella العراق`,
+        title: product.name,
+      });
+    } catch (_) {}
+  };
+
+  const hasReviewed = user && product?.reviews?.some((r) => Number(r.user_id) === Number(user.id));
+  const canReview = user && !hasReviewed;
+
+  const handleSubmitReview = async () => {
+    if (!canReview || !product) return;
+    setSubmittingReview(true);
+    try {
+      await reviewsAPI.create({
+        product_id: parseInt(productId, 10),
+        rating: reviewRating,
+        comment: reviewComment.trim() || null,
+      });
+      toast.success('تم إضافة التقييم بنجاح');
+      setShowReviewForm(false);
+      setReviewComment('');
+      loadProduct();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'فشل إضافة التقييم');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
   const handleWishlist = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!user) {
       navigation.navigate('Login');
       return;
@@ -93,9 +150,9 @@ export default function ProductDetailScreen() {
 
   if (loading || !product) {
     return (
-      <View style={styles.centered}>
+      <LinearGradient colors={gradients.light} style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      </LinearGradient>
     );
   }
 
@@ -125,14 +182,19 @@ export default function ProductDetailScreen() {
   else if (product.created_at && (Date.now() - new Date(product.created_at)) / (1000 * 60 * 60 * 24) <= 30) badges.push('جديد');
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
           <Icon name="arrow-forward" size={26} color={colors.text} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleWishlist} style={styles.headerBtn}>
-          <Icon name={inWishlist ? 'favorite' : 'favorite-border'} size={26} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={handleShare} style={styles.headerBtn}>
+            <Icon name="share" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleWishlist} style={styles.headerBtn}>
+            <Icon name={inWishlist ? 'favorite' : 'favorite-border'} size={26} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {allImages.length > 0 && (
@@ -214,18 +276,89 @@ export default function ProductDetailScreen() {
           </View>
         )}
 
-        {product.reviews?.length > 0 && (
-          <View style={styles.reviewsSection}>
-            <Text style={styles.sectionTitle}>التقييمات</Text>
-            {product.reviews.slice(0, 3).map((r) => (
-              <View key={r.id} style={styles.reviewItem}>
-                <Text style={styles.reviewUser}>{r.user_name}</Text>
-                <Text style={styles.reviewRating}>★ {r.rating}/5</Text>
-                {r.comment && <Text style={styles.reviewComment}>{r.comment}</Text>}
+        <View style={styles.reviewsSection}>
+          <Text style={styles.sectionTitle}>التقييمات</Text>
+          {product.reviews?.length > 0 ? (
+            <>
+              {product.reviews.slice(0, 5).map((r) => (
+                <View key={r.id} style={styles.reviewItem}>
+                  <Text style={styles.reviewUser}>{r.user_name}</Text>
+                  <Text style={styles.reviewRating}>★ {r.rating}/5</Text>
+                  {r.comment && <Text style={styles.reviewComment}>{r.comment}</Text>}
+                </View>
+              ))}
+            </>
+          ) : (
+            <Text style={styles.noReviewsText}>لا توجد تقييمات بعد</Text>
+          )}
+          {!user && (
+            <TouchableOpacity
+              style={styles.addReviewBtn}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Icon name="rate-review" size={20} color={colors.primary} />
+              <Text style={styles.addReviewText}>سجّل الدخول لتقييم المنتج</Text>
+            </TouchableOpacity>
+          )}
+          {canReview && !showReviewForm && (
+            <TouchableOpacity
+              style={styles.addReviewBtn}
+              onPress={() => setShowReviewForm(true)}
+            >
+              <Icon name="rate-review" size={20} color={colors.primary} />
+              <Text style={styles.addReviewText}>أضف تقييمك</Text>
+            </TouchableOpacity>
+          )}
+          {canReview && showReviewForm && (
+            <View style={styles.reviewForm}>
+              <Text style={styles.reviewFormLabel}>التقييم</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    onPress={() => setReviewRating(s)}
+                    style={styles.starBtn}
+                  >
+                    <Icon
+                      name={s <= reviewRating ? 'star' : 'star-border'}
+                      size={32}
+                      color={colors.accent}
+                    />
+                  </TouchableOpacity>
+                ))}
               </View>
-            ))}
-          </View>
-        )}
+              <Text style={styles.reviewFormLabel}>التعليق (اختياري)</Text>
+              <TextInput
+                style={styles.reviewInput}
+                placeholder="شاركنا رأيك..."
+                value={reviewComment}
+                onChangeText={setReviewComment}
+                multiline
+                numberOfLines={3}
+                placeholderTextColor={colors.textMuted}
+              />
+              <View style={styles.reviewFormActions}>
+                <TouchableOpacity
+                  style={styles.cancelReviewBtn}
+                  onPress={() => { setShowReviewForm(false); setReviewComment(''); }}
+                >
+                  <Text style={styles.cancelReviewText}>إلغاء</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.submitReviewBtn, submittingReview && styles.disabled]}
+                  onPress={handleSubmitReview}
+                  disabled={submittingReview}
+                >
+                  {submittingReview ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitReviewText}>إرسال</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
 
         {!hasVariants && (
           <View style={styles.noVariants}>
@@ -257,8 +390,12 @@ export default function ProductDetailScreen() {
         )}
 
         {canAddToCart && (
-          <TouchableOpacity style={styles.addToCartBtn} onPress={handleAddToCart}>
-            <Icon name="shopping-cart" size={24} color="#fff" />
+          <TouchableOpacity
+            style={styles.addToCartBtn}
+            onPress={handleAddToCart}
+            activeOpacity={0.9}
+          >
+            <Icon name="shopping-cart" size={22} color="#fff" />
             <Text style={styles.addToCartText}>أضف للسلة</Text>
           </TouchableOpacity>
         )}
@@ -277,12 +414,19 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 48,
     backgroundColor: colors.white,
-    ...shadows.soft,
   },
-  headerBtn: { padding: 8 },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   imageSlide: { width, height: width },
   mainImage: { width, height: width, backgroundColor: colors.borderLight, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' },
-  content: { padding: 20, backgroundColor: colors.white, marginTop: -20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  content: { padding: 22, backgroundColor: colors.white, marginTop: -24, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   brand: { fontSize: 13, color: colors.textMuted, marginBottom: 4, fontWeight: '600' },
   name: { fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 10, letterSpacing: 0.3 },
   description: { fontSize: 15, color: colors.textSecondary, lineHeight: 24, marginBottom: 18 },
@@ -307,7 +451,7 @@ const styles = StyleSheet.create({
   badge: { backgroundColor: colors.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   badgeText: { color: colors.white, fontSize: 12, fontWeight: '600' },
   noVariants: { padding: 16, backgroundColor: colors.primarySoft, borderRadius: borderRadius.md, marginBottom: 16 },
-  noVariantsText: { color: colors.primaryDark, textAlign: 'right', fontSize: 14 },
+  noVariantsText: { color: colors.primaryDarkText, textAlign: 'right', fontSize: 14 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   price: { fontSize: 26, fontWeight: '800', color: colors.primary },
   stock: { fontSize: 14, color: colors.success, fontWeight: '600' },
@@ -316,16 +460,64 @@ const styles = StyleSheet.create({
   reviewUser: { fontWeight: 'bold', marginBottom: 4, color: colors.text },
   reviewRating: { color: colors.accent, marginBottom: 4 },
   reviewComment: { color: colors.textSecondary, fontSize: 14 },
+  noReviewsText: { color: colors.textMuted, fontSize: 14, marginBottom: 12 },
+  addReviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.md,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  addReviewText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
+  reviewForm: { marginTop: 16, padding: 16, backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.border },
+  reviewFormLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: colors.text },
+  starsRow: { flexDirection: 'row', gap: 4, marginBottom: 16 },
+  starBtn: { padding: 4 },
+  reviewInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    padding: 12,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: 12,
+  },
+  reviewFormActions: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' },
+  cancelReviewBtn: { paddingVertical: 10, paddingHorizontal: 20 },
+  cancelReviewText: { color: colors.textSecondary, fontSize: 16 },
+  submitReviewBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: borderRadius.md,
+  },
+  submitReviewText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  disabled: { opacity: 0.7 },
   quantityRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   quantityLabel: { fontSize: 16, marginRight: 16 },
-  quantityControls: { flexDirection: 'row', alignItems: 'center' },
+  quantityControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.pill,
+    borderWidth: 2,
+    borderColor: colors.border,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
   qtyBtn: { padding: 8 },
   quantity: { fontSize: 18, marginHorizontal: 16 },
   addToCartBtn: {
     flexDirection: 'row',
     backgroundColor: colors.primary,
     padding: 18,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,

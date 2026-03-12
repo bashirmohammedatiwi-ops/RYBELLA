@@ -11,7 +11,8 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { brandsAPI } from '../services/api';
 import { API_BASE } from '../config';
-import { colors, borderRadius, shadows } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, borderRadius, shadows, gradients } from '../theme';
 
 export default function BrandsScreen({ navigation }) {
   const [brands, setBrands] = useState([]);
@@ -54,15 +55,15 @@ export default function BrandsScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
+      <LinearGradient colors={gradients.light} style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      </LinearGradient>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.primarySoft }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Icon name="arrow-forward" size={24} color={colors.white} />
         </TouchableOpacity>
@@ -86,7 +87,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
     paddingTop: 48,
     paddingBottom: 20,
     paddingHorizontal: 16,
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
   },
   backBtn: { padding: 8, marginLeft: 8 },
-  title: { flex: 1, fontSize: 22, fontWeight: '700', textAlign: 'right', color: colors.white },
+  title: { flex: 1, fontSize: 22, fontWeight: '700', textAlign: 'right', color: colors.text },
   list: { padding: 16, paddingBottom: 100 },
   row: { justifyContent: 'flex-end', gap: 12, marginBottom: 12 },
   card: {

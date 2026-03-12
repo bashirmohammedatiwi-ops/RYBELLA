@@ -11,11 +11,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { wishlistAPI } from '../services/api';
+import { useToast } from '../context/ToastContext';
 import { API_BASE } from '../config';
 import { colors, borderRadius, shadows } from '../theme';
 
 export default function WishlistScreen() {
   const navigation = useNavigation();
+  const toast = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,8 +43,10 @@ export default function WishlistScreen() {
     try {
       await wishlistAPI.remove(productId);
       setProducts((p) => p.filter((x) => x.id !== productId));
+      toast.show('تم الإزالة من قائمة الأمنيات');
     } catch (err) {
       console.error(err);
+      toast.error('فشل الإزالة');
     }
   };
 
@@ -57,8 +61,11 @@ export default function WishlistScreen() {
   if (products.length === 0) {
     return (
       <View style={styles.empty}>
-        <Icon name="favorite-border" size={80} color={colors.textMuted} />
-        <Text style={styles.emptyText}>قائمة الأمنيات فارغة</Text>
+        <View style={styles.emptyIconWrap}>
+          <Icon name="favorite-border" size={56} color={colors.primary} />
+        </View>
+        <Text style={styles.emptyTitle}>قائمة الأمنيات فارغة</Text>
+        <Text style={styles.emptySubtext}>أضف المنتجات المفضلة لديك هنا</Text>
         <TouchableOpacity style={styles.shopBtn} onPress={() => navigation.navigate('Home')}>
           <Text style={styles.shopBtnText}>تسوق الآن</Text>
         </TouchableOpacity>
@@ -102,7 +109,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyText: { fontSize: 18, color: colors.textSecondary, marginVertical: 16 },
+  emptyIconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  emptySubtext: { fontSize: 16, color: colors.textSecondary, marginBottom: 24 },
   shopBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: borderRadius.lg, ...shadows.button },
   shopBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
   list: { padding: 16 },

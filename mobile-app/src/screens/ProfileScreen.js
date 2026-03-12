@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, gradients } from '../theme';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -22,12 +23,10 @@ export default function ProfileScreen() {
         <View style={styles.guestCard}>
           <Icon name="person-outline" size={64} color={colors.textMuted} />
           <Text style={styles.guestText}>سجّل الدخول للوصول لطلباتك وقائمة الأمنيات</Text>
-          <TouchableOpacity
-            style={styles.loginBtn}
-            onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.loginBtnText}>تسجيل الدخول</Text>
+          <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('Login')} activeOpacity={0.8}>
+            <View style={[styles.loginBtnGradient, { backgroundColor: colors.primary }]}>
+              <Text style={styles.loginBtnText}>تسجيل الدخول</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -36,7 +35,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.primarySoft }]}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{user.name?.charAt(0) || '?'}</Text>
         </View>
@@ -60,6 +59,24 @@ export default function ProfileScreen() {
         >
           <Icon name="favorite" size={24} color={colors.primary} />
           <Text style={styles.menuText}>قائمة الأمنيات</Text>
+          <Icon name="chevron-right" size={24} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('EditProfile')}
+        >
+          <Icon name="edit" size={24} color={colors.primary} />
+          <Text style={styles.menuText}>تعديل الملف الشخصي</Text>
+          <Icon name="chevron-right" size={24} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
+          <Icon name="lock" size={24} color={colors.primary} />
+          <Text style={styles.menuText}>تغيير كلمة المرور</Text>
           <Icon name="chevron-right" size={24} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
@@ -86,20 +103,16 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   guestText: { fontSize: 16, textAlign: 'center', color: colors.textSecondary, marginTop: 16, lineHeight: 24 },
-  loginBtn: {
-    backgroundColor: colors.primary,
-    marginTop: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: borderRadius.lg,
-  },
+  loginBtn: { marginTop: 24, borderRadius: borderRadius.lg, overflow: 'hidden', ...shadows.button },
+  loginBtnGradient: { paddingVertical: 14, paddingHorizontal: 32, alignItems: 'center' },
   loginBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
   header: {
     alignItems: 'center',
-    paddingVertical: 32,
-    backgroundColor: colors.surface,
+    paddingVertical: 36,
+    marginHorizontal: 16,
+    marginTop: 16,
     borderRadius: borderRadius.xl,
-    marginBottom: 16,
+    marginBottom: 20,
     ...shadows.card,
   },
   avatar: {

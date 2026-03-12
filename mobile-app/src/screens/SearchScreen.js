@@ -13,7 +13,8 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { productsAPI } from '../services/api';
 import { API_BASE } from '../config';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, gradients } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function SearchScreen({ navigation }) {
   const [query, setQuery] = useState('');
@@ -93,7 +94,7 @@ export default function SearchScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.primarySoft }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Icon name={I18nManager.isRTL ? 'arrow-right' : 'arrow-left'} size={24} color={colors.white} />
         </TouchableOpacity>
@@ -116,7 +117,11 @@ export default function SearchScreen({ navigation }) {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             query.trim() && !loading ? (
-              <Text style={styles.emptyText}>لا توجد نتائج</Text>
+              <View style={styles.emptyState}>
+                <Icon name="magnify-close" size={64} color={colors.textMuted} />
+                <Text style={styles.emptyTitle}>لا توجد نتائج</Text>
+                <Text style={styles.emptyText}>جرب كلمات مختلفة أو تصفح الفئات</Text>
+              </View>
             ) : null
           }
         />
@@ -132,9 +137,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     paddingTop: 48,
-    backgroundColor: colors.primary,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   backBtn: { padding: 8 },
   searchInput: {
@@ -165,5 +169,7 @@ const styles = StyleSheet.create({
   productName: { fontSize: 16, fontWeight: '600', color: colors.text },
   productPrice: { fontSize: 15, color: colors.primary, marginTop: 4, fontWeight: '700' },
   loader: { marginTop: 40 },
-  emptyText: { textAlign: 'center', marginTop: 40, color: colors.textMuted },
+  emptyState: { alignItems: 'center', paddingVertical: 60 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 16 },
+  emptyText: { textAlign: 'center', marginTop: 8, color: colors.textMuted, fontSize: 15 },
 });
