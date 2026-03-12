@@ -1,0 +1,41 @@
+.checkout-page {
+  padding: 24px 20px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.checkout-page h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+.checkout-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.checkout-form input,
+.checkout-form select {
+  padding: 14px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+}
+.checkout-form input:focus,
+.checkout-form select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 0;
+}
+.checkout-total { font-size: 1.2rem; font-weight: 800; }
+.checkout-form button {
+  padding: 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+}
+.checkout-form button:hover:not(:disabled) { background: var(--color-primary-dark); }
+.checkout-form button:disabled { opacity: 0.8; cursor: not-allowed; }
