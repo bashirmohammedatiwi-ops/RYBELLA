@@ -5,6 +5,7 @@ import { API_URL } from '../config';
 const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 15000,
 });
 
 api.interceptors.request.use(async (config) => {
@@ -50,6 +51,10 @@ export const subcategoriesAPI = {
 
 export const bannersAPI = {
   getAll: () => api.get('/banners'),
+};
+
+export const offersAPI = {
+  getAll: () => api.get('/offers'),
 };
 
 export const cartAPI = {

@@ -30,7 +30,7 @@ export default function Categories() {
   const [draggedIndex, setDraggedIndex] = useState(-1)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({ name: '', image: null })
+  const [form, setForm] = useState({ name: '', image: null, icon: '', overlay_text: '' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -56,6 +56,8 @@ export default function Categories() {
       const formData = new FormData()
       formData.append('name', form.name)
       if (form.image) formData.append('image', form.image)
+      formData.append('icon', form.icon || '')
+      formData.append('overlay_text', form.overlay_text || '')
       if (editing) {
         await categoriesAPI.update(editing.id, formData, formData)
         setSuccess('تم تحديث الفئة بنجاح')
@@ -65,7 +67,7 @@ export default function Categories() {
       }
       setOpen(false)
       setEditing(null)
-      setForm({ name: '', image: null })
+      setForm({ name: '', image: null, icon: '', overlay_text: '' })
       loadCategories()
     } catch (err) {
       setError(err.response?.data?.message || 'حدث خطأ')
@@ -85,7 +87,7 @@ export default function Categories() {
 
   const openEdit = (cat) => {
     setEditing(cat)
-    setForm({ name: cat.name, image: null })
+    setForm({ name: cat.name, image: null, icon: cat.icon || '', overlay_text: cat.overlay_text || '' })
     setOpen(true)
   }
 
@@ -110,7 +112,7 @@ export default function Categories() {
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 600 }}>الفئات</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
-      <Button variant="contained" startIcon={<Add />} onClick={() => { setOpen(true); setEditing(null); setForm({ name: '', image: null }) }} sx={{ mb: 2 }}>
+      <Button variant="contained" startIcon={<Add />} onClick={() => { setOpen(true); setEditing(null); setForm({ name: '', image: null, icon: '', overlay_text: '' }) }} sx={{ mb: 2 }}>
         إضافة فئة
       </Button>
       <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
@@ -120,7 +122,9 @@ export default function Categories() {
               <TableCell sx={{ width: 40 }}></TableCell>
               <TableCell sx={{ width: 60 }}>التسلسل</TableCell>
               <TableCell>الصورة</TableCell>
-              <TableCell>الاسم</TableCell>
+                <TableCell>الأيقونة</TableCell>
+                <TableCell>النص فوق الصورة</TableCell>
+                <TableCell>الاسم</TableCell>
               <TableCell align="left">الإجراءات</TableCell>
             </TableRow>
           </TableHead>
@@ -140,6 +144,8 @@ export default function Categories() {
                 <TableCell>
                   <ImageDisplay src={cat.image} size="md" fit="cover" />
                 </TableCell>
+                <TableCell>{cat.icon || '—'}</TableCell>
+                <TableCell sx={{ maxWidth: 120 }}>{cat.overlay_text ? (cat.overlay_text.length > 20 ? cat.overlay_text.slice(0, 20) + '...' : cat.overlay_text) : '—'}</TableCell>
                 <TableCell>{cat.name}</TableCell>
                 <TableCell align="left">
                   <IconButton onClick={() => openEdit(cat)}><Edit /></IconButton>
@@ -155,6 +161,8 @@ export default function Categories() {
           <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'grey.200' }}>{editing ? 'تعديل الفئة' : 'إضافة فئة'}</DialogTitle>
           <DialogContent sx={{ pt: 3 }}>
             <TextField fullWidth label="الاسم" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required sx={{ mb: 2 }} />
+            <TextField fullWidth label="اسم الأيقونة (MaterialCommunityIcons)" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="مثال: brush أو lipstick أو tag-outline" sx={{ mb: 2 }} helperText="أسماء الأيقونات: brush, lipstick, face-woman, sparkles, tag-outline, palette..." />
+            <TextField fullWidth label="نص يظهر فوق الصورة (اختياري)" value={form.overlay_text} onChange={(e) => setForm({ ...form, overlay_text: e.target.value })} placeholder="مثال: تصفح الآن" sx={{ mb: 2 }} />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               {(editing?.image || form.image) && (
                 <ImageDisplay

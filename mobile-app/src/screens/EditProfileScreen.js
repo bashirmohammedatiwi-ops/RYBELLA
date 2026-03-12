@@ -13,7 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { authAPI } from '../services/api';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, typography } from '../theme';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
@@ -115,33 +115,38 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
     paddingTop: 48,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderColor: colors.borderLight,
+    ...shadows.soft,
   },
-  backBtn: { padding: 8, marginRight: 8 },
-  title: { fontSize: 20, fontWeight: '700', color: colors.text, flex: 1, textAlign: 'center' },
-  form: { padding: 20 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: colors.text },
+  backBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center',
+    marginRight: 8,
+  },
+  title: { ...typography.h2, fontSize: 20, color: colors.text, flex: 1, textAlign: 'center' },
+  form: { padding: 24 },
+  label: { ...typography.label, marginBottom: 10, color: colors.text },
   input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.md,
-    padding: 14,
-    fontSize: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(232,93,122,0.15)',
+    borderRadius: 20,
+    padding: 16,
+    ...typography.body,
     color: colors.text,
-    marginBottom: 20,
+    marginBottom: 22,
     textAlign: 'right',
   },
   saveBtn: {
     backgroundColor: colors.primary,
-    padding: 18,
-    borderRadius: borderRadius.lg,
+    padding: 20,
+    borderRadius: 22,
     alignItems: 'center',
-    ...shadows.button,
+    ...shadows.premium,
   },
-  saveBtnText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  saveBtnText: { ...typography.h3, color: '#fff' },
   disabled: { opacity: 0.7 },
 });

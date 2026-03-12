@@ -24,6 +24,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
 const bannerRoutes = require('./routes/banners');
+const offerRoutes = require('./routes/offers');
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 5000;
@@ -53,6 +54,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/offers', offerRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -85,8 +87,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// بدء التشغيل فوراً (قاعدة البيانات تُحمّل عند أول طلب)
-app.listen(PORT, () => {
+// بدء التشغيل - الاستماع على جميع الواجهات (0.0.0.0) للسماح للأجهزة الأخرى بالاتصال
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Rybella Iraq API running on http://localhost:${PORT}`);
   console.log(`Health: http://localhost:${PORT}/api/health`);
   require('./config/database').query('SELECT 1').catch((e) => console.error('DB init:', e.message));

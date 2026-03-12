@@ -12,7 +12,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { brandsAPI } from '../services/api';
 import { API_BASE } from '../config';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, borderRadius, shadows, gradients } from '../theme';
+import { colors, borderRadius, shadows, gradients, typography } from '../theme';
 
 export default function BrandsScreen({ navigation }) {
   const [brands, setBrands] = useState([]);
@@ -64,8 +64,8 @@ export default function BrandsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { backgroundColor: colors.primarySoft }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-forward" size={24} color={colors.white} />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.8}>
+          <Icon name="arrow-forward" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>العلامات التجارية</Text>
       </View>
@@ -88,33 +88,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 48,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingBottom: 22,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    ...shadows.soft,
   },
-  backBtn: { padding: 8, marginLeft: 8 },
-  title: { flex: 1, fontSize: 22, fontWeight: '700', textAlign: 'right', color: colors.text },
-  list: { padding: 16, paddingBottom: 100 },
-  row: { justifyContent: 'flex-end', gap: 12, marginBottom: 12 },
+  backBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center',
+    marginLeft: 8,
+  },
+  title: { flex: 1, ...typography.h2, textAlign: 'right', color: colors.text },
+  list: { padding: 20, paddingBottom: 100 },
+  row: { justifyContent: 'flex-end', gap: 14, marginBottom: 14 },
   card: {
     flex: 1,
     maxWidth: '48%',
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
     alignItems: 'center',
-    ...shadows.card,
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.06)',
   },
-  logo: { width: 80, height: 80 },
+  logo: { width: 84, height: 84 },
   placeholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.borderLight,
+    width: 84,
+    height: 84,
+    borderRadius: 20,
+    backgroundColor: colors.primarySoft,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderText: { fontSize: 28, color: colors.textMuted, fontWeight: 'bold' },
-  name: { marginTop: 10, fontSize: 14, color: colors.text, textAlign: 'center' },
+  placeholderText: { ...typography.h1, fontSize: 28, color: colors.primary },
+  name: { marginTop: 12, ...typography.caption, fontSize: 14, color: colors.text, textAlign: 'center' },
 });

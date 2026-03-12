@@ -6,34 +6,45 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  Image,
   Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { colors, gradients, borderRadius } from '../theme';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors, gradients, borderRadius, typography, shadows } from '../theme';
 
 const { width } = Dimensions.get('window');
 
 const SLIDES = [
   {
     id: '1',
-    icon: 'spa',
-    title: 'مستحضرات أصلية',
-    subtitle: 'جميع منتجاتنا 100٪ أصلية ومرخصة من العلامات التجارية العالمية',
+    icon: 'lipstick',
+    title: 'مستحضرات تجميل يومياً',
+    subtitle: 'اكتشف أحدث منتجات التجميل والعناية بالبشرة من أفضل العلامات التجارية',
   },
   {
     id: '2',
-    icon: 'local-shipping',
-    title: 'توصيل سريع',
-    subtitle: 'نوصل طلبك لباب بيتك بأسرع وقت في جميع أنحاء العراق',
+    icon: 'lightbulb-on',
+    title: 'نصائح وحيل مثيرة',
+    subtitle: 'استفد من نصائحنا لتطبيق الماكياج بشكل احترافي وحماية بشرتك',
   },
   {
     id: '3',
-    icon: 'favorite',
-    title: 'ابدأ التسوق',
-    subtitle: 'تصفح آلاف المنتجات واختار ما يناسبك من مستحضرات التجميل والعناية',
+    icon: 'tag-multiple',
+    title: 'أسعار منافسة وقيمة تستحق',
+    subtitle: 'استمتع بخصومات حصرية وجودة عالية بأسعار لا تضاهى',
   },
 ];
+
+function LotusLogo() {
+  return (
+    <View style={styles.logoWrap}>
+      <LinearGradient colors={gradients.primary} style={styles.logoGradient}>
+        <Icon name="flower-lotus" size={48} color={colors.white} />
+      </LinearGradient>
+    </View>
+  );
+}
 
 export default function OnboardingScreen({ onFinish }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -58,22 +69,23 @@ export default function OnboardingScreen({ onFinish }) {
 
   const renderSlide = ({ item }) => (
     <View style={styles.slide}>
-      <View style={styles.iconWrap}>
-        <LinearGradient
-          colors={gradients.accent}
-          style={styles.iconGradient}
-        >
-          <Icon name={item.icon} size={64} color={colors.white} />
-        </LinearGradient>
-      </View>
+      <LotusLogo />
       <Text style={styles.title}>{item.title}</Text>
       <Text style={styles.subtitle}>{item.subtitle}</Text>
+      <View style={styles.heroImageWrap}>
+        <LinearGradient
+          colors={[colors.primarySoft, colors.accentLight]}
+          style={styles.heroPlaceholder}
+        >
+          <Icon name={item.icon} size={80} color={colors.primary} />
+        </LinearGradient>
+      </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.light} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#FFFBF9', '#FFF5F2']} style={StyleSheet.absoluteFill} />
       <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
         <Text style={styles.skipText}>تخطي</Text>
       </TouchableOpacity>
@@ -132,7 +144,7 @@ export default function OnboardingScreen({ onFinish }) {
             <Text style={styles.nextText}>
               {currentIndex === SLIDES.length - 1 ? 'ابدأ' : 'التالي'}
             </Text>
-            <Icon name="arrow-forward" size={22} color={colors.white} />
+            <Icon name="arrow-left" size={22} color={colors.white} />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -143,34 +155,42 @@ export default function OnboardingScreen({ onFinish }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   skipBtn: { position: 'absolute', top: 52, left: 20, zIndex: 10 },
-  skipText: { fontSize: 16, color: colors.textMuted, fontWeight: '600' },
+  skipText: { ...typography.label, color: colors.textMuted },
   slide: {
     width,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 32,
+    paddingTop: 80,
   },
-  iconWrap: { marginBottom: 32 },
-  iconGradient: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+  logoWrap: { marginBottom: 28 },
+  logoGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 26,
-    fontWeight: '800',
+    ...typography.h1,
+    fontSize: 24,
     color: colors.text,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 26,
+  },
+  heroImageWrap: { marginTop: 32, width: '100%', alignItems: 'center' },
+  heroPlaceholder: {
+    width: width - 80,
+    height: 180,
+    borderRadius: borderRadius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footer: {
     paddingHorizontal: 24,
@@ -188,7 +208,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.primary,
   },
-  nextBtn: { borderRadius: borderRadius.lg, overflow: 'hidden' },
+  nextBtn: { borderRadius: borderRadius.pill, overflow: 'hidden' },
   nextGradient: {
     flexDirection: 'row',
     padding: 18,
@@ -196,5 +216,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  nextText: { color: colors.white, fontSize: 18, fontWeight: '700' },
+  nextText: { ...typography.h3, color: colors.white },
 });

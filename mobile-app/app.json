@@ -34,7 +34,8 @@
             "minSdkVersion": 21
           }
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

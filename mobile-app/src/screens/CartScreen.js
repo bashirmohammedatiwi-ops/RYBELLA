@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -15,8 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import * as Haptics from 'expo-haptics';
 import { useToast } from '../context/ToastContext';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, borderRadius, shadows, gradients } from '../theme';
+import { colors, borderRadius, shadows, gradients, typography } from '../theme';
 
 export default function CartScreen() {
   const navigation = useNavigation();
@@ -57,9 +57,9 @@ export default function CartScreen() {
 
   if (loading && user) {
     return (
-      <LinearGradient colors={gradients.light} style={styles.centered}>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -67,7 +67,15 @@ export default function CartScreen() {
 
   if (items.length === 0) {
     return (
-      <View style={styles.empty}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.getParent()?.navigate('Home')} style={styles.headerBtn}>
+            <Icon name="arrow-forward" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>السلة</Text>
+          <View style={styles.headerRight} />
+        </View>
+        <ScrollView contentContainerStyle={styles.empty} style={styles.emptyScroll}>
         <View style={styles.emptyIconWrap}>
           <Icon name="shopping-cart" size={64} color={colors.primary} />
         </View>
@@ -89,12 +97,20 @@ export default function CartScreen() {
             <Text style={styles.loginBtnText}>تسجيل الدخول</Text>
           </TouchableOpacity>
         )}
+        </ScrollView>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.getParent()?.navigate('Home')} style={styles.headerBtn}>
+          <Icon name="arrow-forward" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>السلة</Text>
+        <View style={styles.headerRight} />
+      </View>
       {!user && (
         <TouchableOpacity onPress={() => navigation.navigate('Login')} activeOpacity={0.9}>
           <View style={[styles.guestBanner, { backgroundColor: colors.primary }]}>
@@ -133,8 +149,14 @@ export default function CartScreen() {
         )}
       />
       <View style={styles.footer}>
-        <Text style={styles.totalLabel}>المجموع</Text>
-        <Text style={styles.total}>{total.toLocaleString('ar-IQ')} د.ع</Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>العناصر ({items.length})</Text>
+          <Text style={styles.summaryValue}>{total.toLocaleString('ar-IQ')} د.ع</Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>المجموع الكلي</Text>
+          <Text style={styles.total}>{total.toLocaleString('ar-IQ')} د.ع</Text>
+        </View>
         <TouchableOpacity
           style={styles.checkoutBtn}
           onPress={() => {
@@ -143,9 +165,7 @@ export default function CartScreen() {
           }}
           activeOpacity={0.9}
         >
-          <View style={[styles.checkoutGradient, { backgroundColor: colors.primary }]}>
-            <Text style={styles.checkoutText}>{user ? 'إتمام الطلب' : 'تسجيل الدخول لإتمام الطلب'}</Text>
-          </View>
+          <Text style={styles.checkoutText}>{user ? 'إتمام الطلب' : 'تسجيل الدخول لإتمام الطلب'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -155,7 +175,14 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emptyScroll: { flex: 1, backgroundColor: colors.background },
+  empty: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    minHeight: 400,
+  },
   emptyIconWrap: {
     width: 120,
     height: 120,
@@ -165,16 +192,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  emptyText: { fontSize: 15, color: colors.textSecondary, marginVertical: 12, textAlign: 'center', lineHeight: 22 },
+  emptyTitle: { ...typography.h2, fontSize: 20, color: colors.text, marginBottom: 10 },
+  emptyText: { ...typography.body, color: colors.textSecondary, marginVertical: 12, textAlign: 'center' },
   shopBtn: {
     marginTop: 8,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
     ...shadows.button,
   },
-  shopBtnGradient: { paddingVertical: 16, paddingHorizontal: 32, alignItems: 'center' },
-  shopBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  shopBtnGradient: { paddingVertical: 18, paddingHorizontal: 36, alignItems: 'center' },
+  shopBtnText: { ...typography.h4, color: colors.white },
   loginBtn: {
     marginTop: 12,
     paddingVertical: 14,
@@ -183,7 +210,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
   },
-  loginBtnText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
+  loginBtnText: { ...typography.h4, color: colors.primary },
   guestBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -191,33 +218,62 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 14,
   },
-  guestBannerText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  guestBannerText: { ...typography.caption, color: '#fff' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 52,
+    paddingBottom: 16,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    ...shadows.soft,
+  },
+  headerBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitle: { ...typography.h2, fontSize: 20, color: colors.text },
+  headerRight: { width: 44 },
   item: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
-    padding: borderRadius.lg,
-    marginHorizontal: 16,
-    marginVertical: 6,
-    borderRadius: borderRadius.lg,
+    padding: 16,
+    marginHorizontal: 20,
+    marginVertical: 8,
+    borderRadius: 22,
     alignItems: 'center',
-    ...shadows.soft,
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.06)',
   },
-  itemImage: { width: 88, height: 88, borderRadius: borderRadius.md },
-  itemInfo: { flex: 1, marginHorizontal: 14 },
-  itemName: { fontSize: 15, fontWeight: '600', marginBottom: 4, color: colors.text },
-  itemPrice: { fontSize: 15, color: colors.primary, marginBottom: 8, fontWeight: '700' },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  qty: { fontSize: 16, fontWeight: '600', minWidth: 24, textAlign: 'center' },
+  itemImage: { width: 92, height: 92, borderRadius: 16 },
+  itemInfo: { flex: 1, marginHorizontal: 16 },
+  itemName: { ...typography.label, marginBottom: 6, color: colors.text },
+  itemPrice: { ...typography.h4, fontSize: 15, color: colors.primary, marginBottom: 10 },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  qty: { ...typography.h4, minWidth: 28, textAlign: 'center' },
   footer: {
-    backgroundColor: colors.surface,
-    padding: 20,
+    backgroundColor: colors.white,
+    padding: 24,
     borderTopWidth: 1,
     borderColor: colors.borderLight,
-    ...shadows.soft,
+    ...shadows.lg,
   },
-  totalLabel: { fontSize: 14, color: colors.textSecondary },
-  total: { fontSize: 24, fontWeight: '800', color: colors.primary, marginVertical: 10 },
-  checkoutBtn: { borderRadius: borderRadius.lg, overflow: 'hidden', ...shadows.button },
-  checkoutGradient: { paddingVertical: 16, alignItems: 'center' },
-  checkoutText: { color: colors.white, fontSize: 17, fontWeight: '700' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  summaryLabel: { ...typography.caption, color: colors.textSecondary },
+  summaryValue: { ...typography.caption, color: colors.text },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  totalLabel: { ...typography.h4, color: colors.text },
+  total: { ...typography.hero, fontSize: 22, color: colors.primary },
+  checkoutBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    ...shadows.premium,
+  },
+  checkoutText: { ...typography.h3, color: colors.white },
 });

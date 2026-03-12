@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ordersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, typography } from '../theme';
 
 const STATUS_LABELS = {
   pending: 'قيد الانتظار',
@@ -159,22 +159,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  emptyText: { fontSize: 16, color: colors.textSecondary, marginVertical: 12, textAlign: 'center' },
-  shopBtn: { backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 28, borderRadius: borderRadius.lg, ...shadows.button },
-  shopBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
-  list: { padding: 16, paddingBottom: 100 },
+  emptyTitle: { ...typography.h2, fontSize: 20, color: colors.text, marginBottom: 10 },
+  emptyText: { ...typography.body, color: colors.textSecondary, marginVertical: 14, textAlign: 'center' },
+  shopBtn: { backgroundColor: colors.primary, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 20, ...shadows.premium },
+  shopBtnText: { ...typography.h4, color: colors.white },
+  list: { padding: 20, paddingBottom: 100 },
   orderCard: {
     backgroundColor: colors.surface,
-    padding: 18,
-    borderRadius: borderRadius.lg,
-    marginBottom: 12,
-    ...shadows.card,
+    padding: 20,
+    borderRadius: 22,
+    marginBottom: 14,
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.06)',
   },
-  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  orderId: { fontSize: 17, fontWeight: '700', color: colors.text },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: borderRadius.sm },
-  statusText: { color: colors.white, fontSize: 12, fontWeight: '600' },
-  orderDate: { fontSize: 14, color: colors.textSecondary, marginBottom: 6, textAlign: 'right' },
-  orderTotal: { fontSize: 18, fontWeight: '800', color: colors.primary, textAlign: 'right' },
+  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  orderId: { ...typography.h3, fontSize: 17, color: colors.text },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, ...shadows.soft },
+  statusText: { ...typography.overline, color: colors.white },
+  orderDate: { ...typography.caption, color: colors.textSecondary, marginBottom: 8, textAlign: 'right' },
+  orderTotal: { ...typography.h3, fontSize: 18, color: colors.primary, textAlign: 'right' },
 });

@@ -2,7 +2,7 @@ const db = require('../config/database');
 
 exports.getAll = async (req, res) => {
   try {
-    const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured } = req.query;
+    const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, product_ids } = req.query;
     let query = `
       SELECT p.*, b.name as brand_name, c.name as category_name, s.name as subcategory_name,
         (SELECT COUNT(*) FROM product_variants pv WHERE pv.product_id = p.id AND pv.stock > 0) as available_variants,
@@ -34,6 +34,14 @@ exports.getAll = async (req, res) => {
     }
     if (featured === '1' || featured === 'true') {
       query += ' AND p.is_featured = 1';
+    }
+    if (product_ids !== undefined && product_ids !== null) {
+      const ids = String(product_ids).split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id));
+      if (ids.length > 0) {
+        query += ' AND p.id IN (' + ids.join(',') + ')';
+      } else {
+        query += ' AND 1=0';
+      }
     }
     if (search) {
       query += ' AND (p.name LIKE ? OR p.description LIKE ? OR p.tags LIKE ?)';

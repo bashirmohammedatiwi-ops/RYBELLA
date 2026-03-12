@@ -13,7 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { wishlistAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { API_BASE } from '../config';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, typography } from '../theme';
 
 export default function WishlistScreen() {
   const navigation = useNavigation();
@@ -118,31 +118,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  emptySubtext: { fontSize: 16, color: colors.textSecondary, marginBottom: 24 },
-  shopBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: borderRadius.lg, ...shadows.button },
-  shopBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
-  list: { padding: 16 },
-  row: { justifyContent: 'space-between', marginBottom: 16 },
+  emptyTitle: { ...typography.h2, fontSize: 20, color: colors.text, marginBottom: 10 },
+  emptySubtext: { ...typography.body, color: colors.textSecondary, marginBottom: 28 },
+  shopBtn: { backgroundColor: colors.primary, padding: 18, borderRadius: 20, ...shadows.premium },
+  shopBtnText: { ...typography.h4, color: colors.white },
+  list: { padding: 20, paddingBottom: 100 },
+  row: { justifyContent: 'space-between', marginBottom: 18 },
   card: {
     width: '48%',
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
+    borderRadius: 22,
     overflow: 'hidden',
     position: 'relative',
-    ...shadows.card,
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.06)',
   },
-  image: { width: '100%', height: 150, backgroundColor: colors.borderLight },
-  name: { padding: 8, fontSize: 14, fontWeight: '600', color: colors.text },
-  price: { padding: 8, paddingTop: 0, fontSize: 14, color: colors.primary, fontWeight: '600' },
+  image: { width: '100%', height: 155, backgroundColor: colors.primarySoft },
+  name: { padding: 12, ...typography.label, color: colors.text },
+  price: { padding: 12, paddingTop: 0, ...typography.h4, fontSize: 14, color: colors.primary },
   removeBtn: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    top: 10,
+    left: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },

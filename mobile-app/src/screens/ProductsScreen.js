@@ -18,7 +18,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { productsAPI, categoriesAPI, brandsAPI, subcategoriesAPI } from '../services/api';
 import { API_BASE } from '../config';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, borderRadius, shadows, gradients } from '../theme';
+import { colors, borderRadius, shadows, gradients, typography } from '../theme';
 import { ProductGridSkeleton } from '../components/Skeleton';
 
 const formatPrice = (price) => `${Number(price).toLocaleString('ar-IQ')} د.ع`;
@@ -34,7 +34,7 @@ const SORT_OPTIONS = [
 export default function ProductsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { categoryId, brandId, subcategoryId } = route.params || {};
+  const { categoryId, brandId, subcategoryId, productIds, offerTitle } = route.params || {};
   const [products, setProducts] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,10 +52,12 @@ export default function ProductsScreen() {
     } else {
       setSubcategories([]);
     }
-  }, [categoryId, brandId, selectedSubId]);
+  }, [categoryId, brandId, selectedSubId, productIds]);
 
   const loadFilterName = async () => {
-    if (categoryId) {
+    if (offerTitle) {
+      setFilterName(offerTitle);
+    } else if (categoryId) {
       try {
         const { data } = await categoriesAPI.getAll();
         const cat = (data || []).find((c) => c.id === categoryId);
@@ -79,9 +81,12 @@ export default function ProductsScreen() {
   const loadProducts = async () => {
     try {
       const params = {};
-      if (categoryId) params.category_id = categoryId;
-      if (brandId) params.brand_id = brandId;
-      if (selectedSubId) params.subcategory_id = selectedSubId;
+      if (productIds) params.product_ids = productIds;
+      else {
+        if (categoryId) params.category_id = categoryId;
+        if (brandId) params.brand_id = brandId;
+        if (selectedSubId) params.subcategory_id = selectedSubId;
+      }
       const { data } = await productsAPI.getAll(params);
       setProducts(data || []);
     } catch (err) {
@@ -212,7 +217,7 @@ export default function ProductsScreen() {
       </View>
 
       <View style={styles.toolbar}>
-        {subcategories.length > 0 && (
+        {subcategories.length > 0 && !productIds && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.subcatScroll} contentContainerStyle={styles.subcatRow}>
             <TouchableOpacity style={[styles.subcatChip, !selectedSubId && styles.subcatChipActive]} onPress={() => setSelectedSubId(null)}>
               <Text style={[styles.subcatText, !selectedSubId && styles.subcatTextActive]}>الكل</Text>
@@ -280,46 +285,53 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
     paddingTop: 48,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    ...shadows.soft,
   },
-  backBtn: { padding: 8, marginLeft: 8 },
-  title: { flex: 1, fontSize: 20, fontWeight: '700', color: colors.text, textAlign: 'right' },
-  toolbar: { backgroundColor: colors.surface, paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.borderLight },
-  subcatScroll: { maxHeight: 44 },
-  subcatRow: { paddingHorizontal: 16, paddingVertical: 4, gap: 8, flexDirection: 'row' },
-  subcatChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.borderLight },
-  subcatChipActive: { backgroundColor: colors.primary },
-  subcatText: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
+  backBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center',
+    marginLeft: 8,
+  },
+  title: { flex: 1, ...typography.h2, fontSize: 20, color: colors.text, textAlign: 'right' },
+  toolbar: { backgroundColor: colors.surface, paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.borderLight },
+  subcatScroll: { maxHeight: 48 },
+  subcatRow: { paddingHorizontal: 20, paddingVertical: 6, gap: 10, flexDirection: 'row' },
+  subcatChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.borderLight },
+  subcatChipActive: { backgroundColor: colors.primary, ...shadows.premium },
+  subcatText: { ...typography.caption, color: colors.textSecondary },
   subcatTextActive: { color: colors.white },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
   },
-  sortBtnText: { fontSize: 14, color: colors.text, fontWeight: '600' },
+  sortBtnText: { ...typography.caption, fontSize: 14, color: colors.text },
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, justifyContent: 'space-between' },
-  list: { padding: 16, paddingBottom: 100 },
-  row: { justifyContent: 'flex-end', gap: 12, marginBottom: 12 },
+  list: { padding: 20, paddingBottom: 100 },
+  row: { justifyContent: 'flex-end', gap: 14, marginBottom: 14 },
   productCard: {
     flex: 1,
     maxWidth: '48%',
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
+    borderRadius: 22,
     overflow: 'hidden',
-    ...shadows.card,
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.05)',
   },
   imageContainer: { position: 'relative' },
   productImage: { width: '100%', aspectRatio: 1 },
   placeholder: { backgroundColor: colors.borderLight },
   badgesRow: { position: 'absolute', top: 8, right: 8 },
-  badge: { backgroundColor: colors.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
-  badgeText: { color: colors.white, fontSize: 10, fontWeight: '600' },
+  badge: { backgroundColor: colors.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, alignSelf: 'flex-start', ...shadows.premium },
+  badgeText: { ...typography.overline, color: colors.white, fontSize: 10 },
   outOfStockBadge: {
     position: 'absolute',
     bottom: 8,
@@ -329,18 +341,18 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  outOfStockText: { color: '#fff', fontSize: 12 },
-  productName: { padding: 12, fontSize: 14, color: colors.text, textAlign: 'right' },
+  outOfStockText: { ...typography.caption, color: '#fff' },
+  productName: { padding: 14, ...typography.label, color: colors.text, textAlign: 'right' },
   productPrice: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    fontSize: 15,
-    fontWeight: '700',
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    ...typography.h4,
+    fontSize: 16,
     color: colors.primary,
     textAlign: 'right',
   },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
-  emptyText: { fontSize: 16, color: colors.textMuted, marginTop: 12 },
+  emptyText: { ...typography.body, color: colors.textMuted, marginTop: 12 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -348,12 +360,12 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 28,
+    paddingBottom: 44,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 20, textAlign: 'right' },
+  modalTitle: { ...typography.h3, color: colors.text, marginBottom: 24, textAlign: 'right' },
   sortOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -363,6 +375,6 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   sortOptionActive: { backgroundColor: colors.primarySoft },
-  sortOptionText: { fontSize: 16, color: colors.text },
-  sortOptionTextActive: { fontWeight: '700', color: colors.primary },
+  sortOptionText: { ...typography.body, color: colors.text },
+  sortOptionTextActive: { ...typography.h4, color: colors.primary },
 });

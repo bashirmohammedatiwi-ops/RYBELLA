@@ -25,7 +25,7 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, sort_order } = req.body;
+    const { name, sort_order, icon, overlay_text } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     if (!name) {
@@ -38,7 +38,13 @@ exports.create = async (req, res) => {
       order = maxRow[0]?.next_order ?? 0;
     }
 
-    const [result] = await db.query('INSERT INTO categories (name, image, sort_order) VALUES (?, ?, ?)', [name, image, order]);
+    const iconVal = icon && typeof icon === 'string' ? icon.trim() || null : null;
+    const overlayVal = overlay_text && typeof overlay_text === 'string' ? overlay_text.trim() || null : null;
+
+    const [result] = await db.query(
+      'INSERT INTO categories (name, image, sort_order, icon, overlay_text) VALUES (?, ?, ?, ?, ?)',
+      [name, image, order, iconVal, overlayVal]
+    );
     res.status(201).json({ message: 'تم إنشاء الفئة بنجاح', id: result.insertId });
   } catch (error) {
     console.error('Create category error:', error);
@@ -48,7 +54,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, sort_order } = req.body;
+    const { name, sort_order, icon, overlay_text } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : undefined;
 
     let query = 'UPDATE categories SET name = ?';
@@ -60,6 +66,14 @@ exports.update = async (req, res) => {
     if (image) {
       query += ', image = ?';
       params.push(image);
+    }
+    if (icon !== undefined) {
+      query += ', icon = ?';
+      params.push(icon && typeof icon === 'string' ? icon.trim() || null : null);
+    }
+    if (overlay_text !== undefined) {
+      query += ', overlay_text = ?';
+      params.push(overlay_text && typeof overlay_text === 'string' ? overlay_text.trim() || null : null);
     }
     query += ' WHERE id = ?';
     params.push(req.params.id);

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { colors } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, typography } from '../theme';
 
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -32,47 +34,80 @@ const ONBOARDING_DONE_KEY = 'rybella_onboarding_done';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const TAB_ICONS = {
+  Home: { out: 'home-outline', in: 'home' },
+  Categories: { out: 'view-grid-outline', in: 'view-grid' },
+  Cart: { out: 'cart-outline', in: 'cart' },
+  Orders: { out: 'clipboard-list-outline', in: 'clipboard-list' },
+  Profile: { out: 'account-outline', in: 'account' },
+};
+
 function MainTabs() {
   const { totalCount } = useCart();
+  const insets = useSafeAreaInsets();
+
+  const tabBarBg = () => (
+    <View style={styles.tabBarBgWrap}>
+      <LinearGradient
+        colors={[colors.primary, colors.primaryDark]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.tabBarShine} />
+    </View>
+  );
+
+  const bottomPad = Platform.OS === 'ios' ? insets.bottom : 10;
+  const barHeight = 58 + bottomPad;
+
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          const icons = {
-            Home: 'home',
-            Categories: 'view-grid',
-            Cart: 'cart',
-            Orders: 'clipboard-list',
-            Profile: 'account',
-          };
-          if (route.name === 'Cart' && totalCount > 0) {
-            return (
-              <View>
-                <Icon name="cart" size={size} color={color} />
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{totalCount > 99 ? '99+' : totalCount}</Text>
+      screenOptions={({ route }) => {
+        const isCart = route.name === 'Cart';
+        return {
+          headerShown: false,
+          tabBarIcon: ({ focused, color, size }) => {
+            const icons = TAB_ICONS[route.name] || { out: 'circle', in: 'circle' };
+            const name = focused ? icons.in : icons.out;
+            const iconColor = isCart && focused ? colors.white : color;
+            const iconSize = isCart ? 26 : 24;
+            if (isCart && totalCount > 0) {
+              return (
+                <View>
+                  <Icon name={name} size={iconSize} color={iconColor} />
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{totalCount > 99 ? '99+' : totalCount}</Text>
+                  </View>
                 </View>
-              </View>
-            );
-          }
-          return <Icon name={icons[route.name] || 'circle'} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: colors.white,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
-        tabBarBackground: () => (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary }]} />
-        ),
-        tabBarStyle: {
-          borderTopWidth: 0,
-          elevation: 12,
-          shadowColor: colors.primary,
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.25,
-          shadowRadius: 12,
-        },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-        headerShown: false,
-      })}
+              );
+            }
+            return <Icon name={name} size={iconSize} color={iconColor} />;
+          },
+          tabBarActiveTintColor: '#FFFFFF',
+          tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
+          tabBarBackground: tabBarBg,
+          tabBarStyle: {
+            position: 'absolute',
+            height: barHeight,
+            paddingTop: 10,
+            paddingBottom: bottomPad,
+            borderTopWidth: 0,
+            marginHorizontal: 20,
+            marginBottom: Platform.OS === 'web' ? 12 : bottomPad,
+            borderRadius: 24,
+            overflow: 'hidden',
+            elevation: 12,
+            shadowColor: colors.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 12,
+          },
+          tabBarLabelStyle: { ...typography.overline, fontSize: 11 },
+          tabBarItemStyle: { paddingVertical: 6 },
+        };
+      }}
+      sceneContainerStyle={{ paddingBottom: barHeight + 20 }}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'الرئيسية' }} />
       <Tab.Screen name="Categories" component={CategoriesScreen} options={{ tabBarLabel: 'الفئات' }} />
@@ -96,17 +131,9 @@ export default function AppNavigator() {
     setOnboardingDone(true);
   };
 
-  if (loading) {
-    return <SplashScreen />;
-  }
-
-  if (onboardingDone === false) {
-    return <OnboardingScreen onFinish={handleOnboardingFinish} />;
-  }
-
-  if (onboardingDone === null) {
-    return <SplashScreen />;
-  }
+  if (loading) return <SplashScreen />;
+  if (onboardingDone === false) return <OnboardingScreen onFinish={handleOnboardingFinish} />;
+  if (onboardingDone === null) return <SplashScreen />;
 
   return (
     <NavigationContainer>
@@ -136,10 +163,25 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
+  tabBarBgWrap: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  tabBarShine: {
+    position: 'absolute',
+    top: 0,
+    left: '15%',
+    right: '15%',
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+  },
   badge: {
     position: 'absolute',
     top: -6,
-    left: -6,
+    right: -8,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -148,5 +190,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  badgeText: { ...typography.overline, color: '#fff' },
 });

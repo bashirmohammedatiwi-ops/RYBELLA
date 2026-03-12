@@ -11,7 +11,8 @@ import {
   Dimensions,
   FlatList,
   Share,
-  Animated,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -22,7 +23,7 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { API_BASE } from '../config';
-import { colors, borderRadius, shadows, gradients } from '../theme';
+import { colors, borderRadius, shadows, spacing, typography } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -40,6 +41,7 @@ export default function ProductDetailScreen() {
   const [quantity, setQuantity] = useState(1);
   const [inWishlist, setInWishlist] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showAddSheet, setShowAddSheet] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -150,9 +152,9 @@ export default function ProductDetailScreen() {
 
   if (loading || !product) {
     return (
-      <LinearGradient colors={gradients.light} style={styles.centered}>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -392,7 +394,7 @@ export default function ProductDetailScreen() {
         {canAddToCart && (
           <TouchableOpacity
             style={styles.addToCartBtn}
-            onPress={handleAddToCart}
+            onPress={() => setShowAddSheet(true)}
             activeOpacity={0.9}
           >
             <Icon name="shopping-cart" size={22} color="#fff" />
@@ -400,6 +402,80 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      <Modal
+        visible={showAddSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddSheet(false)}
+      >
+        <Pressable style={styles.sheetOverlay} onPress={() => setShowAddSheet(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>الظلال</Text>
+              <TouchableOpacity onPress={() => setShowAddSheet(false)} style={styles.sheetClose}>
+                <Icon name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            {hasVariants && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sheetVariants}>
+                {product.variants.map((v) => (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={[
+                      styles.sheetVariantChip,
+                      selectedVariant?.id === v.id && styles.sheetVariantSelected,
+                      v.stock <= 0 && styles.variantOutOfStock,
+                    ]}
+                    onPress={() => v.stock > 0 && setSelectedVariant(v)}
+                    disabled={v.stock <= 0}
+                  >
+                    <View style={[styles.colorDot, { backgroundColor: v.color_code || '#ccc' }]} />
+                    <Text style={styles.sheetVariantName} numberOfLines={1}>{v.shade_name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            <View style={styles.sheetQtyRow}>
+              <Text style={styles.sheetQtyLabel}>الكمية</Text>
+              <View style={styles.quantityControls}>
+                <TouchableOpacity
+                  onPress={() => setQuantity((q) => Math.max(1, q - 1))}
+                  style={styles.qtyBtn}
+                >
+                  <Icon name="remove" size={24} color={colors.text} />
+                </TouchableOpacity>
+                <Text style={styles.quantity}>{quantity}</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    setQuantity((q) => Math.min(selectedVariant?.stock ?? 99, q + 1))
+                  }
+                  style={styles.qtyBtn}
+                >
+                  <Icon name="add" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            {selectedVariant && (
+              <Text style={styles.sheetTotal}>
+                المجموع: {Number(selectedVariant.price * quantity).toLocaleString('ar-IQ')} د.ع
+              </Text>
+            )}
+            <TouchableOpacity
+              style={styles.addToCartBtn}
+              onPress={() => {
+                setShowAddSheet(false);
+                handleAddToCart();
+              }}
+              activeOpacity={0.9}
+            >
+              <Icon name="shopping-cart" size={22} color="#fff" />
+              <Text style={styles.addToCartText}>أضف للسلة</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -416,21 +492,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   headerBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.borderLight,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.12)',
   },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   imageSlide: { width, height: width },
   mainImage: { width, height: width, backgroundColor: colors.borderLight, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' },
-  content: { padding: 22, backgroundColor: colors.white, marginTop: -24, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
-  brand: { fontSize: 13, color: colors.textMuted, marginBottom: 4, fontWeight: '600' },
-  name: { fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 10, letterSpacing: 0.3 },
-  description: { fontSize: 15, color: colors.textSecondary, lineHeight: 24, marginBottom: 18 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 12, color: colors.text },
+  content: { padding: spacing.xxl, backgroundColor: colors.white, marginTop: -24, borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl, ...shadows.lg },
+  brand: { ...typography.overline, color: colors.textMuted, marginBottom: spacing.xs },
+  name: { ...typography.h1, color: colors.text, marginBottom: spacing.md },
+  description: { ...typography.body, color: colors.textSecondary, marginBottom: 18 },
+  sectionTitle: { ...typography.h3, fontSize: 17, marginBottom: 14, color: colors.text },
   variantsRow: { marginBottom: 18 },
   variantChip: {
     flexDirection: 'row',
@@ -448,16 +526,16 @@ const styles = StyleSheet.create({
   variantName: { fontSize: 14, maxWidth: 80 },
   outOfStock: { fontSize: 12, color: colors.error, marginRight: 4 },
   badgesRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  badge: { backgroundColor: colors.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  badgeText: { color: colors.white, fontSize: 12, fontWeight: '600' },
+  badge: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, ...shadows.premium },
+  badgeText: { ...typography.caption, color: colors.white },
   noVariants: { padding: 16, backgroundColor: colors.primarySoft, borderRadius: borderRadius.md, marginBottom: 16 },
   noVariantsText: { color: colors.primaryDarkText, textAlign: 'right', fontSize: 14 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  price: { fontSize: 26, fontWeight: '800', color: colors.primary },
-  stock: { fontSize: 14, color: colors.success, fontWeight: '600' },
+  price: { ...typography.hero, fontSize: 26, color: colors.primary },
+  stock: { ...typography.caption, color: colors.success },
   reviewsSection: { marginBottom: 24 },
   reviewItem: { marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderColor: colors.borderLight },
-  reviewUser: { fontWeight: 'bold', marginBottom: 4, color: colors.text },
+  reviewUser: { ...typography.h4, marginBottom: 4, color: colors.text },
   reviewRating: { color: colors.accent, marginBottom: 4 },
   reviewComment: { color: colors.textSecondary, fontSize: 14 },
   noReviewsText: { color: colors.textMuted, fontSize: 14, marginBottom: 12 },
@@ -472,9 +550,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 8,
   },
-  addReviewText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
+  addReviewText: { ...typography.h4, color: colors.primary },
   reviewForm: { marginTop: 16, padding: 16, backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.border },
-  reviewFormLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: colors.text },
+  reviewFormLabel: { ...typography.label, marginBottom: 10, color: colors.text },
   starsRow: { flexDirection: 'row', gap: 4, marginBottom: 16 },
   starBtn: { padding: 4 },
   reviewInput: {
@@ -497,10 +575,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: borderRadius.md,
   },
-  submitReviewText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  submitReviewText: { ...typography.h4, color: '#fff' },
   disabled: { opacity: 0.7 },
   quantityRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  quantityLabel: { fontSize: 16, marginRight: 16 },
+  quantityLabel: { ...typography.body, marginRight: 16 },
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -516,12 +594,56 @@ const styles = StyleSheet.create({
   addToCartBtn: {
     flexDirection: 'row',
     backgroundColor: colors.primary,
-    padding: 18,
-    borderRadius: borderRadius.pill,
+    padding: spacing.xl,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    ...shadows.button,
+    gap: spacing.md,
+    ...shadows.premium,
   },
-  addToCartText: { color: colors.white, fontSize: 18, fontWeight: '700' },
+  addToCartText: { color: colors.textInverse, ...typography.h3 },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 36,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sheetTitle: { ...typography.h3, color: colors.text },
+  sheetClose: { padding: 4 },
+  sheetVariants: { marginBottom: 20 },
+  sheetVariantChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginLeft: 10,
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  sheetVariantSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  sheetVariantName: { fontSize: 14, maxWidth: 80, marginRight: 8 },
+  sheetQtyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  sheetQtyLabel: { ...typography.body, color: colors.text },
+  sheetTotal: { ...typography.h4, color: colors.primary, marginBottom: 16, textAlign: 'right' },
 });

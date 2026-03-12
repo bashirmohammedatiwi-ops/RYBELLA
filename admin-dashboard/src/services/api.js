@@ -165,6 +165,17 @@ export const bannersAPI = {
   delete: (id) => api.delete(`/banners/${id}`),
 };
 
+export const offersAPI = {
+  getAll: () => api.get('/offers/admin'),
+  create: (formData) => api.post('/offers', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  update: (id, formData) => api.put(`/offers/${id}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  delete: (id) => api.delete(`/offers/${id}`),
+};
+
 export const notificationsAPI = {
   getAll: () => api.get('/notifications'),
   create: (data) => api.post('/notifications', data),

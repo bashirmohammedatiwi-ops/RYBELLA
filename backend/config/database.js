@@ -84,6 +84,20 @@ const initDb = async () => {
     )`);
     saveDb();
   } catch (e) {}
+  // Migration: offers table
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS offers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      image TEXT NOT NULL,
+      discount_label TEXT,
+      product_ids TEXT,
+      sort_order INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    saveDb();
+  } catch (e) {}
   // Migration: products.barcode (للمنتجات بدون عناصر إضافية)
   try {
     const colCheck = db.exec("PRAGMA table_info(products)");
@@ -148,6 +162,19 @@ const initDb = async () => {
     const hasSubcategory = (prodCols[0]?.values || []).some((r) => r[1] === 'subcategory_id');
     if (!hasSubcategory) {
       db.run('ALTER TABLE products ADD COLUMN subcategory_id INTEGER REFERENCES subcategories(id)');
+      saveDb();
+    }
+  } catch (e) {}
+  // Migration: categories icon + overlay_text (أيقونة ونص فوق الصورة)
+  try {
+    const catInfo = db.exec("PRAGMA table_info(categories)");
+    const catCols = (catInfo[0]?.values || []).map((r) => r[1]);
+    if (!catCols.includes('icon')) {
+      db.run('ALTER TABLE categories ADD COLUMN icon TEXT');
+      saveDb();
+    }
+    if (!catCols.includes('overlay_text')) {
+      db.run('ALTER TABLE categories ADD COLUMN overlay_text TEXT');
       saveDb();
     }
   } catch (e) {}

@@ -10,12 +10,12 @@ const theme = createTheme({
   direction: 'rtl',
   palette: {
     primary: {
-      main: '#5e35b1',
-      light: '#7e57c2',
-      dark: '#4527a0',
+      main: '#E85D7A',
+      light: '#F08FA6',
+      dark: '#C94A66',
     },
     secondary: {
-      main: '#0097a7',
+      main: '#E8B4A8',
     },
     background: {
       default: '#f5f6f8',
@@ -57,12 +57,12 @@ const theme = createTheme({
         },
       },
     },
-    MuiTable: {
+        MuiTable: {
       styleOverrides: {
         root: {
           '& .MuiTableCell-head': {
             fontWeight: 600,
-            backgroundColor: 'rgba(94, 53, 177, 0.04)',
+            backgroundColor: 'rgba(232, 93, 122, 0.08)',
           },
         },
       },
@@ -70,7 +70,7 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         contained: {
-          boxShadow: '0 2px 8px rgba(94, 53, 177, 0.3)',
+          boxShadow: '0 2px 8px rgba(232, 93, 122, 0.35)',
         },
       },
     },

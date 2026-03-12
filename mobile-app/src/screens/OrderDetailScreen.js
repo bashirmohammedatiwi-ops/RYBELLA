@@ -11,7 +11,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ordersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, typography } from '../theme';
 
 const STATUS_LABELS = {
   pending: 'قيد الانتظار',
@@ -60,7 +60,7 @@ export default function OrderDetailScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.8}>
           <Icon name="arrow-forward" size={24} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>تفاصيل الطلب #{order.id}</Text>
@@ -116,32 +116,39 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
     paddingTop: 48,
     backgroundColor: colors.primary,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    ...shadows.lg,
   },
-  backBtn: { padding: 8 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: colors.white, textAlign: 'right' },
+  backBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitle: { flex: 1, ...typography.h3, fontSize: 18, color: colors.white, textAlign: 'right' },
   content: {
-    margin: 16,
-    padding: 20,
+    margin: 20,
+    padding: 24,
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    ...shadows.card,
+    borderRadius: 28,
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.06)',
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: borderRadius.sm,
-    marginBottom: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    marginBottom: 22,
+    ...shadows.soft,
   },
-  statusText: { color: colors.white, fontSize: 14, fontWeight: '600' },
-  label: { fontSize: 12, color: colors.textMuted, marginTop: 12 },
-  value: { fontSize: 15, color: colors.text, marginTop: 2, fontWeight: '500' },
-  sectionTitle: { fontSize: 17, fontWeight: '700', marginTop: 24, marginBottom: 12, color: colors.text },
+  statusText: { ...typography.caption, color: colors.white },
+  label: { ...typography.overline, color: colors.textMuted, marginTop: 14 },
+  value: { ...typography.body, color: colors.text, marginTop: 4 },
+  sectionTitle: { ...typography.h3, marginTop: 28, marginBottom: 14, color: colors.text },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -150,9 +157,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
-  itemName: { flex: 1, fontSize: 14, color: colors.text },
-  itemQty: { fontSize: 14, color: colors.textSecondary, marginHorizontal: 8 },
-  itemPrice: { fontSize: 14, fontWeight: '600', color: colors.primary },
+  itemName: { flex: 1, ...typography.caption, color: colors.text },
+  itemQty: { ...typography.caption, color: colors.textSecondary, marginHorizontal: 10 },
+  itemPrice: { ...typography.label, color: colors.primary },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -162,6 +169,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderTopColor: colors.border,
   },
-  totalLabel: { fontSize: 16, fontWeight: '700', color: colors.text },
-  totalValue: { fontSize: 20, fontWeight: '800', color: colors.primary },
+  totalLabel: { ...typography.h4, color: colors.text },
+  totalValue: { ...typography.hero, fontSize: 20, color: colors.primary },
 });

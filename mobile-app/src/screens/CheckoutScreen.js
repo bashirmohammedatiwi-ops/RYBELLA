@@ -13,7 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { deliveryZonesAPI, couponsAPI, ordersAPI } from '../services/api';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, typography } from '../theme';
 
 export default function CheckoutScreen() {
   const navigation = useNavigation();
@@ -226,39 +226,48 @@ export default function CheckoutScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  section: { backgroundColor: colors.surface, padding: 20, marginBottom: 12, borderRadius: borderRadius.lg, marginHorizontal: 16, ...shadows.soft },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 14, color: colors.text, textAlign: 'right' },
-  input: {
+  section: {
+    backgroundColor: colors.surface,
+    padding: 24,
+    marginBottom: 16,
+    borderRadius: 24,
+    marginHorizontal: 20,
+    ...shadows.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.md,
-    padding: 14,
-    marginBottom: 12,
-    fontSize: 16,
+    borderColor: 'rgba(232,93,122,0.06)',
+  },
+  sectionTitle: { ...typography.h3, marginBottom: 16, color: colors.text, textAlign: 'right' },
+  input: {
+    borderWidth: 2,
+    borderColor: 'rgba(232,93,122,0.12)',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    ...typography.body,
     textAlign: 'right',
     color: colors.text,
   },
-  couponRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  applyBtn: { backgroundColor: colors.primary, padding: 14, borderRadius: borderRadius.md, ...shadows.soft },
-  applyBtnText: { color: colors.white, fontWeight: '700' },
-  couponSuccess: { color: colors.success, marginTop: 10, fontSize: 14 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, alignItems: 'center' },
-  totalRow: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.borderLight },
-  totalLabel: { fontSize: 18, fontWeight: '700', color: colors.text },
-  total: { fontSize: 22, fontWeight: '800', color: colors.primary },
-  discount: { color: colors.success },
-  paymentNote: { fontSize: 14, color: colors.textSecondary, marginTop: 10, textAlign: 'right' },
-  emptyText: { fontSize: 16, color: colors.textSecondary, marginBottom: 16 },
-  shopBtn: { backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 28, borderRadius: borderRadius.lg },
-  shopBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  couponRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  applyBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 18, ...shadows.premium },
+  applyBtnText: { ...typography.h4, color: colors.white },
+  couponSuccess: { ...typography.caption, color: colors.success, marginTop: 12 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' },
+  totalRow: { marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderColor: colors.borderLight },
+  totalLabel: { ...typography.h3, color: colors.text },
+  total: { ...typography.hero, fontSize: 22, color: colors.primary },
+  discount: { ...typography.caption, color: colors.success },
+  paymentNote: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 12, textAlign: 'right' },
+  emptyText: { ...typography.body, color: colors.textSecondary, marginBottom: 20 },
+  shopBtn: { backgroundColor: colors.primary, paddingVertical: 18, paddingHorizontal: 36, borderRadius: 20, ...shadows.premium },
+  shopBtnText: { ...typography.h4, color: colors.white },
   placeOrderBtn: {
     backgroundColor: colors.primary,
-    margin: 20,
-    padding: 18,
-    borderRadius: borderRadius.lg,
+    margin: 24,
+    padding: 22,
+    borderRadius: 22,
     alignItems: 'center',
-    ...shadows.button,
+    ...shadows.premium,
   },
-  placeOrderText: { color: colors.white, fontSize: 18, fontWeight: '700' },
+  placeOrderText: { ...typography.h3, color: colors.white },
   disabled: { opacity: 0.7 },
 });

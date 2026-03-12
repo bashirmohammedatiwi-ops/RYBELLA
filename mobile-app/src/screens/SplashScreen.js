@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { colors } from '../theme';
+import { colors, typography } from '../theme';
 
 export default function SplashScreen() {
   const fadeLogo = useRef(new Animated.Value(0)).current;
@@ -31,7 +31,7 @@ export default function SplashScreen() {
   }, []);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.primarySoft }]}>
+    <View style={[styles.container, { backgroundColor: colors.cream }]}>
       <View style={styles.logoBox}>
         <Animated.Text
           style={[
@@ -68,25 +68,24 @@ const styles = StyleSheet.create({
   },
   logoBox: { alignItems: 'center' },
   logo: {
-    fontSize: 46,
-    fontWeight: '800',
+    ...typography.display,
+    fontSize: 48,
     color: colors.primary,
     letterSpacing: 2,
-    textShadowColor: 'rgba(0,0,0,0.1)',
+    textShadowColor: 'rgba(232, 93, 122, 0.2)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 8,
   },
   subtitle: {
+    ...typography.h2,
     fontSize: 24,
     color: colors.textSecondary,
-    marginTop: 8,
-    fontWeight: '600',
+    marginTop: 10,
     letterSpacing: 0.5,
   },
   tagline: {
-    fontSize: 15,
+    ...typography.body,
     color: colors.textMuted,
     marginTop: 28,
-    fontWeight: '500',
   },
 });
