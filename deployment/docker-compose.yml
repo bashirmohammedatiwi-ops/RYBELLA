@@ -45,6 +45,22 @@ services:
     networks:
       - rybella-network
 
+  webstore:
+    build:
+      context: ..
+      dockerfile: deployment/web-store.Dockerfile
+      args:
+        - VITE_API_URL=
+    container_name: rybella-webstore
+    restart: unless-stopped
+    ports:
+      - "4001:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - rybella-network
+
 volumes:
   backend_data:
   backend_uploads:

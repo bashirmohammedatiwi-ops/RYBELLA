@@ -5,7 +5,8 @@
 | المكون | التقنية | الوصف |
 |--------|---------|-------|
 | **Backend** | Node.js + Express | API على المنفذ 4000 |
-| **Admin Dashboard** | React + Vite | لوحة إدارة، تُبنى وتُخدم عبر Nginx |
+| **Admin Dashboard** | React + Vite | لوحة إدارة (المنفذ 4000) |
+| **Web Store** | React + Vite | متجر الويب (المنفذ 4001) |
 | **قاعدة البيانات** | SQLite (sql.js) | ملفية، لا تحتاج حاوية منفصلة |
 | **Mobile** | Expo/React Native | يعمل على الأجهزة، يتصل بـ API المنشور |
 
@@ -41,9 +42,8 @@ docker compose ps
 # عرض السجلات
 docker compose logs -f
 
-# فتح لوحة الإدارة (على المنفذ 4000)
-# من المتصفح: http://YOUR_VPS_IP:4000
-# أو: http://localhost:4000 (محلياً)
+# لوحة الإدارة: http://YOUR_VPS_IP:4000
+# متجر الويب:  http://YOUR_VPS_IP:4001
 ```
 
 **بيانات الدخول الافتراضية للوحة الإدارة:**
@@ -73,7 +73,8 @@ docker compose logs -f
 ### 3. `docker-compose.yml`
 - **الخدمات:**
   - **backend:** API على المنفذ 4000، مع volumes لقاعدة البيانات والملفات المرفوعة
-  - **web:** Nginx يخدم لوحة الإدارة ويعكس الطلبات إلى Backend
+  - **web:** لوحة الإدارة (Nginx) على المنفذ 4000
+  - **webstore:** متجر الويب (Nginx) على المنفذ 4001
 - **الشبكة:** `rybella-network` للاتصال بين الخدمات
 - **Volumes:** حفظ قاعدة البيانات والملفات المرفوعة
 
@@ -110,6 +111,7 @@ docker compose up -d
 # عرض سجلات خدمة معينة
 docker compose logs -f backend
 docker compose logs -f web
+docker compose logs -f webstore
 ```
 
 ---
