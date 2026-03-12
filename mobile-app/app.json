@@ -21,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#E91E63"
+        "backgroundColor": "#EB8BA1"
       },
       "package": "com.rybella.iraq"
     },
