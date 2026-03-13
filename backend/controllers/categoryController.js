@@ -26,7 +26,10 @@ exports.getById = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { name, sort_order, icon, overlay_text } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    const imageFile = req.files?.image?.[0];
+    const iconFile = req.files?.icon_image?.[0];
+    const image = imageFile ? `/uploads/${imageFile.filename}` : null;
+    const iconImage = iconFile ? `/uploads/${iconFile.filename}` : null;
 
     if (!name) {
       return res.status(400).json({ message: 'اسم الفئة مطلوب' });
@@ -38,7 +41,7 @@ exports.create = async (req, res) => {
       order = maxRow[0]?.next_order ?? 0;
     }
 
-    const iconVal = icon && typeof icon === 'string' ? icon.trim() || null : null;
+    const iconVal = iconImage ? iconImage : (icon && typeof icon === 'string' ? icon.trim() || null : null);
     const overlayVal = overlay_text && typeof overlay_text === 'string' ? overlay_text.trim() || null : null;
 
     const [result] = await db.query(
@@ -55,7 +58,10 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { name, sort_order, icon, overlay_text } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : undefined;
+    const imageFile = req.files?.image?.[0];
+    const iconFile = req.files?.icon_image?.[0];
+    const image = imageFile ? `/uploads/${imageFile.filename}` : undefined;
+    const iconImage = iconFile ? `/uploads/${iconFile.filename}` : undefined;
 
     let query = 'UPDATE categories SET name = ?';
     const params = [name];
@@ -67,7 +73,10 @@ exports.update = async (req, res) => {
       query += ', image = ?';
       params.push(image);
     }
-    if (icon !== undefined) {
+    if (iconImage) {
+      query += ', icon = ?';
+      params.push(iconImage);
+    } else if (icon !== undefined) {
       query += ', icon = ?';
       params.push(icon && typeof icon === 'string' ? icon.trim() || null : null);
     }

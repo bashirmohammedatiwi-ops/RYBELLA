@@ -20,7 +20,7 @@ import { Skeleton } from '../components/Skeleton';
 const { width: screenWidth } = Dimensions.get('window');
 const PAD = 18;
 
-function CategoryCard({ item, imgUrl, index, onPress }) {
+function CategoryCard({ item, imgUrl, iconUrl, index, onPress }) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -35,7 +35,7 @@ function CategoryCard({ item, imgUrl, index, onPress }) {
   const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] });
   const opacity = anim;
 
-  const iconName = item.icon && item.icon.trim() ? item.icon.trim() : 'tag-outline';
+  const iconName = !iconUrl && item.icon && item.icon.trim() ? item.icon.trim() : 'tag-outline';
   const hasOverlayText = item.overlay_text && item.overlay_text.trim();
 
   return (
@@ -67,7 +67,11 @@ function CategoryCard({ item, imgUrl, index, onPress }) {
           <View style={styles.cardContent}>
             <View style={styles.topRow}>
               <View style={[styles.iconBadge, imgUrl && styles.iconBadgeLight]}>
-                <Icon name={iconName} size={24} color={imgUrl ? colors.white : colors.primary} />
+                {iconUrl ? (
+                  <Image source={{ uri: iconUrl }} style={{ width: 24, height: 24, borderRadius: 12 }} resizeMode="cover" />
+                ) : (
+                  <Icon name={iconName} size={24} color={imgUrl ? colors.white : colors.primary} />
+                )}
               </View>
               {hasOverlayText && (
                 <View style={[styles.overlayTextBadge, !imgUrl && styles.overlayTextBadgeSolid]}>
@@ -142,14 +146,19 @@ export default function CategoriesScreen({ navigation }) {
       <FlatList
         data={categories}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item, index }) => (
-          <CategoryCard
-            item={item}
-            imgUrl={item.image ? `${API_BASE}${item.image}` : null}
-            index={index}
-            onPress={() => goToProducts(item)}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          const iconIsImg = item.icon && (item.icon.startsWith('/') || item.icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp)$/i.test(item.icon));
+          const iconUrl = iconIsImg ? `${API_BASE}${item.icon}` : null;
+          return (
+            <CategoryCard
+              item={item}
+              imgUrl={item.image ? `${API_BASE}${item.image}` : null}
+              iconUrl={iconUrl}
+              index={index}
+              onPress={() => goToProducts(item)}
+            />
+          );
+        }}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={

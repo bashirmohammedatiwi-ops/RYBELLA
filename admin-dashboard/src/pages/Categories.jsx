@@ -30,7 +30,7 @@ export default function Categories() {
   const [draggedIndex, setDraggedIndex] = useState(-1)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({ name: '', image: null, icon: '', overlay_text: '' })
+  const [form, setForm] = useState({ name: '', image: null, icon: '', icon_image: null, overlay_text: '' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -56,7 +56,8 @@ export default function Categories() {
       const formData = new FormData()
       formData.append('name', form.name)
       if (form.image) formData.append('image', form.image)
-      formData.append('icon', form.icon || '')
+      if (form.icon_image) formData.append('icon_image', form.icon_image)
+      else formData.append('icon', form.icon || '')
       formData.append('overlay_text', form.overlay_text || '')
       if (editing) {
         await categoriesAPI.update(editing.id, formData, formData)
@@ -67,7 +68,7 @@ export default function Categories() {
       }
       setOpen(false)
       setEditing(null)
-      setForm({ name: '', image: null, icon: '', overlay_text: '' })
+      setForm({ name: '', image: null, icon: '', icon_image: null, overlay_text: '' })
       loadCategories()
     } catch (err) {
       setError(err.response?.data?.message || 'حدث خطأ')
@@ -87,7 +88,7 @@ export default function Categories() {
 
   const openEdit = (cat) => {
     setEditing(cat)
-    setForm({ name: cat.name, image: null, icon: cat.icon || '', overlay_text: cat.overlay_text || '' })
+    setForm({ name: cat.name, image: null, icon: cat.icon || '', icon_image: null, overlay_text: cat.overlay_text || '' })
     setOpen(true)
   }
 
@@ -112,7 +113,7 @@ export default function Categories() {
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 600 }}>الفئات</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
-      <Button variant="contained" startIcon={<Add />} onClick={() => { setOpen(true); setEditing(null); setForm({ name: '', image: null, icon: '', overlay_text: '' }) }} sx={{ mb: 2 }}>
+      <Button variant="contained" startIcon={<Add />} onClick={() => { setOpen(true); setEditing(null); setForm({ name: '', image: null, icon: '', icon_image: null, overlay_text: '' }) }} sx={{ mb: 2 }}>
         إضافة فئة
       </Button>
       <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
@@ -144,7 +145,13 @@ export default function Categories() {
                 <TableCell>
                   <ImageDisplay src={cat.image} size="md" fit="cover" />
                 </TableCell>
-                <TableCell>{cat.icon || '—'}</TableCell>
+                <TableCell>
+                  {cat.icon && (cat.icon.startsWith('/') || cat.icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp)$/i.test(cat.icon)) ? (
+                    <ImageDisplay src={cat.icon} size="sm" fit="cover" width={40} height={40} />
+                  ) : (
+                    cat.icon || '—'
+                  )}
+                </TableCell>
                 <TableCell sx={{ maxWidth: 120 }}>{cat.overlay_text ? (cat.overlay_text.length > 20 ? cat.overlay_text.slice(0, 20) + '...' : cat.overlay_text) : '—'}</TableCell>
                 <TableCell>{cat.name}</TableCell>
                 <TableCell align="left">
@@ -161,9 +168,27 @@ export default function Categories() {
           <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'grey.200' }}>{editing ? 'تعديل الفئة' : 'إضافة فئة'}</DialogTitle>
           <DialogContent sx={{ pt: 3 }}>
             <TextField fullWidth label="الاسم" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required sx={{ mb: 2 }} />
-            <TextField fullWidth label="اسم الأيقونة (MaterialCommunityIcons)" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="مثال: brush أو lipstick أو tag-outline" sx={{ mb: 2 }} helperText="أسماء الأيقونات: brush, lipstick, face-woman, sparkles, tag-outline, palette..." />
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>الأيقونة (تظهر في الواجهة الرئيسية)</Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap', mb: 2 }}>
+              <TextField size="small" label="اسم الأيقونة (اختياري)" value={form.icon_image ? '' : form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value, icon_image: null })} placeholder="tag-outline, brush, lipstick..." sx={{ flex: 1, minWidth: 180 }} />
+              <Button variant="outlined" component="label" size="small">
+                {form.icon_image ? form.icon_image.name : (editing?.icon && (editing.icon.startsWith('/') || /\.(png|jpg|jpeg|gif|webp)$/i.test(editing.icon)) ? 'تغيير صورة الأيقونة' : 'رفع صورة أيقونة')}
+                <input type="file" hidden accept="image/*" onChange={(e) => setForm({ ...form, icon_image: e.target.files[0] || null, icon: '' })} />
+              </Button>
+            </Box>
+            {(form.icon_image || (editing?.icon && (editing.icon.startsWith('/') || /\.(png|jpg|jpeg|gif|webp)$/i.test(editing.icon)))) && (
+              <Box sx={{ mb: 2 }}>
+                {form.icon_image ? (
+                  <ImageDisplay src={URL.createObjectURL(form.icon_image)} size="sm" fit="cover" width={48} height={48} />
+                ) : (
+                  <ImageDisplay src={editing?.icon} size="sm" fit="cover" width={48} height={48} baseUrl={IMG_BASE} />
+                )}
+                {form.icon_image && <Button size="small" onClick={() => setForm({ ...form, icon_image: null })} sx={{ mt: 0.5 }}>إزالة</Button>}
+              </Box>
+            )}
             <TextField fullWidth label="نص يظهر فوق الصورة (اختياري)" value={form.overlay_text} onChange={(e) => setForm({ ...form, overlay_text: e.target.value })} placeholder="مثال: تصفح الآن" sx={{ mb: 2 }} />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>الصورة (تظهر في صفحة الفئات)</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
               {(editing?.image || form.image) && (
                 <ImageDisplay
                   src={form.image ? URL.createObjectURL(form.image) : editing?.image}

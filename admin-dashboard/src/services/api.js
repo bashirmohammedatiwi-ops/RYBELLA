@@ -1,10 +1,36 @@
 import axios from 'axios';
 
-// في التطوير: استخدم proxy من Vite (localhost:3001/api → 5000) لتجنب CORS
-// في الإنتاج: استخدم VITE_API_URL أو الرابط الكامل
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:5000/api');
-// لعرض الصور: في التطوير استخدم '' (يمر عبر proxy)
-export const IMG_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
+const getApiUrl = () => {
+  try {
+    const env = import.meta?.env;
+    if (env?.VITE_API_URL) return env.VITE_API_URL;
+    if (env?.DEV) return '/api';
+    return (typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin + '/api'
+      : 'http://187.124.23.65:4000/api');
+  } catch (_) {
+    return '/api';
+  }
+};
+
+const API_URL = getApiUrl();
+const getImgBase = () => {
+  try {
+    const env = import.meta?.env;
+    if (env?.DEV) return '';
+    if (env?.VITE_API_URL) return env.VITE_API_URL.replace(/\/api\/?$/, '');
+    return (typeof window !== 'undefined' && window.location?.origin)
+      ? window.location.origin
+      : 'http://187.124.23.65:4000';
+  } catch (_) {
+    return '';
+  }
+};
+export const IMG_BASE = getImgBase();
+
+if (!axios || typeof axios.create !== 'function') {
+  throw new Error('Axios failed to load');
+}
 
 const api = axios.create({
   baseURL: API_URL,
@@ -12,6 +38,8 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+export { api };
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');

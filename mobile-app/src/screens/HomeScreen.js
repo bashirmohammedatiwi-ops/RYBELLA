@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { productsAPI, brandsAPI, bannersAPI, categoriesAPI, subcategoriesAPI } from '../services/api';
+import { productsAPI, brandsAPI, bannersAPI, categoriesAPI, subcategoriesAPI, offersAPI } from '../services/api';
 import { API_BASE } from '../config';
 import * as Haptics from 'expo-haptics';
 import { colors, shadows, typography } from '../theme';
@@ -143,27 +143,26 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
+    const toArr = (d) => (Array.isArray(d) ? d : d?.data && Array.isArray(d.data) ? d.data : []);
     setError(null);
     try {
-      const [pR, fR, bR, bnR, cR, scR, offersR] = await Promise.all([
-        productsAPI.getAll(),
-        productsAPI.getAll({ featured: '1' }),
-        brandsAPI.getAll(),
-        bannersAPI.getAll().catch(() => ({ data: [] })),
-        categoriesAPI.getAll().catch(() => ({ data: [] })),
-        subcategoriesAPI.getAll().catch(() => ({ data: [] })),
-        offersAPI.getAll().catch(() => ({ data: [] })),
+      const [pR, fR, bR, bnR, cR, scR] = await Promise.all([
+        productsAPI.getAll().catch((e) => ({ data: [] })),
+        productsAPI.getAll({ featured: '1' }).catch((e) => ({ data: [] })),
+        brandsAPI.getAll().catch((e) => ({ data: [] })),
+        bannersAPI.getAll().catch((e) => ({ data: [] })),
+        categoriesAPI.getAll().catch((e) => ({ data: [] })),
+        subcategoriesAPI.getAll().catch((e) => ({ data: [] })),
       ]);
-      const toArr = (d) => (Array.isArray(d) ? d : d?.data && Array.isArray(d.data) ? d.data : []);
-      setProducts(toArr(pR.data));
-      setFeaturedProducts(toArr(fR.data));
-      setBrands(toArr(bR.data));
-      setBanners(toArr(bnR.data));
-      setCategories(toArr(cR.data));
-      setSubcategories(toArr(scR.data));
-      setOffers(toArr(offersR.data));
+      setProducts(toArr(pR?.data));
+      setFeaturedProducts(toArr(fR?.data));
+      setBrands(toArr(bR?.data));
+      setBanners(toArr(bnR?.data));
+      setCategories(toArr(cR?.data));
+      setSubcategories(toArr(scR?.data));
+      offersAPI.getAll().then((r) => setOffers(toArr(r?.data))).catch(() => setOffers([]));
     } catch (err) {
-      setError(err.message || 'تعذر الاتصال');
+      setError(err?.message || 'تعذر الاتصال');
     } finally { setLoading(false); setRefreshing(false); }
   };
 
@@ -311,14 +310,21 @@ export default function HomeScreen({ navigation }) {
             <SectionHeader title="تصفحي الفئات" icon="circle-outline" onSeeAll={() => navigation.navigate('Categories')} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
               {categories.map((c) => {
-                const img = c.image ? `${API_BASE}${c.image}` : null;
+                const iconIsImage = c.icon && (c.icon.startsWith('/') || c.icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp)$/i.test(c.icon));
+                const iconUrl = iconIsImage ? `${API_BASE}${c.icon}` : null;
+                const iconName = !iconIsImage && c.icon ? c.icon : 'tag-outline';
                 return (
                   <TouchableOpacity key={c.id} style={s.catItem} activeOpacity={0.85}
                     onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('Products', { categoryId: c.id }); }}>
                     <View style={s.catCircle}>
                       <View style={s.catCircleInner}>
-                        {img ? <Image source={{ uri: img }} style={s.catImg} resizeMode="cover" /> :
-                          <LinearGradient colors={[colors.primarySoft, colors.accentLight]} style={s.catImg} />}
+                        {iconUrl ? (
+                          <Image source={{ uri: iconUrl }} style={s.catImg} resizeMode="cover" />
+                        ) : (
+                          <LinearGradient colors={[colors.primarySoft, colors.accentLight]} style={[s.catImg, s.catIconWrap]}>
+                            <Icon name={iconName} size={32} color={colors.primary} />
+                          </LinearGradient>
+                        )}
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -351,9 +357,14 @@ export default function HomeScreen({ navigation }) {
         )}
 
         {/* ─── OFFERS ─── */}
-        {offers.length > 0 && (
-          <View style={[s.section, s.sectionOffers]}>
-            <SectionHeader title="العروض الحصرية" icon="percent-outline" accent />
+        <View style={[s.section, s.sectionOffers]}>
+          <SectionHeader
+            title="العروض الحصرية"
+            icon="percent-outline"
+            accent
+            onSeeAll={() => navigation.navigate('Offers')}
+          />
+          {offers.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.offersRow}>
               {offers.map((offer) => {
                 const img = offer.image ? `${API_BASE}${offer.image}` : null;
@@ -391,8 +402,17 @@ export default function HomeScreen({ navigation }) {
                 );
               })}
             </ScrollView>
-          </View>
-        )}
+          ) : (
+            <TouchableOpacity
+              style={s.offersEmptyBtn}
+              onPress={() => navigation.navigate('Offers')}
+              activeOpacity={0.85}
+            >
+              <Icon name="percent-outline" size={32} color={colors.primary} />
+              <Text style={s.offersEmptyText}>عرض جميع العروض</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* ─── FLASH SALE ─── */}
         {featured.length > 0 && (
@@ -668,6 +688,7 @@ const s = StyleSheet.create({
     width: '100%', height: '100%', borderRadius: 33.5, overflow: 'hidden',
   },
   catImg: { width: '100%', height: '100%' },
+  catIconWrap: { alignItems: 'center', justifyContent: 'center' },
 
   /* ── Subcategories ── */
   subRow: { gap: 18, paddingRight: 4 },
@@ -736,6 +757,24 @@ const s = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     textAlign: 'right',
+  },
+  offersEmptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(232,93,122,0.15)',
+    borderStyle: 'dashed',
+  },
+  offersEmptyText: {
+    ...typography.label,
+    fontSize: 14,
+    color: colors.primary,
   },
 
   /* ── Flash sale ── */

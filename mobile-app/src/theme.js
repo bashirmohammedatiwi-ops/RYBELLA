@@ -12,8 +12,8 @@ export const colors = {
   accent: '#D4A5A5',           // وردي رمادي فاخر
   accentLight: '#F5E6E8',
   white: '#FFFFFF',
-  cream: '#FFF9FA',
-  background: '#FFF9FA',
+  cream: '#FFFFFF',
+  background: '#FFFFFF',
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
   text: '#1A1A1A',

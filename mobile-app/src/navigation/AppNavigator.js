@@ -19,6 +19,7 @@ import CategoriesScreen from '../screens/CategoriesScreen';
 import BrandsScreen from '../screens/BrandsScreen';
 import ProductsScreen from '../screens/ProductsScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
+import OffersScreen from '../screens/OffersScreen';
 import CartScreen from '../screens/CartScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
 import OrdersScreen from '../screens/OrdersScreen';
@@ -148,6 +149,7 @@ export default function AppNavigator() {
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="Brands" component={BrandsScreen} />
         <Stack.Screen name="Products" component={ProductsScreen} />
+        <Stack.Screen name="Offers" component={OffersScreen} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
         <Stack.Screen name="Search" component={SearchScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
