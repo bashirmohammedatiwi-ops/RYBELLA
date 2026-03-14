@@ -30,6 +30,7 @@ export const authAPI = {
   getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/me', data),
   changePassword: (data) => api.put('/auth/me/password', data),
+  deleteAccount: (password) => api.delete('/auth/me', { data: { password } }),
 };
 
 export const productsAPI = {

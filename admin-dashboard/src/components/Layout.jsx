@@ -107,14 +107,14 @@ export default function Layout() {
               width: 44,
               height: 44,
               borderRadius: 2,
-              background: 'linear-gradient(135deg, #5e35b1 0%, #7e57c2 100%)',
+              background: 'linear-gradient(135deg, #E85D7A 0%, #F08FA6 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
               fontWeight: 800,
               fontSize: '1.35rem',
-              boxShadow: '0 4px 12px rgba(94,53,177,0.35)',
+              boxShadow: '0 4px 12px rgba(232,93,122,0.35)',
             }}
           >
             R

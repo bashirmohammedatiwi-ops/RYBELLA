@@ -22,7 +22,7 @@ import { useCart } from '../context/CartContext';
 import { ProductCardSkeleton, BannerSkeleton } from '../components/Skeleton';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const CARD_W = (SCREEN_W - 56) / 2;
+const CARD_W = (SCREEN_W - 54) / 2;
 const formatPrice = (p) => `${Number(p).toLocaleString('ar-IQ')} د.ع`;
 
 const getGreeting = () => {
@@ -102,24 +102,6 @@ function BannerDots({ count, active }) {
       {Array.from({ length: count }).map((_, i) => (
         <View key={i} style={[s.dot, i === active && s.dotActive]} />
       ))}
-    </View>
-  );
-}
-
-function DecorativeDots() {
-  return (
-    <View style={s.dotsPattern} pointerEvents="none">
-      {[...Array(12)].map((_, i) => (
-        <View key={i} style={[s.dotPattern, { left: (i % 4) * 22 + 8, top: Math.floor(i / 4) * 18 + 6 }]} />
-      ))}
-    </View>
-  );
-}
-
-function WaveDivider() {
-  return (
-    <View style={s.waveWrap}>
-      <View style={s.waveCurve} />
     </View>
   );
 }
@@ -243,47 +225,38 @@ export default function HomeScreen({ navigation }) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} colors={[colors.primary]} tintColor={colors.primary} />}
     >
       {/* ─── HEADER ─── */}
-      <LinearGradient colors={['#FFE0E6', '#FFE9ED', '#FFF2F4', '#FFF9FA']} style={s.heroGradient}>
+      <LinearGradient colors={['#FFF5F7', '#FFEDF0', '#FFE4E9', '#FFFBFB']} style={s.heroGradient}>
         <View style={s.headerDecor} />
         <View style={s.headerDecor2} />
         <View style={s.headerDecor3} />
         <View style={s.topBar}>
           <TouchableOpacity style={s.topBtn} onPress={() => navigation.navigate('Categories')} activeOpacity={0.8}>
-            <Icon name="view-grid-outline" size={24} color={colors.text} />
+            <Icon name="view-grid-outline" size={22} color={colors.text} />
           </TouchableOpacity>
           <View style={s.logoWrap}>
-            <View style={s.logoAccent} />
             <Text style={s.greetingText}>{getGreeting().emoji} {getGreeting().text}</Text>
             <Text style={s.logoText}>RYBELLA</Text>
             <Text style={s.logoSub}>الجمال الذي تستحقينه</Text>
           </View>
           <TouchableOpacity style={s.topBtn} onPress={() => navigation.navigate('Cart')} activeOpacity={0.8}>
-            <Icon name="shopping-outline" size={24} color={colors.text} />
+            <Icon name="shopping-outline" size={22} color={colors.text} />
             {totalCount > 0 && <View style={s.cartDot}><Text style={s.cartDotText}>{totalCount > 9 ? '9+' : totalCount}</Text></View>}
           </TouchableOpacity>
         </View>
 
-        {/* Search */}
-        <TouchableOpacity style={s.search} onPress={() => navigation.navigate('Search')} activeOpacity={0.85}>
-          <LinearGradient colors={['rgba(232,93,122,0.08)', 'rgba(232,93,122,0.04)']} style={s.searchIconWrap}>
-            <Icon name="magnify" size={24} color={colors.primary} />
-          </LinearGradient>
-          <Text style={s.searchText}>ابحثي عن منتج، ماركة...</Text>
+        <TouchableOpacity style={s.search} onPress={() => navigation.navigate('Search')} activeOpacity={0.88}>
+          <Icon name="magnify" size={22} color={colors.primary} />
+          <Text style={s.searchText}>ابحثي عن منتج، ماركة أو فئة...</Text>
+          <Icon name="chevron-left" size={20} color={colors.textMuted} />
         </TouchableOpacity>
       </LinearGradient>
 
-      <WaveDivider />
+      <View style={s.waveDivider} />
 
       <View style={s.body}>
         {/* ─── BANNERS ─── */}
         {banners.length > 0 && (
           <View style={s.bannerWrap}>
-            <View style={s.bannerLabelWrap}>
-              <View style={s.sectionLabel}>
-                <View style={s.sectionLabelLine} />
-                <Text style={s.sectionLabelText}>عروض حصرية</Text>
-              </View>
-            </View>
             <ScrollView
               horizontal pagingEnabled showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(e) => setBannerIdx(Math.round(e.nativeEvent.contentOffset.x / (SCREEN_W - 40)))}
@@ -303,11 +276,10 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* ─── CATEGORIES (circles) ─── */}
+        {/* ─── CATEGORIES ─── */}
         {categories.length > 0 && (
-          <View style={[s.section, s.sectionBg, s.sectionWithDots]}>
-            <DecorativeDots />
-            <SectionHeader title="تصفحي الفئات" icon="circle-outline" onSeeAll={() => navigation.navigate('Categories')} />
+          <View style={[s.section, s.sectionCard]}>
+            <SectionHeader title="تصفحي الفئات" icon="view-grid-outline" onSeeAll={() => navigation.navigate('Categories')} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
               {categories.map((c) => {
                 const iconIsImage = c.icon && (c.icon.startsWith('/') || c.icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp)$/i.test(c.icon));
@@ -322,11 +294,12 @@ export default function HomeScreen({ navigation }) {
                           <Image source={{ uri: iconUrl }} style={s.catImg} resizeMode="cover" />
                         ) : (
                           <LinearGradient colors={[colors.primarySoft, colors.accentLight]} style={[s.catImg, s.catIconWrap]}>
-                            <Icon name={iconName} size={32} color={colors.primary} />
+                            <Icon name={iconName} size={28} color={colors.primary} />
                           </LinearGradient>
                         )}
                       </View>
                     </View>
+                    <Text style={s.catName} numberOfLines={1}>{c.name}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -416,11 +389,8 @@ export default function HomeScreen({ navigation }) {
 
         {/* ─── FLASH SALE ─── */}
         {featured.length > 0 && (
-          <View style={[s.section, s.sectionBg, { position: 'relative' }]}>
-            <View style={s.flashRibbon}>
-              <Text style={s.flashRibbonText}>عرض محدود</Text>
-            </View>
-            <LinearGradient colors={['rgba(232,93,122,0.14)', 'rgba(232,93,122,0.05)']} style={s.flashHead}>
+          <View style={[s.section, s.sectionBg]}>
+            <View style={s.flashHead}>
               <View style={s.flashLeft}>
                 <Icon name="lightning-bolt" size={20} color={colors.primary} />
                 <Text style={s.flashTitle}>عرض خاص</Text>
@@ -429,7 +399,7 @@ export default function HomeScreen({ navigation }) {
                 <Text style={s.flashSeeAllText}>عرض الكل</Text>
                 <Icon name="chevron-left" size={16} color={colors.white} />
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
             <FlatList data={featured} renderItem={renderHProduct} keyExtractor={(i) => `f-${i.id}`} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.hList} />
           </View>
         )}
@@ -475,8 +445,7 @@ export default function HomeScreen({ navigation }) {
         )}
 
         {/* ─── ALL PRODUCTS GRID ─── */}
-        <View style={[s.section, s.sectionLast, s.sectionWithDots]}>
-          <DecorativeDots />
+        <View style={[s.section, s.sectionLast]}>
           <SectionHeader title="اكتشفي المزيد" icon="sparkles" onSeeAll={() => navigation.navigate('Products')} accent />
           <View style={s.gridWrap}>
             {products.slice(0, 6).map((item, idx) => (
@@ -520,32 +489,24 @@ const s = StyleSheet.create({
     width: 60, height: 60, borderRadius: 30,
     backgroundColor: 'rgba(232, 93, 122, 0.04)',
   },
-  greetingText: {
-    ...typography.overline,
-    fontSize: 12,
-    color: colors.primary,
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 52, paddingBottom: 12,
+    paddingHorizontal: 20, paddingTop: 48, paddingBottom: 16,
   },
   topBtn: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center',
-    ...shadows.md, borderWidth: 1, borderColor: 'rgba(232,93,122,0.08)',
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center',
+    ...shadows.sm, borderWidth: 1, borderColor: 'rgba(232,93,122,0.06)',
   },
-  logoWrap: { alignItems: 'center', flex: 1 },
-  logoAccent: {
-    position: 'absolute', top: -4, width: 6, height: 6, borderRadius: 3,
-    backgroundColor: colors.primary,
+  logoWrap: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  greetingText: {
+    ...typography.caption, fontSize: 11, color: colors.primary, marginBottom: 2, letterSpacing: 0.5,
   },
   logoText: {
-    ...typography.h3, fontSize: 20, color: colors.primary, letterSpacing: 4,
+    ...typography.h3, fontSize: 22, color: colors.primary, letterSpacing: 3,
   },
   logoSub: {
-    ...typography.caption, fontSize: 10, color: colors.textMuted, marginTop: 2, letterSpacing: 0.5,
+    ...typography.caption, fontSize: 10, color: colors.textMuted, marginTop: 1, letterSpacing: 0.5,
   },
   cartDot: {
     position: 'absolute', top: -3, right: -3,
@@ -557,86 +518,62 @@ const s = StyleSheet.create({
 
   /* ── Search ── */
   search: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    marginHorizontal: 20, marginBottom: 24,
-    backgroundColor: colors.white, borderRadius: 24, padding: 18,
-    ...shadows.lg, borderWidth: 1.5, borderColor: 'rgba(232,93,122,0.1)',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 20, marginBottom: 20,
+    backgroundColor: colors.white, borderRadius: 20, paddingHorizontal: 18, paddingVertical: 16,
+    ...shadows.md, borderWidth: 1, borderColor: 'rgba(232,93,122,0.08)',
   },
-  searchIconWrap: {
-    width: 44, height: 44, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  searchText: { flex: 1, textAlign: 'right', ...typography.bodySmall, color: colors.textMuted },
+  searchText: { flex: 1, textAlign: 'right', ...typography.bodySmall, color: colors.textMuted, fontSize: 14 },
 
   /* ── Body ── */
   body: { paddingHorizontal: 20, paddingTop: 4 },
-  section: { marginTop: 36 },
-  sectionBg: {
-    backgroundColor: 'rgba(255,255,255,0.6)',
+  section: { marginTop: 24 },
+  sectionCard: {
+    backgroundColor: colors.white,
     marginHorizontal: -20,
     paddingHorizontal: 20,
-    paddingVertical: 24,
-    borderRadius: 28,
-    marginTop: 28,
-  },
-  sectionLast: { paddingBottom: 8 },
-  sectionAlt: {
-    backgroundColor: 'rgba(232,93,122,0.04)',
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
-    paddingVertical: 28,
-    borderRadius: 32,
-    marginTop: 24,
-  },
-  sectionWithDots: { position: 'relative', overflow: 'hidden' },
-  dotsPattern: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 100,
-    height: 60,
-    opacity: 0.4,
-  },
-  dotPattern: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-  },
-  waveWrap: {
-    height: 28,
-    marginTop: -2,
-    backgroundColor: 'transparent',
-  },
-  waveCurve: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    paddingVertical: 20,
+    borderRadius: 24,
+    marginTop: 16,
     ...shadows.soft,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.04)',
   },
-  sectionLabel: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginBottom: 12,
+  sectionBg: {
+    backgroundColor: colors.white,
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderRadius: 24,
+    marginTop: 16,
+    ...shadows.soft,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.04)',
   },
-  sectionLabelLine: {
-    width: 4, height: 18, borderRadius: 2,
-    backgroundColor: colors.primary,
+  sectionLast: { paddingBottom: 12 },
+  sectionAlt: {
+    backgroundColor: 'rgba(250,248,249,0.98)',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderRadius: 24,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.06)',
   },
-  sectionLabelText: {
-    ...typography.overline,
-    color: colors.primary,
-    letterSpacing: 1,
+  waveDivider: {
+    height: 20,
+    marginTop: -1,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
   },
-  bannerLabelWrap: { marginBottom: 14 },
 
   /* ── Banners ── */
-  bannerWrap: { marginTop: 8 },
+  bannerWrap: { marginTop: 4 },
   bannerSlide: {
-    width: SCREEN_W - 40, height: 200, borderRadius: 28, overflow: 'hidden',
-    marginRight: 14, ...shadows.lg, borderWidth: 1, borderColor: 'rgba(232,93,122,0.08)',
+    width: SCREEN_W - 40, height: 180, borderRadius: 24, overflow: 'hidden',
+    marginRight: 16, ...shadows.md, borderWidth: 1, borderColor: 'rgba(232,93,122,0.06)',
   },
   bannerImg: { width: '100%', height: '100%' },
   bannerOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 28 },
@@ -689,46 +626,47 @@ const s = StyleSheet.create({
   },
   catImg: { width: '100%', height: '100%' },
   catIconWrap: { alignItems: 'center', justifyContent: 'center' },
+  catName: { ...typography.caption, fontSize: 11, color: colors.text, textAlign: 'center', marginTop: 8, maxWidth: 70 },
 
   /* ── Subcategories ── */
-  subRow: { gap: 18, paddingRight: 4 },
+  subRow: { gap: 14, paddingRight: 4 },
   subCard: {
-    width: 100, backgroundColor: colors.white, borderRadius: 24, overflow: 'hidden',
-    padding: 10, alignItems: 'center', ...shadows.md,
-    borderWidth: 1.5, borderColor: 'rgba(232,93,122,0.1)',
+    width: 94, backgroundColor: colors.white, borderRadius: 20, overflow: 'hidden',
+    padding: 10, alignItems: 'center', ...shadows.sm,
+    borderWidth: 1, borderColor: 'rgba(232,93,122,0.06)',
   },
   subImgWrap: {
-    width: 78, height: 78, borderRadius: 20, overflow: 'hidden',
+    width: 72, height: 72, borderRadius: 16, overflow: 'hidden',
     backgroundColor: colors.primarySoft,
-    ...shadows.soft,
   },
-  subName: { ...typography.caption, fontSize: 11, color: colors.text, textAlign: 'center', marginTop: 10 },
+  subName: { ...typography.caption, fontSize: 11, color: colors.text, textAlign: 'center', marginTop: 8 },
   subImg: { width: '100%', height: '100%' },
 
   /* ── Offers ── */
   sectionOffers: {
-    backgroundColor: 'rgba(255,249,250,0.98)',
+    backgroundColor: colors.white,
     marginHorizontal: -20,
     paddingHorizontal: 20,
-    paddingVertical: 28,
-    borderRadius: 32,
-    marginTop: 24,
+    paddingVertical: 24,
+    borderRadius: 24,
+    marginTop: 20,
+    ...shadows.soft,
+    borderWidth: 1,
+    borderColor: 'rgba(232,93,122,0.05)',
+  },
+  offersRow: { gap: 14, paddingRight: 4 },
+  offerCard: {
+    width: 180,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...shadows.md,
     borderWidth: 1,
     borderColor: 'rgba(232,93,122,0.08)',
   },
-  offersRow: { gap: 18, paddingRight: 4 },
-  offerCard: {
-    width: 200,
-    backgroundColor: colors.white,
-    borderRadius: 24,
-    overflow: 'hidden',
-    ...shadows.lg,
-    borderWidth: 1.5,
-    borderColor: 'rgba(232,93,122,0.12)',
-  },
   offerImgWrap: {
     position: 'relative',
-    height: 140,
+    height: 120,
     backgroundColor: colors.primarySoft,
     overflow: 'hidden',
   },
@@ -752,9 +690,9 @@ const s = StyleSheet.create({
   },
   offerBadgeText: { ...typography.overline, color: colors.white, fontSize: 11 },
   offerTitle: {
-    padding: 16,
+    padding: 14,
     ...typography.label,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
     textAlign: 'right',
   },
@@ -778,28 +716,11 @@ const s = StyleSheet.create({
   },
 
   /* ── Flash sale ── */
-  flashRibbon: {
-    position: 'absolute',
-    top: -4,
-    left: 24,
-    zIndex: 1,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    ...shadows.premium,
-  },
-  flashRibbonText: {
-    ...typography.overline,
-    color: colors.white,
-    fontSize: 10,
-  },
   flashHead: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderRadius: 22, padding: 18, marginBottom: 20,
-    borderWidth: 1.5, borderColor: 'rgba(232,93,122,0.12)',
-    overflow: 'hidden',
+    borderRadius: 18, padding: 16, marginBottom: 18,
+    backgroundColor: 'rgba(232,93,122,0.06)',
+    borderWidth: 1, borderColor: 'rgba(232,93,122,0.1)',
   },
   flashLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   flashTitle: { ...typography.h2, fontSize: 18, color: colors.primary },
@@ -811,21 +732,21 @@ const s = StyleSheet.create({
   flashSeeAllText: { ...typography.caption, color: colors.white, fontSize: 13 },
 
   /* ── Brands ── */
-  brandRow: { gap: 16, paddingRight: 4 },
+  brandRow: { gap: 14, paddingRight: 4 },
   brandChip: {
-    width: 80, height: 80, borderRadius: 22, backgroundColor: colors.white,
-    padding: 14, alignItems: 'center', justifyContent: 'center',
-    ...shadows.md, borderWidth: 1.5, borderColor: 'rgba(232,93,122,0.08)',
+    width: 76, height: 76, borderRadius: 20, backgroundColor: colors.white,
+    padding: 12, alignItems: 'center', justifyContent: 'center',
+    ...shadows.sm, borderWidth: 1, borderColor: 'rgba(232,93,122,0.06)',
   },
-  brandLogo: { width: '100%', height: '100%', borderRadius: 14 },
+  brandLogo: { width: '100%', height: '100%', borderRadius: 12 },
 
   /* ── Horizontal list ── */
-  hList: { gap: 18, paddingRight: 4 },
+  hList: { gap: 14, paddingRight: 4 },
 
   /* ── Product Card ── */
   pCard: {
-    backgroundColor: colors.white, borderRadius: 24, overflow: 'hidden',
-    ...shadows.lg, borderWidth: 1, borderColor: 'rgba(232,93,122,0.06)',
+    backgroundColor: colors.white, borderRadius: 20, overflow: 'hidden',
+    ...shadows.md, borderWidth: 1, borderColor: 'rgba(232,93,122,0.05)',
   },
   pImgWrap: { position: 'relative', backgroundColor: colors.primarySoft },
   pImg: { width: '100%', height: '100%' },
@@ -851,13 +772,13 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center',
     ...shadows.sm,
   },
-  pInfo: { padding: 16 },
-  pName: { ...typography.label, color: colors.text, textAlign: 'right', lineHeight: 21 },
-  pBrand: { ...typography.caption, fontSize: 11, color: colors.textMuted, marginTop: 6, textAlign: 'right' },
-  pPrice: { ...typography.h4, fontSize: 17, color: colors.primary, marginTop: 10, textAlign: 'right' },
+  pInfo: { padding: 14 },
+  pName: { ...typography.label, color: colors.text, textAlign: 'right', lineHeight: 20, fontSize: 13 },
+  pBrand: { ...typography.caption, fontSize: 10, color: colors.textMuted, marginTop: 4, textAlign: 'right' },
+  pPrice: { ...typography.h4, fontSize: 15, color: colors.primary, marginTop: 8, textAlign: 'right' },
 
   /* ── Grid ── */
-  gridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 18 },
+  gridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 14 },
 
   /* ── Error ── */
   errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },

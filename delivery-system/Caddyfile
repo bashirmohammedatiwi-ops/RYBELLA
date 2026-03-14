@@ -1,0 +1,25 @@
+# شركة ديما الحياة - نظام التوصيل
+# على السيرفر: عيّن DOMAIN=your-domain.com (شهادة Let's Encrypt تلقائية)
+# الوصول: https://demaalhayaadelivery.online و /employee و /driver
+# مطلوب: نشر المنفذ 80 في docker-compose لتفعيل Let's Encrypt
+
+demaalhayaadelivery.online {
+    tls bashir.mohammed.atiwi@gmail.com
+    handle /driver {
+        redir /driver /driver/ 308
+    }
+    handle /driver/* {
+        uri strip_prefix /driver
+        reverse_proxy driver-web:3001
+    }
+    handle /employee {
+        redir /employee /employee/ 308
+    }
+    handle /employee/* {
+        uri strip_prefix /employee
+        reverse_proxy employee-web:3002
+    }
+    handle {
+        reverse_proxy app:3000
+    }
+}

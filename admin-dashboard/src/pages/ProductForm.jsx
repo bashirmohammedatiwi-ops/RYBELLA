@@ -39,6 +39,8 @@ export default function ProductForm() {
     subcategory_id: '',
     description: '',
     barcode: '',
+    price: '',
+    stock: '',
     status: 'published',
     is_featured: false,
     is_best_seller: false,
@@ -87,6 +89,8 @@ export default function ProductForm() {
     try {
       setLoading(true);
       const { data } = await productsAPI.getById(id);
+      const vars = data.variants || [];
+      const hasSingleSimpleVariant = vars.length === 1 && (vars[0].shade_name === 'وحدة واحدة' || vars[0].shade_name === 'عنصر إضافي');
       setForm({
         name: data.name,
         brand_id: data.brand_id,
@@ -94,6 +98,8 @@ export default function ProductForm() {
         subcategory_id: data.subcategory_id || '',
         description: data.description || '',
         barcode: data.barcode || '',
+        price: hasSingleSimpleVariant && vars[0] ? String(vars[0].price) : '',
+        stock: hasSingleSimpleVariant && vars[0] ? String(vars[0].stock || 0) : '',
         status: data.status || 'published',
         is_featured: !!data.is_featured,
         is_best_seller: !!data.is_best_seller,
@@ -103,11 +109,9 @@ export default function ProductForm() {
         meta_description: data.meta_description || '',
         tags: Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
       });
-      // تحميل العناصر الإضافية (variants) كعناصر قابلة للتعديل
       setExistingMainImage(data.main_image || null);
       setExistingImages(data.images || []);
-      const vars = data.variants || [];
-      setElements(vars.map((v) => ({
+      setElements(hasSingleSimpleVariant ? [] : vars.map((v) => ({
         id: v.id,
         barcode: v.barcode || '',
         color_code: v.color_code || '#000000',
@@ -142,9 +146,15 @@ export default function ProductForm() {
       return;
     }
     const hasElements = elements.length > 0;
-    if (!hasElements && !form.barcode.trim()) {
-      alert('أدخل باركود المنتج أو أضف عناصر إضافية مع باركود لكل عنصر');
-      return;
+    if (!hasElements) {
+      if (!form.barcode.trim()) {
+        alert('أدخل باركود المنتج أو أضف عناصر إضافية مع باركود لكل عنصر');
+        return;
+      }
+      if (!form.price || Number(form.price) <= 0) {
+        alert('السعر مطلوب ويجب أن يكون أكبر من صفر للمنتجات بدون عناصر إضافية');
+        return;
+      }
     }
     if (hasElements) {
       const noBarcode = elements.find((el) => !el.barcode?.trim());
@@ -181,26 +191,40 @@ export default function ProductForm() {
 
       if (isEdit) {
         await productsAPI.update(id, formData);
-        const variantData = (el) => ({ shade_name: el.shade_name || el.color_code, color_code: el.color_code, barcode: el.barcode, price: el.price, stock: el.stock || 0, expiration_date: el.expiration_date || null });
-        for (let i = 0; i < elements.length; i++) {
-          const el = elements[i];
-          const fd = new FormData();
-          if (el.imageFile) fd.append('image', el.imageFile);
-          if (el.id) await variantsAPI.update(el.id, variantData(el), el.imageFile ? fd : null);
-          else await variantsAPI.create(id, variantData(el), fd);
+        if (hasElements) {
+          const variantData = (el) => ({ shade_name: el.shade_name || el.color_code, color_code: el.color_code, barcode: el.barcode, price: el.price, stock: el.stock || 0, expiration_date: el.expiration_date || null });
+          for (let i = 0; i < elements.length; i++) {
+            const el = elements[i];
+            const fd = new FormData();
+            if (el.imageFile) fd.append('image', el.imageFile);
+            if (el.id) await variantsAPI.update(el.id, variantData(el), el.imageFile ? fd : null);
+            else await variantsAPI.create(id, variantData(el), fd);
+          }
+        } else {
+          const { data: productData } = await productsAPI.getById(id);
+          for (const v of productData.variants || []) {
+            await variantsAPI.delete(v.id);
+          }
+          await variantsAPI.create(id, { shade_name: 'وحدة واحدة', barcode: form.barcode.trim(), price: form.price, stock: form.stock || 0 });
         }
         alert('تم تحديث المنتج بنجاح');
       } else {
         const { data } = await productsAPI.create(formData);
         const productId = data.id;
-        const variantData = (el) => ({ shade_name: el.shade_name || el.color_code, color_code: el.color_code, barcode: el.barcode, price: el.price, stock: el.stock || 0, expiration_date: el.expiration_date || null });
-        for (const el of elements) {
-          const fd = new FormData();
-          if (el.imageFile) fd.append('image', el.imageFile);
-          await variantsAPI.create(String(productId), variantData(el), fd);
+        if (hasElements) {
+          const variantData = (el) => ({ shade_name: el.shade_name || el.color_code, color_code: el.color_code, barcode: el.barcode, price: el.price, stock: el.stock || 0, expiration_date: el.expiration_date || null });
+          for (const el of elements) {
+            const fd = new FormData();
+            if (el.imageFile) fd.append('image', el.imageFile);
+            await variantsAPI.create(String(productId), variantData(el), fd);
+          }
+          alert('تم إنشاء المنتج بنجاح');
+          navigate(`/products/${productId}/variants`);
+        } else {
+          await variantsAPI.create(String(productId), { shade_name: 'وحدة واحدة', barcode: form.barcode.trim(), price: form.price, stock: form.stock || 0 });
+          alert('تم إنشاء المنتج بنجاح');
+          navigate('/products');
         }
-        alert('تم إنشاء المنتج بنجاح');
-        navigate(elements.length > 0 ? `/products/${productId}/variants` : '/products');
       }
     } catch (err) {
       alert(err.response?.data?.message || 'حدث خطأ');
@@ -288,13 +312,36 @@ export default function ProductForm() {
             <TextField label="وصف Meta (للمحركات)" value={form.meta_description} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} multiline rows={2} fullWidth />
 
             {elements.length === 0 && (
-              <TextField
-                label="باركود المنتج"
-                value={form.barcode}
-                onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                fullWidth
-                helperText="للمنتجات التي لا تحتوي على عناصر إضافية (ألوان/تشكيلات)"
-              />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="باركود المنتج"
+                  value={form.barcode}
+                  onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                  fullWidth
+                  required
+                  helperText="للمنتجات التي لا تحتوي على عناصر إضافية (ألوان/تشكيلات)"
+                />
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <TextField
+                    label="سعر المنتج (د.ع)"
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    required
+                    inputProps={{ min: 0, step: 0.01 }}
+                    sx={{ minWidth: 160 }}
+                    helperText="مطلوب للمنتجات بدون عناصر إضافية"
+                  />
+                  <TextField
+                    label="المخزون (اختياري)"
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                    inputProps={{ min: 0 }}
+                    sx={{ minWidth: 140 }}
+                  />
+                </Box>
+              </Box>
             )}
 
             <Box>

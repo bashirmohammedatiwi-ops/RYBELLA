@@ -24,24 +24,21 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { offersAPI } from '../services/api';
 import ImageDisplay from '../components/ImageDisplay';
+import ProductSelector from '../components/ProductSelector';
 
-function productIdsToFormValue(productIds) {
-  if (!productIds) return '';
+function parseProductIds(productIds) {
+  if (!productIds) return [];
   try {
     const parsed = typeof productIds === 'string' ? JSON.parse(productIds || '[]') : productIds;
-    return Array.isArray(parsed) ? parsed.join(', ') : String(productIds).replace(/[\[\]\"]/g, '').replace(/,/g, ', ');
+    return Array.isArray(parsed) ? parsed.filter((n) => !isNaN(parseInt(n, 10))) : [];
   } catch (_) {
-    return String(productIds).replace(/[\[\]\"]/g, '').replace(/,/g, ', ');
+    return [];
   }
 }
 
-function formValueToProductIdsStr(val) {
-  if (!val || !String(val).trim()) return '[]';
-  const ids = String(val)
-    .split(/[\s,]+/)
-    .map((s) => parseInt(s.trim(), 10))
-    .filter((n) => !isNaN(n));
-  return JSON.stringify(ids);
+function productIdsToDisplay(productIds) {
+  const arr = parseProductIds(productIds);
+  return arr.length ? arr.join(', ') : '-';
 }
 
 export default function Offers() {
@@ -52,7 +49,7 @@ export default function Offers() {
   const [form, setForm] = useState({
     title: '',
     discount_label: '',
-    product_ids: '',
+    product_ids: [],
     sort_order: 0,
     active: 1,
   });
@@ -80,7 +77,7 @@ export default function Offers() {
       setForm({
         title: offer.title || '',
         discount_label: offer.discount_label || '',
-        product_ids: productIdsToFormValue(offer.product_ids),
+        product_ids: parseProductIds(offer.product_ids),
         sort_order: offer.sort_order || 0,
         active: offer.active !== undefined ? offer.active : 1,
       });
@@ -89,7 +86,7 @@ export default function Offers() {
       setForm({
         title: '',
         discount_label: '',
-        product_ids: '',
+        product_ids: [],
         sort_order: 0,
         active: 1,
       });
@@ -104,7 +101,7 @@ export default function Offers() {
       const formData = new FormData();
       formData.append('title', form.title);
       formData.append('discount_label', form.discount_label);
-      formData.append('product_ids', formValueToProductIdsStr(form.product_ids));
+      formData.append('product_ids', JSON.stringify(Array.isArray(form.product_ids) ? form.product_ids : []));
       formData.append('sort_order', form.sort_order);
       formData.append('active', form.active ? 1 : 0);
       if (imageFile) formData.append('image', imageFile);
@@ -171,8 +168,8 @@ export default function Offers() {
                 <TableCell>{o.title || '-'}</TableCell>
                 <TableCell>{o.discount_label || '-'}</TableCell>
                 <TableCell>
-                  <Typography variant="body2" sx={{ maxWidth: 200 }} noWrap title={productIdsToFormValue(o.product_ids)}>
-                    {productIdsToFormValue(o.product_ids) || '-'}
+                  <Typography variant="body2" sx={{ maxWidth: 200 }} noWrap title={productIdsToDisplay(o.product_ids)}>
+                    {productIdsToDisplay(o.product_ids)}
                   </Typography>
                 </TableCell>
                 <TableCell>{o.sort_order}</TableCell>
@@ -209,14 +206,16 @@ export default function Offers() {
               fullWidth
               placeholder="اختياري"
             />
-            <TextField
-              label="معرفات المنتجات"
-              value={form.product_ids}
-              onChange={(e) => setForm({ ...form, product_ids: e.target.value })}
-              fullWidth
-              placeholder="1, 2, 3 أو 1 2 3"
-              helperText="أدخل معرفات المنتجات مفصولة بفاصلة أو مسافة"
-            />
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 0.5 }} color="text.secondary">
+                المنتجات
+              </Typography>
+              <ProductSelector
+                value={form.product_ids}
+                onChange={(ids) => setForm({ ...form, product_ids: ids })}
+                placeholder="ابحث عن منتج بالاسم..."
+              />
+            </Box>
             <TextField
               label="الترتيب"
               type="number"

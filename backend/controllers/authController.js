@@ -152,3 +152,29 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: 'كلمة المرور مطلوبة لتأكيد حذف الحساب' });
+    }
+    const [users] = await db.query('SELECT id, password, role FROM users WHERE id = ?', [req.user.id]);
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'المستخدم غير موجود' });
+    }
+    const user = users[0];
+    if (user.role === 'admin') {
+      return res.status(403).json({ message: 'لا يمكن حذف حساب المدير' });
+    }
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(400).json({ message: 'كلمة المرور غير صحيحة' });
+    }
+    await db.query('DELETE FROM users WHERE id = ?', [req.user.id]);
+    res.json({ message: 'تم حذف الحساب بنجاح' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
