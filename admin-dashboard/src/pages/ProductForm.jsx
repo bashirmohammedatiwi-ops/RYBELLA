@@ -265,17 +265,57 @@ export default function ProductForm() {
                 ))}
               </Select>
             </FormControl>
-            {form.category_id && (
-              <FormControl fullWidth>
-                <InputLabel>الفئة الثانوية (اختياري)</InputLabel>
-                <Select value={form.subcategory_id} label="الفئة الثانوية (اختياري)" onChange={(e) => setForm({ ...form, subcategory_id: e.target.value })}>
-                  <MenuItem value="">— لا يوجد —</MenuItem>
-                  {subcategories.map((s) => (
-                    <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            <FormControl fullWidth disabled={!form.category_id}>
+              <InputLabel>الفئة الثانوية (اختياري)</InputLabel>
+              <Select
+                value={form.category_id ? form.subcategory_id : ''}
+                label="الفئة الثانوية (اختياري)"
+                onChange={(e) => setForm({ ...form, subcategory_id: e.target.value })}
+                displayEmpty
+              >
+                <MenuItem value="">
+                  {form.category_id ? '— لا يوجد —' : '— اختر الفئة أولاً —'}
+                </MenuItem>
+                {subcategories.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {elements.length === 0 && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                <Typography variant="subtitle2" fontWeight={600}>سعر ومخزون المنتج (بدون عناصر إضافية)</Typography>
+                <TextField
+                  label="باركود المنتج"
+                  value={form.barcode}
+                  onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                  fullWidth
+                  required
+                  helperText="للمنتجات التي لا تحتوي على ألوان أو تشكيلات متعددة"
+                />
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <TextField
+                    label="سعر المنتج (د.ع)"
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    required
+                    inputProps={{ min: 0, step: 0.01 }}
+                    sx={{ minWidth: 160 }}
+                  />
+                  <TextField
+                    label="المخزون"
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                    inputProps={{ min: 0 }}
+                    sx={{ minWidth: 140 }}
+                    helperText="اختياري"
+                  />
+                </Box>
+              </Box>
             )}
+
             <TextField label="الوصف" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} multiline rows={4} fullWidth />
 
             <FormControl fullWidth>
@@ -310,39 +350,6 @@ export default function ProductForm() {
             <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>حقول SEO</Typography>
             <TextField label="عنوان Meta (للمحركات)" value={form.meta_title} onChange={(e) => setForm({ ...form, meta_title: e.target.value })} fullWidth />
             <TextField label="وصف Meta (للمحركات)" value={form.meta_description} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} multiline rows={2} fullWidth />
-
-            {elements.length === 0 && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                  label="باركود المنتج"
-                  value={form.barcode}
-                  onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                  fullWidth
-                  required
-                  helperText="للمنتجات التي لا تحتوي على عناصر إضافية (ألوان/تشكيلات)"
-                />
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <TextField
-                    label="سعر المنتج (د.ع)"
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    required
-                    inputProps={{ min: 0, step: 0.01 }}
-                    sx={{ minWidth: 160 }}
-                    helperText="مطلوب للمنتجات بدون عناصر إضافية"
-                  />
-                  <TextField
-                    label="المخزون (اختياري)"
-                    type="number"
-                    value={form.stock}
-                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                    inputProps={{ min: 0 }}
-                    sx={{ minWidth: 140 }}
-                  />
-                </Box>
-              </Box>
-            )}
 
             <Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
