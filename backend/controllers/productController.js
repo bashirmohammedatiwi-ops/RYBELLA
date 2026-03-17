@@ -44,8 +44,15 @@ exports.getAll = async (req, res) => {
       }
     }
     if (search) {
-      query += ' AND (p.name LIKE ? OR p.description LIKE ? OR p.tags LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      const searchVal = String(search).trim();
+      const isBarcode = /^\d+$/.test(searchVal);
+      if (isBarcode) {
+        query += ' AND (p.barcode = ? OR EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND pv.barcode = ?))';
+        params.push(searchVal, searchVal);
+      } else {
+        query += ' AND (p.name LIKE ? OR p.description LIKE ? OR p.tags LIKE ?)';
+        params.push(`%${searchVal}%`, `%${searchVal}%`, `%${searchVal}%`);
+      }
     }
 
     query += ' ORDER BY p.name';

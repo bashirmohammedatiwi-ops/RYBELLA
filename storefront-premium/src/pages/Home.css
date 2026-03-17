@@ -149,14 +149,14 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   2. Hero: بانرات أو ترحيب - تصميم مثل الصورة
+   2. Hero: بانرات - إعادة بناء كاملة
+   الصورة تخرج من الأعلى فقط، تُقطع عند اليمين واليسار والأسفل
    ───────────────────────────────────────────────────────────── */
 .home-hero {
   margin-bottom: 20px;
-  overflow: hidden;
+  overflow: visible;
 }
 
-/* حاوية البانرات - خلفية وردية، تخطيط نص + صورة (PNG يمكن أن يخرج عن الإطار) */
 .home-banners {
   position: relative;
   margin: 0 12px;
@@ -168,6 +168,7 @@
 .home-banners-slider {
   display: flex;
   overflow-x: auto;
+  overflow-y: visible;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -178,23 +179,33 @@
   display: none;
 }
 
-/* شريحة البانر - طبقتان: خلفية + صورة PNG فوقها (يمكن أن تخرج عن الإطار) */
+/* شريحة البانر */
 .home-banner-slide {
   flex: 0 0 100%;
   min-width: 100%;
   width: 100%;
-  min-height: 180px;
-  aspect-ratio: 16/10;
+  min-height: 150px;
+  aspect-ratio: 18/10;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  overflow: visible;
   position: relative;
   display: block;
   background: linear-gradient(135deg, #E85D7A 0%, #D14A66 50%, #C94A5A 100%);
   border-radius: 20px;
+  overflow: visible;
 }
 
-/* طبقة الخلفية - صورة تملأ البانر بالكامل */
+/* حاوية القص: تسمح بالخروج من الأعلى فقط - تُقطع عند اليمين واليسار والأسفل */
+.home-banner-clip {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: visible;
+  /* توسيع منطقة العرض للأعلى فقط - الصورة تظهر كاملة مع الرأس، تُقطع عند اليمين واليسار والأسفل */
+  clip-path: inset(-400px 0 0 0 round 20px);
+}
+
+/* طبقة الخلفية */
 .home-banner-bg {
   position: absolute;
   inset: 0;
@@ -204,75 +215,97 @@
 }
 
 .home-banner-bg img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-/* طبقة الصورة الرئيسية - تملأ البانر بالكامل (للصور العادية) */
-.home-banner-main-img {
   position: absolute;
   inset: 0;
-  z-index: 1;
-}
-
-.home-banner-main-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  object-position: center top;
 }
 
-/* صورة PNG قابلة للوضع - يمكن أن تخرج عن إطار البانر */
-.home-banner-png-overlay {
-  inset: auto !important;
-  transform: translate(-50%, -50%);
+/* صورة المنتج/الشخص - مُثبتة من أسفل البانر، تمتد للأعلى (الرأس يظهر كاملاً) */
+.home-banner-figure {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   z-index: 1;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   pointer-events: none;
+  max-height: none;
 }
 
-.home-banner-png-overlay img {
-  width: auto;
+.home-banner-figure img {
+  display: block;
+  width: 100%;
   height: auto;
-  max-width: 100%;
-  max-height: 140%;
+  max-height: 500px;
   object-fit: contain;
+  object-position: bottom center;
+  /* الصورة تظهر من الأسفل وتنمو للأعلى - الرأس في الأعلى يظهر كاملاً */
 }
 
-/* طبقة المحتوى (النص والزر) فوق الصور */
+/* طبقة المحتوى (النص والزر) */
 .home-banner-content {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  height: 100%;
+  justify-content: flex-start; /* RTL: النص على اليمين */
   padding: 20px 16px;
-  gap: 16px;
+  pointer-events: none;
 }
 
-.home-banner-content::before {
+.home-banner-content > * {
+  pointer-events: auto;
+}
+
+/* النص على اليمين - التدرج على اليمين */
+.home-banner-content-text-right::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  width: 60%;
+  right: 0;
+  width: 55%;
   bottom: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.35) 0%, transparent 100%);
+  background: linear-gradient(to left, rgba(0,0,0,0.4) 0%, transparent 60%);
   z-index: -1;
   pointer-events: none;
 }
 
-[dir="rtl"] .home-banner-content::before {
+/* النص على اليسار - التدرج على اليسار */
+.home-banner-content-text-left {
+  justify-content: flex-end;
+}
+
+.home-banner-content-text-left::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 55%;
+  bottom: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 60%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+[dir="ltr"] .home-banner-content-text-right::before {
+  right: auto;
+  left: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 60%);
+}
+
+[dir="ltr"] .home-banner-content-text-left::before {
   left: auto;
   right: 0;
-  background: linear-gradient(to left, rgba(0,0,0,0.35) 0%, transparent 100%);
+  background: linear-gradient(to left, rgba(0,0,0,0.4) 0%, transparent 60%);
 }
 
 .home-banner-text {
-  flex: 1;
-  min-width: 0;
   max-width: 55%;
   display: flex;
   flex-direction: column;
@@ -327,8 +360,7 @@
   transform: scaleX(-1);
 }
 
-
-/* نقاط التنقل - أسفل البانر */
+/* نقاط التنقل */
 .home-banners-pagination {
   position: absolute;
   bottom: 12px;
@@ -338,7 +370,7 @@
   justify-content: center;
   align-items: center;
   gap: 8px;
-  z-index: 2;
+  z-index: 3;
   pointer-events: none;
 }
 
@@ -376,7 +408,7 @@
   padding-right: 18px;
 }
 
-/* البانرات على الشاشات الكبيرة */
+/* البانرات - شاشات كبيرة */
 @media (min-width: 640px) {
   .home-banners {
     margin: 0 20px;
@@ -384,8 +416,16 @@
   }
 
   .home-banner-slide {
-    aspect-ratio: 21/9;
-    min-height: 200px;
+    aspect-ratio: 22/9;
+    min-height: 170px;
+  }
+
+  .home-banner-clip {
+    clip-path: inset(-500px 0 0 0 round 24px);
+  }
+
+  .home-banner-figure img {
+    max-height: 600px;
   }
 
   .home-banner-content {

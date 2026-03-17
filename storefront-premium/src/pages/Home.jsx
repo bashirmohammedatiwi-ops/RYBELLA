@@ -153,7 +153,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. البانرات - تصميم مثل الصورة */}
+      {/* 2. البانرات - إعادة بناء كاملة: الصورة تخرج من الأعلى فقط */}
       <section className="home-hero">
         {banners.length > 0 ? (
           <div className="home-banners">
@@ -162,46 +162,52 @@ export default function Home() {
               ref={bannerRef}
               onScroll={(e) => setBannerIdx(Math.round(e.target.scrollLeft / e.target.clientWidth))}
             >
-              {banners.slice(0, 5).map((b) => (
+              {banners.slice(0, 5).map((b) => {
+                /* الموضع في الأدمن = الموضع في المتجر (يمين في الأدمن = يمين هنا) */
+                const posX = b.image_pos_x != null ? b.image_pos_x : 80;
+                return (
                 <Link
                   key={b.id}
-                  to={b.link_type === 'product' && b.link_value ? `/products/${b.link_value}` : b.link_type === 'category' && b.link_value ? `/explore?category=${b.link_value}` : '#'}
+                  to={b.link_url || (b.link_type === 'url' && b.link_value ? b.link_value : '#')}
                   className="home-banner-slide"
                 >
-                  {/* طبقة 1: صورة الخلفية - تملأ البانر بالكامل */}
-                  <div className="home-banner-bg">
-                    {b.background_image ? (
-                      <img src={`${IMG_BASE}${b.background_image}`} alt="" />
-                    ) : null}
-                  </div>
-                  {/* طبقة 2: صورة PNG - قابلة للوضع يدوياً ويمكن أن تخرج عن الإطار */}
-                  {b.image && (
-                    <div
-                      className="home-banner-main-img home-banner-png-overlay"
-                      style={{
-                        left: `${b.image_pos_x != null ? b.image_pos_x : 100}%`,
-                        top: `${b.image_pos_y != null ? b.image_pos_y : 50}%`,
-                        width: b.image_size > 0 ? `${b.image_size}%` : undefined,
-                      }}
-                    >
-                      <img src={`${IMG_BASE}${b.image}`} alt={b.title || ''} />
+                  {/* حاوية القص: تسمح بالخروج من الأعلى فقط */}
+                  <div className="home-banner-clip">
+                    {/* طبقة الخلفية */}
+                    <div className="home-banner-bg">
+                      {b.background_image ? (
+                        <img src={`${IMG_BASE}${b.background_image}`} alt="" />
+                      ) : null}
                     </div>
-                  )}
-                  {/* طبقة 3: النص والزر فوق الصور */}
-                  <div className="home-banner-content">
-                    <div className="home-banner-text">
-                      <span className="home-banner-offer">{b.title || 'عروض حصرية'}</span>
-                      {b.subtitle && <span className="home-banner-subtitle">{b.subtitle}</span>}
-                      <span className="home-banner-btn">
-                        تسوقي الآن
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="9 18 15 12 9 6" />
-                        </svg>
-                      </span>
+                    {/* صورة المنتج/الشخص - مُثبتة من الأسفل، تخرج للأعلى */}
+                    {b.image && (
+                      <div
+                        className="home-banner-figure"
+                        style={{
+                          left: `${posX}%`,
+                          width: b.image_size > 0 ? `${b.image_size}%` : '55%',
+                        }}
+                      >
+                        <img src={`${IMG_BASE}${b.image}`} alt={b.title || ''} />
+                      </div>
+                    )}
+                    {/* النص والزر - على الجهة المقابلة للصورة */}
+                    <div className={`home-banner-content ${posX > 50 ? 'home-banner-content-text-left' : 'home-banner-content-text-right'}`}>
+                      <div className="home-banner-text">
+                        <span className="home-banner-offer">{b.title || 'عروض حصرية'}</span>
+                        {b.subtitle && <span className="home-banner-subtitle">{b.subtitle}</span>}
+                        <span className="home-banner-btn">
+                          تسوقي الآن
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
             {banners.length > 1 && (
               <div className="home-banners-pagination">

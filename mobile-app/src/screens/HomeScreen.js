@@ -264,8 +264,14 @@ export default function HomeScreen({ navigation }) {
               {banners.map((b) => (
                 <TouchableOpacity key={b.id} activeOpacity={1} style={s.bannerSlide}
                   onPress={() => {
-                    if (b.link_type === 'product' && b.link_value) goProduct(parseInt(b.link_value));
-                    else if (b.link_type === 'category' && b.link_value) navigation.navigate('Products', { categoryId: parseInt(b.link_value) });
+                    const productId = b.link_product_id || (b.link_type === 'product' && b.link_value ? parseInt(b.link_value, 10) : null);
+                    const categoryId = b.link_category_id || (b.link_type === 'category' && b.link_value ? parseInt(b.link_value, 10) : null);
+                    const subcategoryId = b.link_subcategory_id || (b.link_type === 'subcategory' && b.link_value ? parseInt(b.link_value, 10) : null);
+                    const brandId = b.link_brand_id || (b.link_type === 'brand' && b.link_value ? parseInt(b.link_value, 10) : null);
+                    if (productId) goProduct(productId);
+                    else if (categoryId) navigation.navigate('Products', { categoryId });
+                    else if (subcategoryId) navigation.navigate('Products', { subcategoryId });
+                    else if (brandId) navigation.navigate('Products', { brandId });
                   }}>
                   <Image source={{ uri: b.image ? `${API_BASE}${b.image}` : null }} style={s.bannerImg} resizeMode="cover" />
                   <LinearGradient colors={['transparent', 'rgba(0,0,0,0.35)']} style={s.bannerOverlay} />

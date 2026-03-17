@@ -1,11 +1,94 @@
 const db = require('../config/database');
 const path = require('path');
 
+/**
+ * يحلّل link_value (اسم أو باركود) إلى رابط فعلي
+ * - product: اسم المنتج أو باركود المنتج/العنصر
+ * - category: اسم الفئة
+ * - subcategory: اسم الفئة الثانوية
+ * - brand: اسم البراند
+ */
+async function resolveLinkUrl(linkType, linkValue) {
+  if (!linkValue || !String(linkValue).trim()) return null;
+  const val = String(linkValue).trim();
+  const isNumericId = /^\d+$/.test(val);
+  try {
+    if (linkType === 'product') {
+      if (isNumericId) {
+        const [byId] = await db.query('SELECT id FROM products WHERE id = ?', [parseInt(val, 10)]);
+        if (byId?.length) return `/products/${byId[0].id}`;
+      }
+      const [byBarcode] = await db.query(
+        `SELECT p.id FROM products p
+         LEFT JOIN product_variants pv ON pv.product_id = p.id
+         WHERE p.barcode = ? OR pv.barcode = ?
+         LIMIT 1`,
+        [val, val]
+      );
+      if (byBarcode?.length) return `/products/${byBarcode[0].id}`;
+      const [byName] = await db.query(
+        'SELECT id FROM products WHERE name LIKE ? AND COALESCE(status, \'published\') = \'published\' LIMIT 1',
+        [`%${val}%`]
+      );
+      if (byName?.length) return `/products/${byName[0].id}`;
+      return null;
+    }
+    if (linkType === 'category') {
+      if (isNumericId) {
+        const [byId] = await db.query('SELECT id FROM categories WHERE id = ?', [parseInt(val, 10)]);
+        if (byId?.length) return `/explore?category=${byId[0].id}`;
+      }
+      const [rows] = await db.query('SELECT id FROM categories WHERE name LIKE ? LIMIT 1', [`%${val}%`]);
+      return rows?.length ? `/explore?category=${rows[0].id}` : null;
+    }
+    if (linkType === 'subcategory') {
+      if (isNumericId) {
+        const [byId] = await db.query('SELECT id FROM subcategories WHERE id = ?', [parseInt(val, 10)]);
+        if (byId?.length) return `/explore?subcategory=${byId[0].id}`;
+      }
+      const [rows] = await db.query('SELECT id FROM subcategories WHERE name LIKE ? LIMIT 1', [`%${val}%`]);
+      return rows?.length ? `/explore?subcategory=${rows[0].id}` : null;
+    }
+    if (linkType === 'brand') {
+      if (isNumericId) {
+        const [byId] = await db.query('SELECT id FROM brands WHERE id = ?', [parseInt(val, 10)]);
+        if (byId?.length) return `/explore?brand=${byId[0].id}`;
+      }
+      const [rows] = await db.query('SELECT id FROM brands WHERE name LIKE ? LIMIT 1', [`%${val}%`]);
+      return rows?.length ? `/explore?brand=${rows[0].id}` : null;
+    }
+    if (linkType === 'url' && (val.startsWith('http') || val.startsWith('/'))) {
+      return val;
+    }
+  } catch (e) {
+    console.error('resolveLinkUrl error:', e);
+  }
+  return null;
+}
+
 exports.getAll = async (req, res) => {
   try {
     const [rows] = await db.query(
       'SELECT * FROM banners WHERE active = 1 ORDER BY sort_order ASC, id ASC'
     );
+    for (const b of rows) {
+      if (b.link_type && b.link_value) {
+        const url = await resolveLinkUrl(b.link_type, b.link_value);
+        b.link_url = url;
+        if (url) {
+          const m = url.match(/^\/products\/(\d+)$/);
+          if (m) b.link_product_id = parseInt(m[1], 10);
+          const cm = url.match(/category=(\d+)/);
+          if (cm) b.link_category_id = parseInt(cm[1], 10);
+          const sm = url.match(/subcategory=(\d+)/);
+          if (sm) b.link_subcategory_id = parseInt(sm[1], 10);
+          const bm = url.match(/brand=(\d+)/);
+          if (bm) b.link_brand_id = parseInt(bm[1], 10);
+        }
+      } else {
+        b.link_url = null;
+      }
+    }
     res.json(rows);
   } catch (error) {
     console.error('Get banners error:', error);
