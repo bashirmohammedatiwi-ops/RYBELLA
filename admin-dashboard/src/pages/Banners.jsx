@@ -149,7 +149,8 @@ export default function Banners() {
       setDialogOpen(false);
       loadBanners();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'حدث خطأ' });
+      const msg = err.response?.data?.message || err.message || 'حدث خطأ';
+      setMessage({ type: 'error', text: msg });
     }
   };
 

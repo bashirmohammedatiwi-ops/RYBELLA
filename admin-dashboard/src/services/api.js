@@ -188,10 +188,12 @@ export const dashboardAPI = {
 export const bannersAPI = {
   getAll: () => api.get('/banners/admin'),
   create: (formData) => api.post('/banners', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: formData instanceof FormData ? {} : undefined,
+    transformRequest: formData instanceof FormData ? [(d) => d] : undefined,
   }),
   update: (id, formData) => api.put(`/banners/${id}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: formData instanceof FormData ? {} : undefined,
+    transformRequest: formData instanceof FormData ? [(d) => d] : undefined,
   }),
   delete: (id) => api.delete(`/banners/${id}`),
 };

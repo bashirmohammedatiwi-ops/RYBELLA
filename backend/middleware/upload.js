@@ -25,8 +25,9 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowed = /jpeg|jpg|png|gif|webp/i;
-  const ext = path.extname(file.originalname).slice(1);
-  if (allowed.test(ext) || allowed.test(file.mimetype)) {
+  const ext = (path.extname(file.originalname) || '').slice(1);
+  const mime = file.mimetype || '';
+  if ((ext && allowed.test(ext)) || allowed.test(mime)) {
     cb(null, true);
   } else {
     cb(new Error('نوع الملف غير مدعوم. استخدم: jpg, png, gif, webp'), false);

@@ -28,7 +28,7 @@
   padding-right: calc(12px + env(safe-area-inset-right, 0));
   background: #fff;
   border-bottom: 1px solid #F0F0F0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  /* بدون box-shadow لتجنب ظهور ظل فوق البانر عند التداخل */
 }
 
 .home-logo {
@@ -154,40 +154,52 @@
    2. Hero: بانرات - إعادة بناء كاملة
    الصورة تخرج من الأعلى فقط، تُقطع عند اليمين واليسار والأسفل
    ───────────────────────────────────────────────────────────── */
+/* فاصل صغير بين الفئات والبانر */
 .home-hero {
   margin-bottom: 20px;
+  margin-top: 70px;
   overflow: visible;
+}
+
+.home-banners-wrapper {
+  position: relative;
+  margin: 0 12px;
 }
 
 .home-banners {
   position: relative;
-  margin: 0 12px;
+  margin: 0;
   border-radius: 20px;
-  overflow: visible;
-  box-shadow: 0 4px 20px rgba(232,93,122,0.2);
+  overflow-x: auto;
+  overflow-y: visible;
+  /* بدون box-shadow لتجنب تغطية الفئات والأيقونات فوق البانر */
+  max-width: 100%;
+  box-sizing: border-box;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* مساحة علوية لخروج الصورة دون قص (overflow-x:auto يجعل overflow-y:auto تلقائياً) */
+  padding-top: 120px;
+  margin-top: -120px;
 }
 
 .home-banners-slider {
   display: flex;
-  overflow-x: auto;
-  overflow-y: visible !important;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  overscroll-behavior-x: contain;
+  overflow: visible;
+  scroll-snap-type: none;
 }
 
 .home-banners-slider::-webkit-scrollbar {
   display: none;
 }
 
-/* شريحة البانر */
+/* شريحة البانر - ارتفاع مناسب للهاتف */
 .home-banner-slide {
   flex: 0 0 100%;
   min-width: 100%;
   width: 100%;
-  min-height: 150px;
-  aspect-ratio: 18/10;
+  min-height: 120px;
+  aspect-ratio: 21/9;
   scroll-snap-align: start;
   scroll-snap-stop: always;
   position: relative;
@@ -197,22 +209,27 @@
   overflow: visible;
 }
 
-/* حاوية البانر - الخلفية الوردية فقط، الصورة تخرج من الأعلى (مثل الأدمن) */
+/* حاوية البانر - الصورة تخرج من الأعلى فقط، تُقص من اليمين واليسار */
 .home-banner-clip {
   position: absolute;
   inset: 0;
+  top: -120px;
+  height: calc(100% + 120px);
   border-radius: inherit;
-  overflow: visible;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
-/* طبقة الخلفية الوردية - المستطيل المحدود (مثل الأدمن) */
+/* طبقة الخلفية - داخل البانر فقط، لا تمتد للأعلى (لتجنب تغطية الفئات) */
 .home-banner-bg {
   position: absolute;
-  inset: 0;
+  top: 120px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 0;
   overflow: hidden;
   border-radius: inherit;
-  /* الخلفية فقط داخل الحدود */
 }
 
 .home-banner-bg img {
@@ -242,7 +259,7 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: 400px;
+  max-height: 320px;
   object-fit: contain;
   object-position: bottom center;
 }
@@ -254,8 +271,8 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: flex-start; /* RTL: النص على اليمين */
-  padding: 20px 16px;
+  justify-content: flex-start;
+  padding: 14px 16px;
   pointer-events: none;
 }
 
@@ -263,46 +280,9 @@
   pointer-events: auto;
 }
 
-/* النص على اليمين - التدرج على اليمين */
-.home-banner-content-text-right::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 55%;
-  bottom: 0;
-  background: linear-gradient(to left, rgba(0,0,0,0.4) 0%, transparent 60%);
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* النص على اليسار - التدرج على اليسار */
+/* النص على اليسار */
 .home-banner-content-text-left {
   justify-content: flex-end;
-}
-
-.home-banner-content-text-left::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 55%;
-  bottom: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 60%);
-  z-index: -1;
-  pointer-events: none;
-}
-
-[dir="ltr"] .home-banner-content-text-right::before {
-  right: auto;
-  left: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 60%);
-}
-
-[dir="ltr"] .home-banner-content-text-left::before {
-  left: auto;
-  right: 0;
-  background: linear-gradient(to left, rgba(0,0,0,0.4) 0%, transparent 60%);
 }
 
 .home-banner-text {
@@ -363,13 +343,13 @@
 /* نقاط التنقل */
 .home-banners-pagination {
   position: absolute;
-  bottom: 12px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   z-index: 3;
   pointer-events: none;
 }
@@ -379,33 +359,79 @@
 }
 
 .home-banners-dot {
-  width: 8px;
-  height: 8px;
-  padding: 14px;
-  margin: 0 2px;
+  width: 4px;
+  height: 4px;
+  padding: 6px;
+  margin: 0;
   border-radius: 50%;
   border: none;
-  background: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.5);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s;
   -webkit-tap-highlight-color: transparent;
-  min-width: 8px;
-  min-height: 8px;
+  min-width: 4px;
+  min-height: 4px;
   box-sizing: content-box;
 }
 
-.home-banners-dot:hover,
-.home-banners-dot:focus {
+.home-banners-dot:hover {
   background: rgba(255,255,255,0.8);
 }
 
 .home-banners-dot.active {
-  width: 24px;
-  min-width: 24px;
-  border-radius: 4px;
   background: #fff;
-  padding-left: 18px;
-  padding-right: 18px;
+  width: 4px;
+  min-width: 4px;
+  padding: 6px;
+}
+
+/* البانرات - هواتف: ارتفاع أقل + الصورة تخرج من الأعلى */
+@media (max-width: 640px) {
+  .home-banner-slide {
+    min-height: 110px;
+    aspect-ratio: 20/9;
+    max-height: 180px;
+  }
+
+  .home-banner-clip {
+    top: -100px;
+    height: calc(100% + 100px);
+  }
+
+  .home-banner-figure img {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 380px) {
+  .home-banners {
+    margin: 0 10px;
+    border-radius: 16px;
+  }
+
+  .home-banner-slide {
+    min-height: 100px;
+    aspect-ratio: 2/1;
+    max-height: 160px;
+    border-radius: 16px;
+  }
+
+  .home-banner-clip {
+    top: -80px;
+    height: calc(100% + 80px);
+  }
+
+  .home-banner-content {
+    padding: 10px 12px;
+  }
+
+  .home-banner-offer {
+    font-size: 1.2rem;
+  }
+
+  .home-banner-figure img {
+    max-height: 260px;
+  }
 }
 
 /* البانرات - شاشات كبيرة */
@@ -420,8 +446,13 @@
     min-height: 170px;
   }
 
+  .home-banner-clip {
+    top: -150px;
+    height: calc(100% + 150px);
+  }
+
   .home-banner-figure img {
-    max-height: 480px;
+    max-height: 420px;
   }
 
   .home-banner-content {

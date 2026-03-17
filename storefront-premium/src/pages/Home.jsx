@@ -156,12 +156,13 @@ export default function Home() {
       {/* 2. البانرات - إعادة بناء كاملة: الصورة تخرج من الأعلى فقط */}
       <section className="home-hero">
         {banners.length > 0 ? (
-          <div className="home-banners">
+          <div className="home-banners-wrapper">
             <div
-              className="home-banners-slider"
+              className="home-banners"
               ref={bannerRef}
               onScroll={(e) => setBannerIdx(Math.round(e.target.scrollLeft / e.target.clientWidth))}
             >
+              <div className="home-banners-slider">
               {banners.slice(0, 5).map((b) => {
                 /* الموضع في الأدمن = الموضع في المتجر (يمين في الأدمن = يمين هنا) */
                 const posX = b.image_pos_x != null ? b.image_pos_x : 80;
@@ -191,23 +192,11 @@ export default function Home() {
                         <img src={`${IMG_BASE}${b.image}`} alt={b.title || ''} />
                       </div>
                     )}
-                    {/* النص والزر - على الجهة المقابلة للصورة */}
-                    <div className={`home-banner-content ${posX > 50 ? 'home-banner-content-text-left' : 'home-banner-content-text-right'}`}>
-                      <div className="home-banner-text">
-                        <span className="home-banner-offer">{b.title || 'عروض حصرية'}</span>
-                        {b.subtitle && <span className="home-banner-subtitle">{b.subtitle}</span>}
-                        <span className="home-banner-btn">
-                          تسوقي الآن
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="9 18 15 12 9 6" />
-                          </svg>
-                        </span>
-                      </div>
-                    </div>
                   </div>
                 </Link>
                 );
               })}
+              </div>
             </div>
             {banners.length > 1 && (
               <div className="home-banners-pagination">

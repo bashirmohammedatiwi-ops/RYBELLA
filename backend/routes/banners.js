@@ -8,7 +8,10 @@ const bannerUpload = upload.fields([{ name: 'image', maxCount: 1 }, { name: 'bac
 
 const handleMulterError = (err, req, res, next) => {
   if (err) {
-    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'حجم الملف كبير جداً (الحد 5MB)' : err.message || 'خطأ في رفع الملف';
+    let msg = 'خطأ في رفع الملف';
+    if (err.code === 'LIMIT_FILE_SIZE') msg = 'حجم الملف كبير جداً (الحد 5MB)';
+    else if (err.code === 'LIMIT_UNEXPECTED_FILE') msg = 'اسم حقل الملف غير متوقع';
+    else if (err.message) msg = err.message;
     return res.status(400).json({ message: msg });
   }
   next();
