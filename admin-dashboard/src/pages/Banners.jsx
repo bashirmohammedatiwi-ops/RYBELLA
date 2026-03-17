@@ -136,8 +136,8 @@ export default function Banners() {
       formData.append('image_pos_x', form.image_pos_x);
       formData.append('image_pos_y', form.image_pos_y);
       formData.append('image_size', form.image_size);
-      if (imageFile) formData.append('image', imageFile);
-      if (backgroundImageFile) formData.append('background_image', backgroundImageFile);
+      if (imageFile) formData.append('image', imageFile, imageFile.name || 'image.jpg');
+      if (backgroundImageFile) formData.append('background_image', backgroundImageFile, backgroundImageFile.name || 'background.jpg');
 
       if (editingBanner) {
         await bannersAPI.update(editingBanner.id, formData);
@@ -149,7 +149,7 @@ export default function Banners() {
       setDialogOpen(false);
       loadBanners();
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'حدث خطأ';
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'حدث خطأ';
       setMessage({ type: 'error', text: msg });
     }
   };
@@ -300,7 +300,7 @@ export default function Banners() {
               <Typography variant="caption" color="text.secondary">تدرج وردي أو صورة كاملة للبانر</Typography>
               <Button variant="outlined" component="label" size="small" sx={{ alignSelf: 'flex-start' }}>
                 {backgroundImageFile ? backgroundImageFile.name : editingBanner?.background_image ? 'تغيير الخلفية' : 'اختر صورة الخلفية'}
-                <input type="file" hidden accept="image/*" onChange={(e) => setBackgroundImageFile(e.target.files[0])} />
+                <input type="file" hidden accept="image/*" onChange={(e) => setBackgroundImageFile(e.target.files?.[0] ?? null)} />
               </Button>
             </Box>
 
@@ -310,7 +310,7 @@ export default function Banners() {
               <Typography variant="caption" color="text.secondary">صورة المنتج أو الشخص - تظهر على اليمين أو اليسار حسب الموضع</Typography>
               <Button variant="outlined" component="label" size="small" sx={{ alignSelf: 'flex-start' }}>
                 {imageFile ? imageFile.name : editingBanner?.image ? 'تغيير الصورة' : 'اختر الصورة'}
-                <input type="file" hidden accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
+                <input type="file" hidden accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
               </Button>
             </Box>
             {(imageFile || editingBanner?.image) && (

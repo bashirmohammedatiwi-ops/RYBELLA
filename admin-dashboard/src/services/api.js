@@ -187,14 +187,8 @@ export const dashboardAPI = {
 
 export const bannersAPI = {
   getAll: () => api.get('/banners/admin'),
-  create: (formData) => api.post('/banners', formData, {
-    headers: formData instanceof FormData ? {} : undefined,
-    transformRequest: formData instanceof FormData ? [(d) => d] : undefined,
-  }),
-  update: (id, formData) => api.put(`/banners/${id}`, formData, {
-    headers: formData instanceof FormData ? {} : undefined,
-    transformRequest: formData instanceof FormData ? [(d) => d] : undefined,
-  }),
+  create: (formData) => api.post('/banners', formData, formData instanceof FormData ? { transformRequest: [(d) => d] } : {}),
+  update: (id, formData) => api.put(`/banners/${id}`, formData, formData instanceof FormData ? { transformRequest: [(d) => d] } : {}),
   delete: (id) => api.delete(`/banners/${id}`),
 };
 
