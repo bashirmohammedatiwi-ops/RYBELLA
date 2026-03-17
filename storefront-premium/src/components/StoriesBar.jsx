@@ -13,6 +13,7 @@ export default function StoriesBar() {
   const [storyIndex, setStoryIndex] = useState(0)
   const [slideIndex, setSlideIndex] = useState(0)
   const [progress, setProgress] = useState(0)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
     storiesAPI.getAll().then((r) => {
@@ -39,6 +40,8 @@ export default function StoriesBar() {
     setStoryIndex(groupIdx)
     setSlideIndex(0)
     setProgress(0)
+    setElapsedSeconds(0)
+    setVideoRemainingSec(storyGroups[groupIdx]?.duration_seconds ?? 5)
     setViewerOpen(true)
   }
 
@@ -47,6 +50,9 @@ export default function StoriesBar() {
   }, [])
 
   const goNext = useCallback(() => {
+    setElapsedSeconds(0)
+    const nextGroup = hasNextSlide ? currentGroup : storyGroups[storyIndex + 1]
+    setVideoRemainingSec(nextGroup?.duration_seconds ?? 5)
     if (hasNextSlide) {
       setSlideIndex((i) => i + 1)
       setProgress(0)
@@ -57,9 +63,12 @@ export default function StoriesBar() {
     } else {
       closeViewer()
     }
-  }, [hasNextSlide, hasNextStory, closeViewer])
+  }, [hasNextSlide, hasNextStory, closeViewer, currentGroup, storyGroups, storyIndex])
 
   const goPrev = useCallback(() => {
+    setElapsedSeconds(0)
+    const prevGroup = hasPrevSlide ? currentGroup : storyGroups[storyIndex - 1]
+    setVideoRemainingSec(prevGroup?.duration_seconds ?? 5)
     if (hasPrevSlide) {
       setSlideIndex((i) => i - 1)
       setProgress(0)
@@ -69,20 +78,24 @@ export default function StoriesBar() {
       setSlideIndex(prevSlides.length - 1)
       setProgress(0)
     }
-  }, [hasPrevSlide, hasPrevStory, storyIndex, storyGroups])
+  }, [hasPrevSlide, hasPrevStory, storyIndex, storyGroups, currentGroup])
 
   const isVideo = currentSlide?.media_type === 'video'
   const storyDuration = (currentGroup?.duration_seconds ?? 5) * 1000
+  const durationSec = currentGroup?.duration_seconds ?? 5
+  const [videoRemainingSec, setVideoRemainingSec] = useState(durationSec)
+  const displaySeconds = isVideo ? videoRemainingSec : Math.max(0, durationSec - elapsedSeconds)
 
   const handleProgress = useCallback(() => {
     setProgress((p) => {
-      const step = p + 50
+      const step = p + 2
       if (step >= 100) {
         goNext()
         return 0
       }
       return step
     })
+    setElapsedSeconds((s) => s + 0.1)
   }, [goNext])
 
   useEffect(() => {
@@ -90,16 +103,24 @@ export default function StoriesBar() {
     if (isVideo) {
       const v = videoRef.current
       if (!v) return
-      const onTimeUpdate = () => { if (v.duration > 0) setProgress((v.currentTime / v.duration) * 100) }
+      const onLoadedMetadata = () => { if (v.duration > 0) setVideoRemainingSec(v.duration) }
+      const onTimeUpdate = () => {
+        if (v.duration > 0) {
+          setProgress((v.currentTime / v.duration) * 100)
+          setVideoRemainingSec(Math.max(0, v.duration - v.currentTime))
+        }
+      }
       const onEnded = () => { setProgress(100); goNext() }
+      v.addEventListener('loadedmetadata', onLoadedMetadata)
       v.addEventListener('timeupdate', onTimeUpdate)
       v.addEventListener('ended', onEnded)
       return () => {
+        v.removeEventListener('loadedmetadata', onLoadedMetadata)
         v.removeEventListener('timeupdate', onTimeUpdate)
         v.removeEventListener('ended', onEnded)
       }
     }
-    const t = setInterval(handleProgress, storyDuration / 20)
+    const t = setInterval(handleProgress, storyDuration / 50)
     return () => clearInterval(t)
   }, [viewerOpen, currentSlide, storyIndex, slideIndex, handleProgress, isVideo, goNext, storyDuration])
 
@@ -171,14 +192,13 @@ export default function StoriesBar() {
                 </div>
               ))}
               </div>
-              {(currentGroup?.avatar || currentGroup?.publisher_name) && (
-                <div className="story-viewer-header">
-                  {(currentGroup.avatar || (currentGroup.cover && currentGroup.cover_media_type !== 'video')) && (
-                    <img src={`${IMG_BASE}${currentGroup.avatar || currentGroup.cover}`} alt="" className="story-viewer-avatar" />
-                  )}
-                  {currentGroup.publisher_name && <span>{currentGroup.publisher_name}</span>}
-                </div>
-              )}
+              <div className="story-viewer-header">
+                {(currentGroup?.avatar || (currentGroup?.cover && currentGroup?.cover_media_type !== 'video')) && (
+                  <img src={`${IMG_BASE}${currentGroup.avatar || currentGroup.cover}`} alt="" className="story-viewer-avatar" />
+                )}
+                {currentGroup?.publisher_name && <span>{currentGroup.publisher_name}</span>}
+                <span className="story-viewer-timer">{Math.ceil(displaySeconds)} ث</span>
+              </div>
             </div>
             <div className="story-viewer-content">
               <button
@@ -188,15 +208,18 @@ export default function StoriesBar() {
                 aria-label="السابق"
                 style={{ visibility: hasPrevSlide || hasPrevStory ? 'visible' : 'hidden' }}
               />
-              <div className="story-viewer-image-wrap">
-                {currentSlide.media_type === 'video' ? (
-                  <video key={`${storyIndex}-${slideIndex}`} ref={videoRef} src={`${IMG_BASE}${currentSlide.image}`} autoPlay muted playsInline loop={false} onEnded={goNext} />
-                ) : currentSlide.link_url ? (
-                  <Link to={currentSlide.link_url} className="story-viewer-link" onClick={closeViewer}>
+              <div className="story-viewer-media">
+                <div className="story-viewer-image-wrap">
+                  {currentSlide.media_type === 'video' ? (
+                    <video key={`${storyIndex}-${slideIndex}`} ref={videoRef} src={`${IMG_BASE}${currentSlide.image}`} autoPlay muted playsInline loop={false} onEnded={goNext} />
+                  ) : (
                     <img src={`${IMG_BASE}${currentSlide.image}`} alt="" />
+                  )}
+                </div>
+                {currentSlide.link_url && (
+                  <Link to={currentSlide.link_url} className="story-viewer-link-btn" onClick={closeViewer}>
+                    عرض المنتج / القسم
                   </Link>
-                ) : (
-                  <img src={`${IMG_BASE}${currentSlide.image}`} alt="" />
                 )}
               </div>
               <button
