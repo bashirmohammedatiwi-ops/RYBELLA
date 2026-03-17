@@ -218,7 +218,7 @@ export default function Stories() {
         اليوميات
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        أضف صوراً أو فيديوهات لكل يومية - تظهر مثل ستوريات انستغرام (mp4, webm, mov)
+        أضف صوراً أو فيديوهات - مثل انستغرام: إمساك للإيقاف، سحب للأسفل للإغلاق، سحب للأعلى للرابط
       </Typography>
       {message.text && (
         <Alert severity={message.type} onClose={() => setMessage({ type: '', text: '' })} sx={{ mb: 2 }}>

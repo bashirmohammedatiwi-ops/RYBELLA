@@ -1,184 +1,371 @@
 /* ═══════════════════════════════════════════════════════════════
-   ProductDetail - تفاصيل المنتج | تصميم متسق
+   ProductDetail - تفاصيل المنتج | تصميم مميز مع عرض ألوان الظلال
    ═══════════════════════════════════════════════════════════════ */
 
-.premium-product-detail {
+.pd-page {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 24px 12px 4rem;
+  padding: 20px 16px 6rem;
   min-height: 100vh;
-  background: #FAFAFA;
+  background: linear-gradient(180deg, #FAFAFA 0%, #F5F0ED 100%);
 }
 
-.premium-pd-row {
+.pd-loading,
+.pd-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+  color: var(--text-muted);
+}
+
+.pd-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--primary-soft);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: pd-spin 0.8s linear infinite;
+}
+
+@keyframes pd-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pd-empty a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ─── Container ─── */
+.pd-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 2.5rem;
+  align-items: start;
 }
 
-.premium-pd-gallery {
+/* ─── Gallery ─── */
+.pd-gallery-wrap {
+  position: sticky;
+  top: 80px;
+}
+
+.pd-gallery {
   aspect-ratio: 1;
   background: white;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 20px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.06);
 }
 
-.premium-pd-gallery img {
+.pd-main-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.premium-pd-placeholder {
-  font-size: 3rem;
+.pd-placeholder {
+  font-size: 2.5rem;
   color: var(--text-muted);
-}
-
-.premium-pd-info h1 {
   font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
 }
 
-.premium-pd-brand {
-  font-size: 0.95rem;
-  color: var(--accent);
-  margin-bottom: 0.75rem;
-}
-
-.premium-pd-price {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-}
-
-.premium-pd-desc {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-}
-
-.premium-pd-qty {
-  margin-bottom: 1.5rem;
-}
-
-.premium-pd-variants {
-  margin-bottom: 1rem;
-}
-
-.premium-pd-variants label {
-  display: block;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-}
-
-.premium-pd-variant-list {
+.pd-thumbs {
   display: flex;
+  gap: 8px;
+  margin-top: 12px;
   flex-wrap: wrap;
-  gap: 0.5rem;
 }
 
-.premium-pd-variant-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  border-radius: 8px;
+.pd-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  padding: 0;
+  background: white;
   cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.premium-pd-variant-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
+.pd-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.premium-pd-qty label {
-  display: block;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
+.pd-thumb.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
 }
 
-.premium-pd-qty-controls {
+/* ─── Info ─── */
+.pd-info {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.premium-pd-qty-controls button {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  font-size: 1.25rem;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.premium-pd-qty-controls span {
-  min-width: 2rem;
-  text-align: center;
-  font-weight: 600;
-}
-
-.premium-pd-actions {
-  display: flex;
+  flex-direction: column;
   gap: 1rem;
 }
 
-.premium-pd-add-cart {
+.pd-brand {
+  font-size: 0.9rem;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pd-title {
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.pd-price {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+}
+
+/* ─── Variants / Color Swatches ─── */
+.pd-variants {
+  margin: 0.5rem 0;
+}
+
+.pd-variants-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.pd-variant-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* وضع الألوان: دوائر ملونة مميزة */
+.pd-variant-swatches.color-mode .pd-swatch {
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  min-width: 64px;
+}
+
+.pd-swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  background: white;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-size: 0.85rem;
+}
+
+.pd-swatch:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 4px 12px rgba(232, 93, 122, 0.15);
+}
+
+.pd-swatch.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* الدائرة الملونة */
+.pd-swatch-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--swatch-color, #ccc);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.3), 0 2px 6px rgba(0,0,0,0.15);
+  border: 2px solid rgba(255,255,255,0.8);
+  transition: transform 0.2s;
+}
+
+.pd-swatch.has-color .pd-swatch-circle {
+  /* للون الفاتح: حدود داكنة */
+  border-color: rgba(0,0,0,0.12);
+}
+
+.pd-swatch.active .pd-swatch-circle {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px white, 0 0 0 5px var(--primary);
+}
+
+/* لمسة معدنية للذهبي والفضي */
+.pd-swatch.metallic .pd-swatch-circle {
+  background: linear-gradient(135deg, var(--swatch-color) 0%, rgba(255,255,255,0.35) 45%, var(--swatch-color) 100%);
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.pd-swatch-name {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-swatch.out-of-stock {
+  opacity: 0.55;
+}
+
+.pd-swatch.out-of-stock .pd-swatch-circle {
+  filter: grayscale(0.4);
+}
+
+
+.pd-swatch-text {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* وضع النص (بدون لون) */
+.pd-variant-swatches.text-mode .pd-swatch {
+  padding: 10px 16px;
+}
+
+/* ─── Description ─── */
+.pd-desc {
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.pd-desc h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.pd-desc p {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ─── Quantity ─── */
+.pd-qty label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.pd-qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-qty-controls button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pd-qty-controls button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.pd-qty-controls span {
+  min-width: 2.5rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* ─── Actions ─── */
+.pd-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 0.5rem;
+}
+
+.pd-add-cart {
   flex: 1;
   padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: white;
   font-weight: 600;
+  font-size: 1.05rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(232, 93, 122, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.premium-pd-wishlist {
-  width: 52px;
-  height: 52px;
+.pd-add-cart:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(232, 93, 122, 0.4);
+}
+
+.pd-add-cart:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.pd-wishlist {
+  width: 56px;
+  height: 56px;
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background: white;
   color: var(--text-muted);
-  font-size: 1.5rem;
-  border-radius: 12px;
+  font-size: 1.6rem;
+  border-radius: 14px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.premium-pd-wishlist.active {
-  color: var(--accent);
+.pd-wishlist:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
-@media (max-width: 768px) {
-  .premium-product-detail {
-    padding-bottom: calc(80px + var(--bottom-nav-h) + var(--safe-bottom));
-  }
-  .premium-pd-row {
-    grid-template-columns: 1fr;
-  }
+.pd-wishlist.active {
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
-.premium-pd-sticky-bar {
+/* ─── Sticky Bar (Mobile) ─── */
+.pd-sticky-bar {
   display: none;
   position: fixed;
-  bottom: calc(var(--bottom-nav-h) + var(--safe-bottom));
+  bottom: calc(var(--bottom-nav-h, 70px) + var(--safe-bottom, 0));
   left: 0;
   right: 0;
-  padding: 12px 16px;
-  background: var(--glass);
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.95);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
   z-index: 80;
   flex-direction: row;
   align-items: center;
@@ -187,37 +374,63 @@
 }
 
 @media (max-width: 768px) {
-  .premium-pd-sticky-bar {
+  .pd-page {
+    padding-bottom: calc(100px + var(--bottom-nav-h, 70px) + var(--safe-bottom, 0));
+  }
+
+  .pd-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .pd-gallery-wrap {
+    position: static;
+  }
+
+  .pd-title {
+    font-size: 1.5rem;
+  }
+
+  .pd-sticky-bar {
     display: flex;
+  }
+
+  .pd-variant-swatches.color-mode .pd-swatch {
+    min-width: 58px;
+  }
+
+  .pd-swatch-circle {
+    width: 32px;
+    height: 32px;
   }
 }
 
 @media (min-width: 769px) {
-  .premium-pd-sticky-bar {
+  .pd-sticky-bar {
     display: none !important;
   }
 }
 
-.premium-pd-sticky-price {
+.pd-sticky-price {
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   color: var(--primary);
 }
 
-.premium-pd-sticky-add {
+.pd-sticky-add {
   flex: 1;
   max-width: 180px;
-  padding: 12px 1rem;
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  padding: 14px 1.25rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: white;
   font-weight: 600;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   font-size: 1rem;
 }
 
-.premium-pd-sticky-add:disabled {
+.pd-sticky-add:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
