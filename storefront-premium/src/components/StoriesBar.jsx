@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { storiesAPI, IMG_BASE } from '../services/api'
 import './StoriesBar.css'
 
-const STORY_DURATION = 5000
 const SWIPE_THRESHOLD = 50
 
 export default function StoriesBar() {
@@ -73,6 +72,7 @@ export default function StoriesBar() {
   }, [hasPrevSlide, hasPrevStory, storyIndex, storyGroups])
 
   const isVideo = currentSlide?.media_type === 'video'
+  const storyDuration = (currentGroup?.duration_seconds ?? 5) * 1000
 
   const handleProgress = useCallback(() => {
     setProgress((p) => {
@@ -99,9 +99,9 @@ export default function StoriesBar() {
         v.removeEventListener('ended', onEnded)
       }
     }
-    const t = setInterval(handleProgress, STORY_DURATION / 20)
+    const t = setInterval(handleProgress, storyDuration / 20)
     return () => clearInterval(t)
-  }, [viewerOpen, currentSlide, storyIndex, slideIndex, handleProgress, isVideo, goNext])
+  }, [viewerOpen, currentSlide, storyIndex, slideIndex, handleProgress, isVideo, goNext, storyDuration])
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX

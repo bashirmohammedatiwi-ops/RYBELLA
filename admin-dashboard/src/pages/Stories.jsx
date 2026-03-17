@@ -40,6 +40,7 @@ export default function Stories() {
   const [slides, setSlides] = useState([emptySlide()]);
   const [avatarFile, setAvatarFile] = useState(null);
   const [publisherName, setPublisherName] = useState('');
+  const [durationSeconds, setDurationSeconds] = useState(5);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -88,6 +89,7 @@ export default function Stories() {
     setSlides([emptySlide()]);
     setAvatarFile(null);
     setPublisherName('');
+    setDurationSeconds(5);
     setProductSearch({});
     setDialogOpen(true);
   };
@@ -120,6 +122,7 @@ export default function Stories() {
       const formData = new FormData();
       if (avatarFile) formData.append('avatar', avatarFile, avatarFile.name || 'avatar.jpg');
       formData.append('publisher_name', publisherName);
+      formData.append('duration_seconds', Math.min(60, Math.max(1, durationSeconds)));
       slidesWithFiles.forEach((s) => formData.append('images', s.file, s.file.name || 'media'));
       formData.append('slides', JSON.stringify(slidesWithFiles.map((s) => ({ link_type: s.link_type, link_value: s.link_value || '' }))));
       await storiesAPI.create(formData);
@@ -233,6 +236,7 @@ export default function Stories() {
               <TableCell>اسم الناشر</TableCell>
               <TableCell>الصور/الفيديو</TableCell>
               <TableCell>عدد الشرائح</TableCell>
+              <TableCell>وقت العرض (ث)</TableCell>
               <TableCell>تاريخ الإضافة</TableCell>
               <TableCell align="left">إجراءات</TableCell>
             </TableRow>
@@ -261,6 +265,7 @@ export default function Stories() {
                   </Box>
                 </TableCell>
                 <TableCell>{s.slides?.length || 0}</TableCell>
+                <TableCell>{s.duration_seconds ?? 5}</TableCell>
                 <TableCell>{formatDate(s.created_at)}</TableCell>
                 <TableCell align="left">
                   <IconButton size="small" color="error" onClick={() => handleDelete(s.id)}>
@@ -294,6 +299,7 @@ export default function Stories() {
                 </Box>
               )}
               <TextField label="اسم الناشر" value={publisherName} onChange={(e) => setPublisherName(e.target.value)} fullWidth size="small" placeholder="اختياري" sx={{ mt: 1 }} />
+              <TextField label="وقت عرض الصور (ثواني)" type="number" value={durationSeconds} onChange={(e) => setDurationSeconds(Math.min(60, Math.max(1, parseInt(e.target.value, 10) || 5)))} fullWidth size="small" inputProps={{ min: 1, max: 60 }} helperText="للصور فقط - الفيديو يعرض حسب مدته" sx={{ mt: 1 }} />
             </Box>
             <Typography variant="subtitle2" color="text.secondary">صور اليومية (واحدة أو أكثر)</Typography>
             {slides.map((slide, idx) => (

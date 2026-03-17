@@ -320,6 +320,10 @@ const initDb = async () => {
       db.run('ALTER TABLE story_groups ADD COLUMN publisher_name TEXT');
       saveDb();
     }
+    if (!sgCols.includes('duration_seconds')) {
+      db.run('ALTER TABLE story_groups ADD COLUMN duration_seconds INTEGER DEFAULT 5');
+      saveDb();
+    }
   } catch (e) {}
   // Migration: web_settings (إعدادات الموقع الإلكتروني)
   try {

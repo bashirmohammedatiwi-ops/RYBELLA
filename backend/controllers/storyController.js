@@ -61,7 +61,7 @@ async function resolveLinkUrl(linkType, linkValue) {
 exports.getAll = async (req, res) => {
   try {
     const [groups] = await db.query(
-      `SELECT sg.id, sg.created_at, sg.avatar, sg.publisher_name FROM story_groups sg
+      `SELECT sg.id, sg.created_at, sg.avatar, sg.publisher_name, sg.duration_seconds FROM story_groups sg
        WHERE sg.created_at > datetime('now', '-24 hours')
        ORDER BY sg.created_at DESC`
     );
@@ -91,6 +91,7 @@ exports.getAll = async (req, res) => {
         created_at: g.created_at,
         avatar: g.avatar,
         publisher_name: g.publisher_name,
+        duration_seconds: g.duration_seconds != null ? g.duration_seconds : 5,
         cover: cover || (coverMediaType === 'image' ? firstSlide?.image : null),
         cover_media_type: cover ? 'image' : coverMediaType,
         slides: slidesWithUrl,
@@ -108,7 +109,7 @@ exports.getAll = async (req, res) => {
  */
 exports.getAllAdmin = async (req, res) => {
   try {
-    const [groups] = await db.query('SELECT id, created_at, avatar, publisher_name FROM story_groups ORDER BY created_at DESC');
+    const [groups] = await db.query('SELECT id, created_at, avatar, publisher_name, duration_seconds FROM story_groups ORDER BY created_at DESC');
     const result = [];
     for (const g of groups) {
       const [slides] = await db.query(
@@ -121,6 +122,7 @@ exports.getAllAdmin = async (req, res) => {
         created_at: g.created_at,
         avatar: g.avatar,
         publisher_name: g.publisher_name,
+        duration_seconds: g.duration_seconds != null ? g.duration_seconds : 5,
         cover: slides[0]?.image,
         slides: slides.map((s) => ({ ...s, media_type: s.media_type || 'image' })),
       });
@@ -150,9 +152,10 @@ exports.create = async (req, res) => {
       const raw = req.body.slides || req.body.slide;
       if (raw) slidesData = typeof raw === 'string' ? JSON.parse(raw) : raw;
     } catch (_) {}
+    const duration_seconds = Math.min(60, Math.max(1, parseInt(req.body.duration_seconds, 10) || 5));
     const [groupResult] = await db.query(
-      'INSERT INTO story_groups (avatar, publisher_name, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
-      [avatar, publisher_name]
+      'INSERT INTO story_groups (avatar, publisher_name, duration_seconds, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+      [avatar, publisher_name, duration_seconds]
     );
     const groupId = groupResult.insertId;
     const videoExts = /\.(mp4|webm|mov)$/i;
