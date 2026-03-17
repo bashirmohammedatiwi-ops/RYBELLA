@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { brandsAPI, IMG_BASE } from '../services/api'
+import MobileHeader from '../components/MobileHeader'
 import './Brands.css'
 
 export default function Brands() {
@@ -18,6 +19,7 @@ export default function Brands() {
 
   return (
     <div className="premium-brands">
+      <MobileHeader title="العلامات التجارية" showBack />
       <h1>العلامات التجارية</h1>
       <div className="premium-brands-grid">
         {brands.map((b) => (

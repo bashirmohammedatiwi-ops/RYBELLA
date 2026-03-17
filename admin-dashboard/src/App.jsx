@@ -15,6 +15,7 @@ import Coupons from './pages/Coupons'
 import Reviews from './pages/Reviews'
 import DeliveryZones from './pages/DeliveryZones'
 import Banners from './pages/Banners'
+import Stories from './pages/Stories'
 import Offers from './pages/Offers'
 import Reports from './pages/Reports'
 import Profile from './pages/Profile'
@@ -59,6 +60,7 @@ function App() {
         <Route path="reviews" element={<Reviews />} />
         <Route path="delivery-zones" element={<DeliveryZones />} />
         <Route path="banners" element={<Banners />} />
+        <Route path="stories" element={<Stories />} />
         <Route path="offers" element={<Offers />} />
         <Route path="reports" element={<Reports />} />
         <Route path="profile" element={<Profile />} />

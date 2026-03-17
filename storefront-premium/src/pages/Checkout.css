@@ -1,28 +1,42 @@
+/* ═══════════════════════════════════════════════════════════════
+   Checkout - إتمام الطلب | تصميم متسق
+   ═══════════════════════════════════════════════════════════════ */
+
 .premium-checkout {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 24px 12px 4rem;
+  min-height: 100vh;
+  background: #FAFAFA;
 }
 
 .premium-checkout h1 {
   font-family: var(--font-display);
   font-size: 1.5rem;
+  font-weight: 700;
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .premium-checkout-error {
   padding: 0.75rem 1rem;
-  background: rgba(224, 124, 76, 0.15);
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  color: var(--accent);
+  background: rgba(232, 93, 122, 0.1);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  color: var(--primary-dark);
   margin-bottom: 1rem;
 }
 
 .premium-checkout-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr;
   gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .premium-checkout-grid {
+    grid-template-columns: 1fr 360px;
+  }
 }
 
 .premium-checkout-section {
@@ -31,7 +45,9 @@
 
 .premium-checkout-section h2 {
   font-size: 1rem;
+  font-weight: 600;
   margin-bottom: 1rem;
+  color: var(--text-primary);
 }
 
 .premium-checkout-section input,
@@ -40,9 +56,9 @@
   width: 100%;
   padding: 0.75rem 1rem;
   margin-bottom: 0.75rem;
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text-primary);
 }
 
@@ -57,25 +73,26 @@
 
 .premium-coupon-row button {
   padding: 0.75rem 1rem;
-  background: var(--accent);
+  background: var(--primary);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .premium-coupon-success {
   margin-top: 0.5rem;
   font-size: 0.9rem;
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .premium-checkout-summary {
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius);
   padding: 1.5rem;
   height: fit-content;
+  box-shadow: var(--shadow-soft);
 }
 
 .premium-checkout-summary h2 {

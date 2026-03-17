@@ -192,24 +192,21 @@ CREATE TABLE IF NOT EXISTS wishlist (
     UNIQUE(user_id, product_id)
 );
 
+-- Stories (اليوميات - مثل انستغرام، تختفي بعد 24 ساعة)
+CREATE TABLE IF NOT EXISTS stories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image TEXT NOT NULL,
+    link_type TEXT DEFAULT 'none',
+    link_value TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Banners
 CREATE TABLE IF NOT EXISTS banners (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
     image TEXT NOT NULL,
-    link_type TEXT DEFAULT 'none' CHECK(link_type IN ('none', 'category', 'brand', 'product', 'url')),
-    link_value TEXT,
-    sort_order INTEGER DEFAULT 0,
-    active INTEGER DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Banners (for app home screen)
-CREATE TABLE IF NOT EXISTS banners (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT,
-    image TEXT NOT NULL,
-    link_type TEXT DEFAULT 'none' CHECK(link_type IN ('none', 'product', 'category', 'url')),
+    link_type TEXT DEFAULT 'none',
     link_value TEXT,
     sort_order INTEGER DEFAULT 0,
     active INTEGER DEFAULT 1,

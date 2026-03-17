@@ -1,7 +1,13 @@
+/* ═══════════════════════════════════════════════════════════════
+   Cart - السلة | تصميم متسق
+   ═══════════════════════════════════════════════════════════════ */
+
 .premium-cart {
   max-width: 900px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 24px 12px 4rem;
+  min-height: 100vh;
+  background: #FAFAFA;
 }
 
 .premium-cart-header {
@@ -27,10 +33,11 @@
   display: flex;
   gap: 1rem;
   padding: 1rem;
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-soft);
 }
 
 .premium-cart-item-img {
@@ -127,9 +134,10 @@
 .premium-cart-footer {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
 }
 
 .premium-cart-total {
@@ -142,11 +150,18 @@
 .premium-cart-checkout-btn {
   display: block;
   text-align: center;
-  padding: 1rem;
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: white;
   font-weight: 600;
-  border-radius: 12px;
+  font-size: 1rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.premium-cart-checkout-btn:hover {
+  opacity: 0.95;
 }
 
 .premium-cart-empty {

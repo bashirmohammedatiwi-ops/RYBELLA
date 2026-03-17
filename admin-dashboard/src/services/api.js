@@ -192,6 +192,12 @@ export const bannersAPI = {
   delete: (id) => api.delete(`/banners/${id}`),
 };
 
+export const storiesAPI = {
+  getAll: () => api.get('/stories/admin'),
+  create: (formData) => api.post('/stories', formData, formData instanceof FormData ? { transformRequest: [(d) => d] } : {}),
+  delete: (id) => api.delete(`/stories/${id}`),
+};
+
 export const webSettingsAPI = {
   get: () => api.get('/web-settings'),
   update: (data) => api.put('/web-settings', data),

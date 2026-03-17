@@ -1,26 +1,52 @@
+/* ═══════════════════════════════════════════════════════════════
+   Wishlist - المفضلة | تصميم متسق
+   ═══════════════════════════════════════════════════════════════ */
+
 .premium-wishlist {
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 24px 12px 4rem;
+  min-height: 100vh;
+  background: #FAFAFA;
 }
 
 .premium-wishlist h1 {
   font-family: var(--font-display);
   font-size: 1.5rem;
+  font-weight: 700;
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .premium-wishlist-empty {
   text-align: center;
   padding: 4rem 2rem;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
 }
 
 .premium-wishlist-empty p {
   margin-bottom: 1rem;
+  color: var(--text-secondary);
 }
 
 .premium-wishlist-products {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .premium-wishlist-products {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .premium-wishlist-products {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
 }

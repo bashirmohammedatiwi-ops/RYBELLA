@@ -24,6 +24,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
 const bannerRoutes = require('./routes/banners');
+const storyRoutes = require('./routes/stories');
 const offerRoutes = require('./routes/offers');
 const webSettingsRoutes = require('./routes/webSettings');
 
@@ -55,6 +56,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/stories', storyRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/web-settings', webSettingsRoutes);
 

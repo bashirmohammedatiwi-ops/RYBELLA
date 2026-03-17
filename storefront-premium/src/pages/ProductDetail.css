@@ -1,24 +1,31 @@
+/* ═══════════════════════════════════════════════════════════════
+   ProductDetail - تفاصيل المنتج | تصميم متسق
+   ═══════════════════════════════════════════════════════════════ */
+
 .premium-product-detail {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 24px 12px 4rem;
+  min-height: 100vh;
+  background: #FAFAFA;
 }
 
 .premium-pd-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3rem;
+  gap: 2rem;
 }
 
 .premium-pd-gallery {
   aspect-ratio: 1;
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-soft);
 }
 
 .premium-pd-gallery img {

@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
 import QuickView from '../components/QuickView'
+import StoriesBar from '../components/StoriesBar'
 import './Home.css'
 
 export default function Home() {
@@ -152,6 +153,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* اليوميات - مثل انستغرام */}
+      <StoriesBar />
 
       {/* 2. البانرات - إعادة بناء كاملة: الصورة تخرج من الأعلى فقط */}
       <section className="home-hero">

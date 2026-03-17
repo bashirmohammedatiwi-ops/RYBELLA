@@ -93,6 +93,31 @@ const initDb = async () => {
       saveDb();
     }
   } catch (e) {}
+  // Migration: banners - إضافة subcategory إلى link_type (إصلاح خطأ الحفظ)
+  try {
+    const ck = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='banners'");
+    const sql = ck[0]?.values?.[0]?.[0] || '';
+    if (sql && sql.includes("CHECK(link_type IN") && !sql.includes("'subcategory'")) {
+      db.exec(`CREATE TABLE banners_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        image TEXT NOT NULL,
+        background_image TEXT,
+        link_type TEXT DEFAULT 'none',
+        link_value TEXT,
+        sort_order INTEGER DEFAULT 0,
+        active INTEGER DEFAULT 1,
+        image_pos_x REAL,
+        image_pos_y REAL,
+        image_size REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
+      db.run(`INSERT INTO banners_new SELECT id, title, image, background_image, link_type, link_value, sort_order, active, image_pos_x, image_pos_y, image_size, created_at FROM banners`);
+      db.run('DROP TABLE banners');
+      db.run('ALTER TABLE banners_new RENAME TO banners');
+      saveDb();
+    }
+  } catch (e) {}
   // Migration: banners - موضع صورة PNG (قابل للسحب)
   try {
     const bannerInfo = db.exec("PRAGMA table_info(banners)");
@@ -104,6 +129,42 @@ const initDb = async () => {
         saveDb();
       }
     });
+  } catch (e) {}
+  // Migration: banners - إضافة subcategory إلى link_type (إصلاح خطأ الحفظ عند ربط بفئة ثانوية)
+  try {
+    const ck = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='banners'");
+    const sql = (ck[0]?.values?.[0]?.[0] || '').toLowerCase();
+    if (sql.includes('check(link_type') && !sql.includes("'subcategory'")) {
+      db.exec(`CREATE TABLE banners_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        image TEXT NOT NULL,
+        background_image TEXT,
+        link_type TEXT DEFAULT 'none',
+        link_value TEXT,
+        sort_order INTEGER DEFAULT 0,
+        active INTEGER DEFAULT 1,
+        image_pos_x REAL,
+        image_pos_y REAL,
+        image_size REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
+      const info = db.exec("PRAGMA table_info(banners)");
+      const cols = (info[0]?.values || []).map((r) => r[1]);
+      const sel = [
+        'id', 'title', 'image',
+        cols.includes('background_image') ? 'background_image' : 'NULL',
+        'link_type', 'link_value', 'sort_order', 'active',
+        cols.includes('image_pos_x') ? 'image_pos_x' : 'NULL',
+        cols.includes('image_pos_y') ? 'image_pos_y' : 'NULL',
+        cols.includes('image_size') ? 'image_size' : 'NULL',
+        'created_at'
+      ].join(', ');
+      db.run(`INSERT INTO banners_new SELECT ${sel} FROM banners`);
+      db.run('DROP TABLE banners');
+      db.run('ALTER TABLE banners_new RENAME TO banners');
+      saveDb();
+    }
   } catch (e) {}
   // Migration: offers table
   try {
@@ -198,6 +259,17 @@ const initDb = async () => {
       db.run('ALTER TABLE categories ADD COLUMN overlay_text TEXT');
       saveDb();
     }
+  } catch (e) {}
+  // Migration: stories (اليوميات - مثل انستغرام)
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS stories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      image TEXT NOT NULL,
+      link_type TEXT DEFAULT 'none',
+      link_value TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    saveDb();
   } catch (e) {}
   // Migration: web_settings (إعدادات الموقع الإلكتروني)
   try {

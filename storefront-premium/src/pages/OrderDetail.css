@@ -1,13 +1,20 @@
+/* ═══════════════════════════════════════════════════════════════
+   OrderDetail - تفاصيل الطلب | تصميم متسق
+   ═══════════════════════════════════════════════════════════════ */
+
 .premium-order-detail {
   max-width: 640px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 24px 12px 4rem;
+  min-height: 100vh;
+  background: #FAFAFA;
 }
 
 .premium-order-back {
   display: inline-block;
   margin-bottom: 1rem;
-  color: var(--accent);
+  color: var(--primary);
+  font-weight: 500;
 }
 
 .premium-order-detail-header {
@@ -20,12 +27,15 @@
 .premium-order-detail-header h1 {
   font-family: var(--font-display);
   font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .premium-order-status {
   font-size: 0.85rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
 }
 
 .premium-order-detail-section {
@@ -34,20 +44,23 @@
 
 .premium-order-detail-section h2 {
   font-size: 1rem;
+  font-weight: 600;
   margin-bottom: 0.5rem;
+  color: var(--text-primary);
 }
 
 .premium-order-items {
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
+  box-shadow: var(--shadow-soft);
 }
 
 .premium-order-item {
   display: flex;
   justify-content: space-between;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -56,10 +69,11 @@
 }
 
 .premium-order-detail-totals {
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: var(--radius-sm);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-soft);
 }
 
 .premium-order-detail-totals > div {
@@ -72,4 +86,5 @@
   margin-top: 0.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
+  font-weight: 700;
 }
