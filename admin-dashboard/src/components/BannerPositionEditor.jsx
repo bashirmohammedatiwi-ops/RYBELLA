@@ -9,7 +9,7 @@ const PREVIEW_HEIGHT = 150;
  * محرر موضع وحجم الصورة الثانية فوق البانر
  * - image_pos_x: الموضع الأفقي (0=يسار، 100=يمين) - في الأدمن يمين = في الويب يمين
  * - image_pos_y: الموضع العمودي (0=أعلى، 100=أسفل)
- * - image_size: حجم الصورة كنسبة من عرض البانر (30-100)، 0 = تلقائي (55%)
+ * - image_size: حجم الصورة كنسبة من عرض البانر (30-100)، 0 = تلقائي (62%)
  */
 export default function BannerPositionEditor({
   backgroundSrc,
@@ -63,7 +63,7 @@ export default function BannerPositionEditor({
   const posX = typeof imagePosX === 'number' ? imagePosX : 80;
   const posY = typeof imagePosY === 'number' ? imagePosY : 70;
   const size = typeof imageSize === 'number' ? imageSize : 0;
-  const displaySize = size > 0 ? size : 55;
+  const displaySize = size > 0 ? size : 62;
 
   const handlePointerDown = useCallback(
     (e) => {
@@ -224,18 +224,18 @@ export default function BannerPositionEditor({
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-            حجم الصورة (سكيل): {size > 0 ? `${size}%` : 'تلقائي (55%)'}
+            حجم الصورة (سكيل): {size > 0 ? `${size}%` : 'تلقائي (62%)'}
           </Typography>
           <Slider
-            value={size > 0 ? size : 55}
+            value={size > 0 ? size : 62}
             min={30}
             max={100}
             step={5}
-            onChange={(_, v) => onSizeChange?.(v === 55 ? 0 : v)}
+            onChange={(_, v) => onSizeChange?.(v === 62 ? 0 : v)}
             disabled={disabled}
             size="small"
             valueLabelDisplay="auto"
-            valueLabelFormat={(v) => (v === 55 ? 'تلقائي' : `${v}%`)}
+            valueLabelFormat={(v) => (v === 62 ? 'تلقائي' : `${v}%`)}
           />
         </Box>
       </Box>

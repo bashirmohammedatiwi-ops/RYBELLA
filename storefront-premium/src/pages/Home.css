@@ -261,7 +261,7 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: 320px;
+  max-height: clamp(320px, 55vh, 480px);
   object-fit: contain;
   object-position: bottom center;
 }
@@ -400,8 +400,12 @@
     height: calc(100% + 100px);
   }
 
+  .home-banner-bg {
+    top: 100px;
+  }
+
   .home-banner-figure img {
-    max-height: 300px;
+    max-height: clamp(300px, 48vh, 380px);
   }
 }
 
@@ -423,6 +427,10 @@
     height: calc(100% + 80px);
   }
 
+  .home-banner-bg {
+    top: 80px;
+  }
+
   .home-banner-content {
     padding: 10px 12px;
   }
@@ -432,7 +440,7 @@
   }
 
   .home-banner-figure img {
-    max-height: 260px;
+    max-height: clamp(260px, 45vh, 340px);
   }
 }
 
@@ -453,8 +461,12 @@
     height: calc(100% + 150px);
   }
 
+  .home-banner-bg {
+    top: 150px;
+  }
+
   .home-banner-figure img {
-    max-height: 420px;
+    max-height: clamp(450px, 58vh, 650px);
   }
 
   .home-banner-content {
@@ -475,6 +487,19 @@
 
   .home-banners-pagination {
     bottom: 16px;
+  }
+}
+
+/* البانرات - شاشات كبيرة جداً */
+@media (min-width: 1024px) {
+  .home-banner-figure img {
+    max-height: clamp(550px, 65vh, 800px);
+  }
+}
+
+@media (min-width: 1280px) {
+  .home-banner-figure img {
+    max-height: clamp(600px, 70vh, 900px);
   }
 }
 

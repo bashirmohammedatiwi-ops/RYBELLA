@@ -186,7 +186,7 @@ export default function Home() {
                         className="home-banner-figure"
                         style={{
                           left: `${posX}%`,
-                          width: b.image_size > 0 ? `${b.image_size}%` : '55%',
+                          width: b.image_size > 0 ? `${b.image_size}%` : '62%',
                         }}
                       >
                         <img src={`${IMG_BASE}${b.image}`} alt={b.title || ''} />
