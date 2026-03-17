@@ -192,15 +192,19 @@ CREATE TABLE IF NOT EXISTS wishlist (
     UNIQUE(user_id, product_id)
 );
 
--- Story groups (اليوميات - مجموعة صور مثل انستغرام)
+-- Story groups (اليوميات - صورة الناشر + صور متعددة مثل انستغرام)
 CREATE TABLE IF NOT EXISTS story_groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    avatar TEXT,
+    publisher_name TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS story_slides (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     story_group_id INTEGER NOT NULL,
     image TEXT NOT NULL,
+    media_type TEXT DEFAULT 'image',
+    thumbnail TEXT,
     link_type TEXT DEFAULT 'none',
     link_value TEXT,
     sort_order INTEGER DEFAULT 0,

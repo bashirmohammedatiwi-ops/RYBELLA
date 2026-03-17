@@ -27,6 +27,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddPhotoIcon from '@mui/icons-material/AddPhotoAlternate';
+import PersonIcon from '@mui/icons-material/Person';
 import { storiesAPI, productsAPI, categoriesAPI, subcategoriesAPI, brandsAPI } from '../services/api';
 import ImageDisplay from '../components/ImageDisplay';
 
@@ -37,6 +38,8 @@ export default function Stories() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [slides, setSlides] = useState([emptySlide()]);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [publisherName, setPublisherName] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -83,6 +86,8 @@ export default function Stories() {
 
   const handleOpenDialog = () => {
     setSlides([emptySlide()]);
+    setAvatarFile(null);
+    setPublisherName('');
     setProductSearch({});
     setDialogOpen(true);
   };
@@ -108,12 +113,14 @@ export default function Stories() {
     e.preventDefault();
     const slidesWithFiles = slides.filter((s) => s.file);
     if (!slidesWithFiles.length) {
-      setMessage({ type: 'error', text: 'يجب إضافة صورة واحدة على الأقل' });
+      setMessage({ type: 'error', text: 'يجب إضافة صورة أو فيديو واحد على الأقل' });
       return;
     }
     try {
       const formData = new FormData();
-      slidesWithFiles.forEach((s) => formData.append('images', s.file, s.file.name || 'image.jpg'));
+      if (avatarFile) formData.append('avatar', avatarFile, avatarFile.name || 'avatar.jpg');
+      formData.append('publisher_name', publisherName);
+      slidesWithFiles.forEach((s) => formData.append('images', s.file, s.file.name || 'media'));
       formData.append('slides', JSON.stringify(slidesWithFiles.map((s) => ({ link_type: s.link_type, link_value: s.link_value || '' }))));
       await storiesAPI.create(formData);
       setMessage({ type: 'success', text: 'تم إضافة اليومية بنجاح' });
@@ -208,7 +215,7 @@ export default function Stories() {
         اليوميات
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        أضف صوراً متعددة لكل يومية - تظهر مثل ستوريات انستغرام مع إمكانية التصفح بينها
+        أضف صوراً أو فيديوهات لكل يومية - تظهر مثل ستوريات انستغرام (mp4, webm, mov)
       </Typography>
       {message.text && (
         <Alert severity={message.type} onClose={() => setMessage({ type: '', text: '' })} sx={{ mb: 2 }}>
@@ -222,7 +229,9 @@ export default function Stories() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>الصور</TableCell>
+              <TableCell>صورة الناشر</TableCell>
+              <TableCell>اسم الناشر</TableCell>
+              <TableCell>الصور/الفيديو</TableCell>
               <TableCell>عدد الشرائح</TableCell>
               <TableCell>تاريخ الإضافة</TableCell>
               <TableCell align="left">إجراءات</TableCell>
@@ -232,9 +241,21 @@ export default function Stories() {
             {stories.map((s) => (
               <TableRow key={s.id}>
                 <TableCell>
+                  <ImageDisplay src={s.avatar || s.cover} width={48} height={48} fit="cover" />
+                </TableCell>
+                <TableCell>{s.publisher_name || '-'}</TableCell>
+                <TableCell>
                   <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                     {(s.slides || []).slice(0, 4).map((sl) => (
-                      <ImageDisplay key={sl.id} src={sl.image} width={48} height={48} fit="cover" />
+                      <Box key={sl.id} sx={{ position: 'relative' }}>
+                        {sl.media_type === 'video' ? (
+                          <Box sx={{ width: 48, height: 48, borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.200', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {sl.thumbnail ? <ImageDisplay src={sl.thumbnail} width={48} height={48} fit="cover" /> : <Typography variant="caption" color="text.secondary">فيديو</Typography>}
+                          </Box>
+                        ) : (
+                          <ImageDisplay src={sl.image} width={48} height={48} fit="cover" />
+                        )}
+                      </Box>
                     ))}
                     {(s.slides?.length || 0) > 4 && <Chip size="small" label={`+${s.slides.length - 4}`} sx={{ alignSelf: 'center' }} />}
                   </Box>
@@ -258,9 +279,23 @@ export default function Stories() {
       )}
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>إضافة يومية جديدة (صور متعددة)</DialogTitle>
+        <DialogTitle>إضافة يومية جديدة</DialogTitle>
         <DialogContent>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+            <Box sx={{ p: 2, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, bgcolor: 'grey.50' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>صورة الناشر (تظهر في الدائرة)</Typography>
+              <Button variant="outlined" component="label" size="small" startIcon={<PersonIcon />} sx={{ mb: 1 }}>
+                {avatarFile ? avatarFile.name : 'اختر صورة الناشر'}
+                <input type="file" hidden accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} />
+              </Button>
+              {avatarFile && (
+                <Box sx={{ mt: 1 }}>
+                  <img src={URL.createObjectURL(avatarFile)} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }} />
+                </Box>
+              )}
+              <TextField label="اسم الناشر" value={publisherName} onChange={(e) => setPublisherName(e.target.value)} fullWidth size="small" placeholder="اختياري" sx={{ mt: 1 }} />
+            </Box>
+            <Typography variant="subtitle2" color="text.secondary">صور اليومية (واحدة أو أكثر)</Typography>
             {slides.map((slide, idx) => (
               <Box key={idx} sx={{ p: 2, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -272,12 +307,16 @@ export default function Stories() {
                   )}
                 </Box>
                 <Button variant="outlined" component="label" size="small" startIcon={<AddPhotoIcon />} sx={{ mb: 1 }}>
-                  {slide.file ? slide.file.name : 'اختر صورة'}
-                  <input type="file" hidden accept="image/*" onChange={(e) => updateSlide(idx, 'file', e.target.files?.[0] ?? null)} />
+                  {slide.file ? slide.file.name : 'اختر صورة أو فيديو'}
+                  <input type="file" hidden accept="image/*,video/mp4,video/webm,video/quicktime,video/*" onChange={(e) => updateSlide(idx, 'file', e.target.files?.[0] ?? null)} />
                 </Button>
                 {slide.file && (
                   <Box sx={{ mt: 1 }}>
-                    <img src={URL.createObjectURL(slide.file)} alt="" style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, objectFit: 'cover' }} />
+                    {slide.file.type?.startsWith('video/') ? (
+                      <video src={URL.createObjectURL(slide.file)} controls style={{ maxWidth: 200, maxHeight: 150, borderRadius: 8 }} />
+                    ) : (
+                      <img src={URL.createObjectURL(slide.file)} alt="" style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, objectFit: 'cover' }} />
+                    )}
                   </Box>
                 )}
                 <LinkSelect idx={idx} slide={slide} />

@@ -2,14 +2,17 @@ const express = require('express');
 const router = express.Router();
 const storyController = require('../controllers/storyController');
 const { auth, adminAuth } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const storyUploadMw = require('../middleware/uploadStories');
 
-const storyUpload = upload.array('images', 10);
+const storyUpload = storyUploadMw.fields([
+  { name: 'avatar', maxCount: 1 },
+  { name: 'images', maxCount: 10 },
+]);
 
 const handleMulterError = (err, req, res, next) => {
   if (err) {
     let msg = 'خطأ في رفع الملف';
-    if (err.code === 'LIMIT_FILE_SIZE') msg = 'حجم الملف كبير جداً (الحد 5MB)';
+    if (err.code === 'LIMIT_FILE_SIZE') msg = 'حجم الملف كبير جداً (الحد 50MB للفيديو)';
     else if (err.code === 'LIMIT_UNEXPECTED_FILE') msg = 'اسم حقل الملف غير متوقع';
     else if (err.message) msg = err.message;
     return res.status(400).json({ message: msg });

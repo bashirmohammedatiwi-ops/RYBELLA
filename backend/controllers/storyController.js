@@ -61,27 +61,38 @@ async function resolveLinkUrl(linkType, linkValue) {
 exports.getAll = async (req, res) => {
   try {
     const [groups] = await db.query(
-      `SELECT sg.id, sg.created_at FROM story_groups sg
+      `SELECT sg.id, sg.created_at, sg.avatar, sg.publisher_name FROM story_groups sg
        WHERE sg.created_at > datetime('now', '-24 hours')
        ORDER BY sg.created_at DESC`
     );
     const result = [];
     for (const g of groups) {
       const [slides] = await db.query(
-        `SELECT id, image, link_type, link_value, sort_order FROM story_slides
+        `SELECT id, image, link_type, link_value, sort_order, media_type, thumbnail FROM story_slides
          WHERE story_group_id = ? ORDER BY sort_order ASC, id ASC`,
         [g.id]
       );
       if (slides.length === 0) continue;
       const slidesWithUrl = [];
+      let cover = null;
       for (const s of slides) {
         const link_url = (s.link_type && s.link_value) ? await resolveLinkUrl(s.link_type, s.link_value) : null;
-        slidesWithUrl.push({ id: s.id, image: s.image, link_url, sort_order: s.sort_order });
+        const media_type = s.media_type || 'image';
+        slidesWithUrl.push({ id: s.id, image: s.image, media_type, thumbnail: s.thumbnail, link_url, sort_order: s.sort_order });
+        if (!cover) cover = media_type === 'image' ? s.image : (s.thumbnail || null);
       }
+      for (const s of slides) {
+        if (!cover && (s.media_type || 'image') === 'image') { cover = s.image; break; }
+      }
+      const firstSlide = slides[0];
+      const coverMediaType = cover ? 'image' : (firstSlide?.media_type || 'image');
       result.push({
         id: g.id,
         created_at: g.created_at,
-        cover: slides[0].image,
+        avatar: g.avatar,
+        publisher_name: g.publisher_name,
+        cover: cover || (coverMediaType === 'image' ? firstSlide?.image : null),
+        cover_media_type: cover ? 'image' : coverMediaType,
         slides: slidesWithUrl,
       });
     }
@@ -97,19 +108,21 @@ exports.getAll = async (req, res) => {
  */
 exports.getAllAdmin = async (req, res) => {
   try {
-    const [groups] = await db.query('SELECT id, created_at FROM story_groups ORDER BY created_at DESC');
+    const [groups] = await db.query('SELECT id, created_at, avatar, publisher_name FROM story_groups ORDER BY created_at DESC');
     const result = [];
     for (const g of groups) {
       const [slides] = await db.query(
-        `SELECT id, image, link_type, link_value, sort_order FROM story_slides
+        `SELECT id, image, link_type, link_value, sort_order, media_type, thumbnail FROM story_slides
          WHERE story_group_id = ? ORDER BY sort_order ASC, id ASC`,
         [g.id]
       );
       result.push({
         id: g.id,
         created_at: g.created_at,
+        avatar: g.avatar,
+        publisher_name: g.publisher_name,
         cover: slides[0]?.image,
-        slides: slides,
+        slides: slides.map((s) => ({ ...s, media_type: s.media_type || 'image' })),
       });
     }
     res.json(result);
@@ -120,31 +133,42 @@ exports.getAllAdmin = async (req, res) => {
 };
 
 /**
- * إنشاء يومية جديدة - صور متعددة
- * Body: images[] (files), slides: JSON [{ link_type, link_value }]
+ * إنشاء يومية جديدة - صورة الناشر + صور متعددة
+ * Body: avatar (file), images[] (files), publisher_name, slides: JSON [{ link_type, link_value }]
  */
 exports.create = async (req, res) => {
   try {
-    const files = req.files?.images || (req.file ? [req.file] : []);
+    const avatarFile = req.files?.avatar?.[0];
+    const files = req.files?.images || [];
     if (!files.length) {
-      return res.status(400).json({ message: 'يجب إضافة صورة واحدة على الأقل' });
+      return res.status(400).json({ message: 'يجب إضافة صورة أو فيديو واحد على الأقل' });
     }
+    const avatar = avatarFile ? `/uploads/${avatarFile.filename}` : null;
+    const publisher_name = req.body.publisher_name || null;
     let slidesData = [];
     try {
       const raw = req.body.slides || req.body.slide;
       if (raw) slidesData = typeof raw === 'string' ? JSON.parse(raw) : raw;
     } catch (_) {}
-    const [groupResult] = await db.query('INSERT INTO story_groups (created_at) VALUES (CURRENT_TIMESTAMP)');
+    const [groupResult] = await db.query(
+      'INSERT INTO story_groups (avatar, publisher_name, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+      [avatar, publisher_name]
+    );
     const groupId = groupResult.insertId;
+    const videoExts = /\.(mp4|webm|mov)$/i;
+    const videoMimes = /^video\//;
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      const image = `/uploads/${f.filename}`;
+      const mediaPath = `/uploads/${f.filename}`;
+      const isVideo = videoExts.test(f.originalname || '') || videoMimes.test(f.mimetype || '');
+      const media_type = isVideo ? 'video' : 'image';
+      const thumbnail = null;
       const slide = Array.isArray(slidesData) && slidesData[i] ? slidesData[i] : {};
       const link_type = slide.link_type || 'none';
       const link_value = slide.link_value || null;
       await db.query(
-        `INSERT INTO story_slides (story_group_id, image, link_type, link_value, sort_order) VALUES (?, ?, ?, ?, ?)`,
-        [groupId, image, link_type, link_value, i]
+        `INSERT INTO story_slides (story_group_id, image, media_type, thumbnail, link_type, link_value, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [groupId, mediaPath, media_type, thumbnail, link_type, link_value, i]
       );
     }
     res.status(201).json({ message: 'تم إضافة اليومية بنجاح', id: groupId });

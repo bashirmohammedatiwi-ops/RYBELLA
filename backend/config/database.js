@@ -260,10 +260,12 @@ const initDb = async () => {
       saveDb();
     }
   } catch (e) {}
-  // Migration: story_groups + story_slides (اليوميات - صور متعددة مثل انستغرام)
+  // Migration: story_groups + story_slides (اليوميات - صورة الناشر + صور متعددة)
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS story_groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      avatar TEXT,
+      publisher_name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     db.exec(`CREATE TABLE IF NOT EXISTS story_slides (
@@ -292,6 +294,32 @@ const initDb = async () => {
       db.run('DROP TABLE stories');
     }
     saveDb();
+  } catch (e) {}
+  // Migration: story_slides - إضافة media_type و thumbnail (صورة أو فيديو)
+  try {
+    const slideInfo = db.exec("PRAGMA table_info(story_slides)");
+    const slideCols = (slideInfo[0]?.values || []).map((r) => r[1]);
+    if (!slideCols.includes('media_type')) {
+      db.run('ALTER TABLE story_slides ADD COLUMN media_type TEXT DEFAULT \'image\'');
+      saveDb();
+    }
+    if (!slideCols.includes('thumbnail')) {
+      db.run('ALTER TABLE story_slides ADD COLUMN thumbnail TEXT');
+      saveDb();
+    }
+  } catch (e) {}
+  // Migration: story_groups - إضافة avatar و publisher_name (صورة الناشر)
+  try {
+    const sgInfo = db.exec("PRAGMA table_info(story_groups)");
+    const sgCols = (sgInfo[0]?.values || []).map((r) => r[1]);
+    if (!sgCols.includes('avatar')) {
+      db.run('ALTER TABLE story_groups ADD COLUMN avatar TEXT');
+      saveDb();
+    }
+    if (!sgCols.includes('publisher_name')) {
+      db.run('ALTER TABLE story_groups ADD COLUMN publisher_name TEXT');
+      saveDb();
+    }
   } catch (e) {}
   // Migration: web_settings (إعدادات الموقع الإلكتروني)
   try {

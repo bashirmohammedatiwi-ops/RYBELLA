@@ -25,17 +25,30 @@
 .story-circle {
   flex-shrink: 0;
   width: 72px;
-  height: 72px;
   padding: 0;
   border: none;
   background: none;
   cursor: pointer;
   scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.story-circle-name {
+  font-size: 11px;
+  color: #555;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .story-circle-ring {
-  width: 100%;
-  height: 100%;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
   border-radius: 50%;
   padding: 3px;
   background: linear-gradient(135deg, #E85D7A 0%, #F08FA6 50%, #E85D7A 100%);
@@ -54,6 +67,18 @@
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid #fff;
+}
+.story-circle-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #333;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
   border: 2px solid #fff;
 }
 
@@ -88,15 +113,35 @@
   overflow: hidden;
 }
 
-.story-viewer-progress {
+.story-viewer-top {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 2;
+}
+.story-viewer-progress {
   display: flex;
   gap: 4px;
   padding: 12px 12px 8px;
+}
+.story-viewer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.story-viewer-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+.story-viewer-header span {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .story-viewer-progress-track {
@@ -132,7 +177,8 @@
 }
 
 .story-viewer-image-wrap img,
-.story-viewer-link img {
+.story-viewer-link img,
+.story-viewer-image-wrap video {
   width: 100%;
   height: 100%;
   object-fit: contain;
