@@ -4,10 +4,30 @@ const bannerController = require('../controllers/bannerController');
 const { auth, adminAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
+const bannerUpload = upload.fields([{ name: 'image', maxCount: 1 }, { name: 'background_image', maxCount: 1 }]);
+
+const handleMulterError = (err, req, res, next) => {
+  if (err) {
+    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'حجم الملف كبير جداً (الحد 5MB)' : err.message || 'خطأ في رفع الملف';
+    return res.status(400).json({ message: msg });
+  }
+  next();
+};
+
 router.get('/', bannerController.getAll);
 router.get('/admin', auth, adminAuth, bannerController.getAllAdmin);
-router.post('/', auth, adminAuth, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'background_image', maxCount: 1 }]), bannerController.create);
-router.put('/:id', auth, adminAuth, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'background_image', maxCount: 1 }]), bannerController.update);
+router.post('/', auth, adminAuth, (req, res, next) => {
+  bannerUpload(req, res, (err) => {
+    if (err) return handleMulterError(err, req, res, next);
+    next();
+  });
+}, bannerController.create);
+router.put('/:id', auth, adminAuth, (req, res, next) => {
+  bannerUpload(req, res, (err) => {
+    if (err) return handleMulterError(err, req, res, next);
+    next();
+  });
+}, bannerController.update);
 router.delete('/:id', auth, adminAuth, bannerController.delete);
 
 module.exports = router;
