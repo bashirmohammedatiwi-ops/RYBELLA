@@ -28,6 +28,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { bannersAPI } from '../services/api';
 import ImageDisplay from '../components/ImageDisplay';
+import BannerPositionEditor from '../components/BannerPositionEditor';
 
 export default function Banners() {
   const [banners, setBanners] = useState([]);
@@ -40,6 +41,9 @@ export default function Banners() {
     link_value: '',
     sort_order: 0,
     active: 1,
+    image_pos_x: 100,
+    image_pos_y: 50,
+    image_size: 0,
   });
   const [imageFile, setImageFile] = useState(null);
   const [backgroundImageFile, setBackgroundImageFile] = useState(null);
@@ -69,6 +73,9 @@ export default function Banners() {
         link_value: banner.link_value || '',
         sort_order: banner.sort_order || 0,
         active: banner.active !== undefined ? banner.active : 1,
+        image_pos_x: banner.image_pos_x != null ? parseFloat(banner.image_pos_x) : 100,
+        image_pos_y: banner.image_pos_y != null ? parseFloat(banner.image_pos_y) : 50,
+        image_size: banner.image_size != null ? parseFloat(banner.image_size) : 0,
       });
     } else {
       setEditingBanner(null);
@@ -78,6 +85,9 @@ export default function Banners() {
         link_value: '',
         sort_order: 0,
         active: 1,
+        image_pos_x: 100,
+        image_pos_y: 50,
+        image_size: 0,
       });
     }
     setImageFile(null);
@@ -94,6 +104,9 @@ export default function Banners() {
       formData.append('link_value', form.link_value);
       formData.append('sort_order', form.sort_order);
       formData.append('active', form.active ? 1 : 0);
+      formData.append('image_pos_x', form.image_pos_x);
+      formData.append('image_pos_y', form.image_pos_y);
+      formData.append('image_size', form.image_size);
       if (imageFile) formData.append('image', imageFile);
       if (backgroundImageFile) formData.append('background_image', backgroundImageFile);
 
@@ -241,12 +254,22 @@ export default function Banners() {
                 {backgroundImageFile ? backgroundImageFile.name : editingBanner?.background_image ? 'تغيير الخلفية' : 'اختر صورة الخلفية'}
                 <input type="file" hidden accept="image/*" onChange={(e) => setBackgroundImageFile(e.target.files[0])} />
               </Button>
-              <Typography variant="subtitle2" sx={{ mt: 1 }}>الصورة العلوية (PNG شفاف)</Typography>
+              <Typography variant="subtitle2" sx={{ mt: 1 }}>الصورة العلوية (PNG شفاف - يمكن أن تخرج عن إطار البانر)</Typography>
               <Button variant="outlined" component="label" size="small">
                 {imageFile ? imageFile.name : editingBanner?.image ? 'تغيير الصورة' : 'اختر الصورة العلوية'}
                 <input type="file" hidden accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
               </Button>
             </Box>
+            {(imageFile || editingBanner?.image) && (
+              <BannerPositionEditor
+                backgroundSrc={backgroundImageFile || editingBanner?.background_image}
+                imageSrc={imageFile || editingBanner?.image}
+                imagePosX={form.image_pos_x}
+                imagePosY={form.image_pos_y}
+                imageSize={form.image_size}
+                onPositionChange={({ x, y }) => setForm((f) => ({ ...f, image_pos_x: x, image_pos_y: y }))}
+              />
+            )}
             {!editingBanner && !imageFile && (
               <Typography variant="caption" color="error">الصورة العلوية مطلوبة للبانر الجديد</Typography>
             )}

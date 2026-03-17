@@ -174,9 +174,16 @@ export default function Home() {
                       <img src={`${IMG_BASE}${b.background_image}`} alt="" />
                     ) : null}
                   </div>
-                  {/* طبقة 2: الصورة الرئيسية - تملأ البانر بالكامل */}
+                  {/* طبقة 2: صورة PNG - قابلة للوضع يدوياً ويمكن أن تخرج عن الإطار */}
                   {b.image && (
-                    <div className="home-banner-main-img">
+                    <div
+                      className="home-banner-main-img home-banner-png-overlay"
+                      style={{
+                        left: `${b.image_pos_x != null ? b.image_pos_x : 100}%`,
+                        top: `${b.image_pos_y != null ? b.image_pos_y : 50}%`,
+                        width: b.image_size > 0 ? `${b.image_size}%` : undefined,
+                      }}
+                    >
                       <img src={`${IMG_BASE}${b.image}`} alt={b.title || ''} />
                     </div>
                   )}

@@ -93,6 +93,18 @@ const initDb = async () => {
       saveDb();
     }
   } catch (e) {}
+  // Migration: banners - موضع صورة PNG (قابل للسحب)
+  try {
+    const bannerInfo = db.exec("PRAGMA table_info(banners)");
+    const bannerCols = (bannerInfo[0]?.values || []).map((r) => r[1]);
+    const posCols = ['image_pos_x', 'image_pos_y', 'image_size'];
+    posCols.forEach((col) => {
+      if (!bannerCols.includes(col)) {
+        db.run(`ALTER TABLE banners ADD COLUMN ${col} REAL`);
+        saveDb();
+      }
+    });
+  } catch (e) {}
   // Migration: offers table
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS offers (

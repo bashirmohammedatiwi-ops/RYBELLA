@@ -156,12 +156,12 @@
   overflow: hidden;
 }
 
-/* حاوية البانرات - خلفية وردية، تخطيط نص + صورة */
+/* حاوية البانرات - خلفية وردية، تخطيط نص + صورة (PNG يمكن أن يخرج عن الإطار) */
 .home-banners {
   position: relative;
   margin: 0 12px;
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 20px rgba(232,93,122,0.2);
 }
 
@@ -178,7 +178,7 @@
   display: none;
 }
 
-/* شريحة البانر - طبقتان: خلفية + صورة PNG فوقها */
+/* شريحة البانر - طبقتان: خلفية + صورة PNG فوقها (يمكن أن تخرج عن الإطار) */
 .home-banner-slide {
   flex: 0 0 100%;
   min-width: 100%;
@@ -187,10 +187,11 @@
   aspect-ratio: 16/10;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   display: block;
   background: linear-gradient(135deg, #E85D7A 0%, #D14A66 50%, #C94A5A 100%);
+  border-radius: 20px;
 }
 
 /* طبقة الخلفية - صورة تملأ البانر بالكامل */
@@ -198,6 +199,8 @@
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 .home-banner-bg img {
@@ -207,7 +210,7 @@
   object-position: center;
 }
 
-/* طبقة الصورة الرئيسية - تملأ البانر بالكامل */
+/* طبقة الصورة الرئيسية - تملأ البانر بالكامل (للصور العادية) */
 .home-banner-main-img {
   position: absolute;
   inset: 0;
@@ -219,6 +222,22 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+
+/* صورة PNG قابلة للوضع - يمكن أن تخرج عن إطار البانر */
+.home-banner-png-overlay {
+  inset: auto !important;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.home-banner-png-overlay img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 140%;
+  object-fit: contain;
 }
 
 /* طبقة المحتوى (النص والزر) فوق الصور */

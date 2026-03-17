@@ -25,16 +25,19 @@ exports.getAllAdmin = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { title, link_type, link_value, sort_order, active } = req.body;
+    const { title, link_type, link_value, sort_order, active, image_pos_x, image_pos_y, image_size } = req.body;
     const image = req.files?.image?.[0] ? `/uploads/${req.files.image[0].filename}` : null;
     const backgroundImage = req.files?.background_image?.[0] ? `/uploads/${req.files.background_image[0].filename}` : null;
     if (!image) {
       return res.status(400).json({ message: 'الصورة مطلوبة' });
     }
+    const posX = image_pos_x != null ? parseFloat(image_pos_x) : 100;
+    const posY = image_pos_y != null ? parseFloat(image_pos_y) : 50;
+    const size = image_size != null ? parseFloat(image_size) : 0;
     const [result] = await db.query(
-      `INSERT INTO banners (title, image, background_image, link_type, link_value, sort_order, active)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title || null, image, backgroundImage || null, link_type || 'none', link_value || null, sort_order || 0, active !== undefined ? active : 1]
+      `INSERT INTO banners (title, image, background_image, link_type, link_value, sort_order, active, image_pos_x, image_pos_y, image_size)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title || null, image, backgroundImage || null, link_type || 'none', link_value || null, sort_order || 0, active !== undefined ? active : 1, posX, posY, size]
     );
     res.status(201).json({ message: 'تم إنشاء البانر بنجاح', id: result.insertId });
   } catch (error) {
@@ -45,7 +48,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { title, link_type, link_value, sort_order, active } = req.body;
+    const { title, link_type, link_value, sort_order, active, image_pos_x, image_pos_y, image_size } = req.body;
     const image = req.files?.image?.[0] ? `/uploads/${req.files.image[0].filename}` : undefined;
     const backgroundImage = req.files?.background_image?.[0] ? `/uploads/${req.files.background_image[0].filename}` : undefined;
     let query = 'UPDATE banners SET title = ?, link_type = ?, link_value = ?, sort_order = ?, active = ?';
@@ -57,6 +60,18 @@ exports.update = async (req, res) => {
     if (backgroundImage) {
       query += ', background_image = ?';
       params.push(backgroundImage);
+    }
+    if (image_pos_x != null) {
+      query += ', image_pos_x = ?';
+      params.push(parseFloat(image_pos_x));
+    }
+    if (image_pos_y != null) {
+      query += ', image_pos_y = ?';
+      params.push(parseFloat(image_pos_y));
+    }
+    if (image_size != null) {
+      query += ', image_size = ?';
+      params.push(parseFloat(image_size));
     }
     query += ' WHERE id = ?';
     params.push(req.params.id);
