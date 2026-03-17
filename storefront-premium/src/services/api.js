@@ -38,7 +38,10 @@ export const subcategoriesAPI = { getAll: (params) => api.get('/subcategories', 
 export const brandsAPI = { getAll: () => api.get('/brands') }
 export const bannersAPI = { getAll: () => api.get('/banners') }
 export const storiesAPI = { getAll: () => api.get('/stories') }
-export const offersAPI = { getAll: () => api.get('/offers') }
+export const offersAPI = {
+  getAll: () => api.get('/offers'),
+  getById: (id) => api.get(`/offers/${id}`),
+}
 export const webSettingsAPI = {
   get: () => api.get('/web-settings').catch(() => ({ data: null })),
 }

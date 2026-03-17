@@ -701,49 +701,170 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   6. العروض
+   6. العروض الحصرية
    ───────────────────────────────────────────────────────────── */
-.home-offers {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+.home-section-offers {
+  background: linear-gradient(180deg, #FFF8F9 0%, #FAFAFA 100%);
+  padding: 28px 16px;
+  margin: 0 -16px;
+  border-radius: 0;
 }
 
-.home-offer {
+.home-offers-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 20px;
+  gap: 6px;
+}
+
+.home-offers-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.home-offers-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 0;
+}
+
+.home-offers-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  margin-top: 4px;
+}
+
+.home-offers-link:hover {
+  text-decoration: underline;
+}
+
+.home-offers-slider {
   position: relative;
-  border-radius: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border-radius: 18px;
+  margin: 0 -4px;
+}
+
+.home-offers-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.home-offers-slider-track {
+  display: flex;
+  width: max-content;
+}
+
+.home-offer-slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  width: 100%;
+  aspect-ratio: 21/9;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  position: relative;
+  display: block;
+  text-decoration: none;
+  border-radius: 18px;
   overflow: hidden;
-  aspect-ratio: 4/3;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  transition: all 0.25s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
 
-.home-offer:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(232,93,122,0.2);
+.home-offer-slide-bg {
+  position: absolute;
+  inset: 0;
 }
 
-.home-offer img {
+.home-offer-slide-bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
+  transition: transform 0.4s;
 }
 
-.home-offer:hover img {
-  transform: scale(1.03);
+.home-offer-slide:hover .home-offer-slide-bg img {
+  transform: scale(1.05);
 }
 
-.home-offer-label {
+.home-offer-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, #F5E6E9 100%);
+}
+
+.home-offer-slide-overlay {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
-  padding: 8px 14px;
-  background: var(--primary);
-  color: #fff;
-  font-size: 11px;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 40%, transparent 70%);
+  pointer-events: none;
+}
+
+.home-offer-slide-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.home-offer-slide-label {
+  font-size: 1.1rem;
   font-weight: 700;
-  border-radius: 10px;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.home-offer-slide-cta {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+}
+
+.home-offers-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.home-offers-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(232,93,122,0.4);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+}
+
+.home-offers-dot:hover {
+  background: rgba(232,93,122,0.7);
+}
+
+.home-offers-dot.active {
+  background: var(--primary);
+  width: 24px;
+  border-radius: 4px;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -852,8 +973,20 @@
     font-size: 1.4rem;
   }
 
-  .home-offers {
-    grid-template-columns: repeat(4, 1fr);
+  .home-section-offers {
+    margin: 0;
+    padding: 32px 24px;
+    border-radius: 20px;
+  }
+
+  .home-offers-slider {
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .home-offer-slide {
+    aspect-ratio: 21/9;
   }
 
   .home-products {

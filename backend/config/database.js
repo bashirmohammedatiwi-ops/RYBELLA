@@ -180,6 +180,15 @@ const initDb = async () => {
     )`);
     saveDb();
   } catch (e) {}
+  // Migration: offers.discount_percent
+  try {
+    const offerInfo = db.exec("PRAGMA table_info(offers)");
+    const offerCols = (offerInfo[0]?.values || []).map((r) => r[1]);
+    if (!offerCols.includes('discount_percent')) {
+      db.run('ALTER TABLE offers ADD COLUMN discount_percent REAL DEFAULT 0');
+      saveDb();
+    }
+  } catch (e) {}
   // Migration: products.barcode (للمنتجات بدون عناصر إضافية)
   try {
     const colCheck = db.exec("PRAGMA table_info(products)");

@@ -25,6 +25,8 @@ export default function Home() {
   const [recentProducts, setRecentProducts] = useState([])
   const [bannerIdx, setBannerIdx] = useState(0)
   const bannerRef = useRef(null)
+  const [offerIdx, setOfferIdx] = useState(0)
+  const offerRef = useRef(null)
   const navigate = useNavigate()
   const { user } = useAuth()
   const { totalCount } = useCart()
@@ -85,6 +87,18 @@ export default function Home() {
   const heroSubtitle = settings?.hero_subtitle || 'الجمال الذي تستحقينه'
   const showRecent = settings?.show_recently_viewed !== '0' && recentProducts.length > 0
   const quickViewEnabled = settings?.quick_view_enabled !== '0'
+
+  useEffect(() => {
+    if (offers.length <= 1) return
+    const t = setInterval(() => {
+      const el = offerRef.current
+      if (!el) return
+      const idx = Math.round(el.scrollLeft / el.clientWidth)
+      const next = (idx + 1) % offers.length
+      el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' })
+    }, 5000)
+    return () => clearInterval(t)
+  }, [offers.length])
 
   const getCatImage = (c) => {
     const iconIsImage = c.icon && (c.icon.startsWith('/') || c.icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp)$/i.test(c.icon))
@@ -251,21 +265,50 @@ export default function Home() {
         </section>
       )}
 
-      {/* 5. العروض */}
+      {/* 5. العروض الحصرية - سلايدر */}
       {offers.length > 0 && (
         <section className="home-section home-section-offers">
-          <div className="home-section-header">
-            <h2 className="home-section-title">العروض الحصرية</h2>
-            <Link to="/explore" className="home-section-link">الكل</Link>
+          <div className="home-offers-header">
+            <div className="home-offers-badge">باكجات حصرية</div>
+            <h2 className="home-offers-title">باكجات بخصم - اشترِ الكل معاً</h2>
+            <Link to="/explore" className="home-offers-link">تصفحي المنتجات</Link>
           </div>
-          <div className="home-offers">
-            {offers.slice(0, 4).map((o) => (
-              <Link key={o.id} to={o.product_ids ? `/explore?offer=${o.id}` : '/explore'} className="home-offer">
-                {o.image && <img src={`${IMG_BASE}${o.image}`} alt={o.title} />}
-                <span className="home-offer-label">{o.discount_label || o.title}</span>
-              </Link>
-            ))}
+          <div
+            className="home-offers-slider"
+            ref={offerRef}
+            onScroll={(e) => setOfferIdx(Math.round(e.target.scrollLeft / e.target.clientWidth))}
+          >
+            <div className="home-offers-slider-track">
+              {offers.map((o) => (
+                <Link key={o.id} to={o.product_ids ? `/offers/${o.id}` : '/explore'} className="home-offer-slide">
+                  <div className="home-offer-slide-bg">
+                    {o.image ? <img src={`${IMG_BASE}${o.image}`} alt={o.title} /> : <div className="home-offer-placeholder" />}
+                    <div className="home-offer-slide-overlay" />
+                  </div>
+                  <div className="home-offer-slide-content">
+                    <span className="home-offer-slide-label">{o.discount_label || o.title}</span>
+                    <span className="home-offer-slide-cta">تسوقي الآن</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
+          {offers.length > 1 && (
+            <div className="home-offers-pagination">
+              {offers.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`home-offers-dot ${i === offerIdx ? 'active' : ''}`}
+                  onClick={() => {
+                    if (offerRef.current) offerRef.current.scrollTo({ left: i * offerRef.current.clientWidth, behavior: 'smooth' })
+                    setOfferIdx(i)
+                  }}
+                  aria-label={`عرض ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </section>
       )}
 

@@ -49,6 +49,7 @@ export default function Offers() {
   const [form, setForm] = useState({
     title: '',
     discount_label: '',
+    discount_percent: 0,
     product_ids: [],
     sort_order: 0,
     active: 1,
@@ -77,6 +78,7 @@ export default function Offers() {
       setForm({
         title: offer.title || '',
         discount_label: offer.discount_label || '',
+        discount_percent: offer.discount_percent ?? 0,
         product_ids: parseProductIds(offer.product_ids),
         sort_order: offer.sort_order || 0,
         active: offer.active !== undefined ? offer.active : 1,
@@ -86,6 +88,7 @@ export default function Offers() {
       setForm({
         title: '',
         discount_label: '',
+        discount_percent: 0,
         product_ids: [],
         sort_order: 0,
         active: 1,
@@ -101,6 +104,7 @@ export default function Offers() {
       const formData = new FormData();
       formData.append('title', form.title);
       formData.append('discount_label', form.discount_label);
+      formData.append('discount_percent', form.discount_percent ?? 0);
       formData.append('product_ids', JSON.stringify(Array.isArray(form.product_ids) ? form.product_ids : []));
       formData.append('sort_order', form.sort_order);
       formData.append('active', form.active ? 1 : 0);
@@ -153,6 +157,7 @@ export default function Offers() {
               <TableCell>الصورة</TableCell>
               <TableCell>العنوان</TableCell>
               <TableCell>تسمية التخفيض</TableCell>
+              <TableCell>نسبة الخصم %</TableCell>
               <TableCell>معرفات المنتجات</TableCell>
               <TableCell>الترتيب</TableCell>
               <TableCell>نشط</TableCell>
@@ -167,6 +172,7 @@ export default function Offers() {
                 </TableCell>
                 <TableCell>{o.title || '-'}</TableCell>
                 <TableCell>{o.discount_label || '-'}</TableCell>
+                <TableCell>{o.discount_percent != null ? `${o.discount_percent}%` : '-'}</TableCell>
                 <TableCell>
                   <Typography variant="body2" sx={{ maxWidth: 200 }} noWrap title={productIdsToDisplay(o.product_ids)}>
                     {productIdsToDisplay(o.product_ids)}
@@ -205,6 +211,15 @@ export default function Offers() {
               onChange={(e) => setForm({ ...form, discount_label: e.target.value })}
               fullWidth
               placeholder="اختياري"
+            />
+            <TextField
+              label="نسبة الخصم % (مطلوبة لتطبيق الخصم على الباكج)"
+              type="number"
+              inputProps={{ min: 0, max: 100, step: 1 }}
+              value={form.discount_percent}
+              onChange={(e) => setForm({ ...form, discount_percent: parseFloat(e.target.value) || 0 })}
+              fullWidth
+              helperText="يُطبّق على سعر كل منتج عند شراء الباكج كاملاً"
             />
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 0.5 }} color="text.secondary">

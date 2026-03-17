@@ -7,6 +7,7 @@ import Explore from './pages/Explore'
 import Categories from './pages/Categories'
 import Brands from './pages/Brands'
 import ProductDetail from './pages/ProductDetail'
+import OfferDetail from './pages/OfferDetail'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Login from './pages/Login'
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/categories" element={<Categories />} />
         <Route path="/brands" element={<Brands />} />
         <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/offers/:id" element={<OfferDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<PrivateRoute><Checkout /></PrivateRoute>} />
         <Route path="/login" element={<Login />} />

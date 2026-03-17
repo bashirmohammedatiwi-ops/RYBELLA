@@ -78,8 +78,9 @@ exports.create = async (req, res) => {
 
     let total_price = 0;
     const orderItems = [];
+    const orderProductIds = new Set();
     for (const item of items) {
-      const [variant] = await db.query('SELECT price, stock FROM product_variants WHERE id = ?', [item.variant_id]);
+      const [variant] = await db.query('SELECT price, stock, product_id FROM product_variants WHERE id = ?', [item.variant_id]);
       if (variant.length === 0) {
         return res.status(400).json({ message: `المنتج غير موجود: ${item.variant_id}` });
       }
@@ -87,10 +88,28 @@ exports.create = async (req, res) => {
         return res.status(400).json({ message: `الكمية غير متوفرة للمنتج: ${item.variant_id}` });
       }
       total_price += variant[0].price * item.quantity;
-      orderItems.push({ variant_id: item.variant_id, quantity: item.quantity, price: variant[0].price });
+      orderProductIds.add(variant[0].product_id);
+      orderItems.push({ variant_id: item.variant_id, quantity: item.quantity, price: variant[0].price, product_id: variant[0].product_id });
     }
 
     let discount = 0;
+    const [offers] = await db.query('SELECT id, product_ids, discount_percent FROM offers WHERE active = 1 AND (discount_percent IS NOT NULL AND discount_percent > 0)');
+    for (const offer of offers || []) {
+      let offerProductIds = [];
+      try {
+        const parsed = typeof offer.product_ids === 'string' ? JSON.parse(offer.product_ids || '[]') : offer.product_ids || [];
+        offerProductIds = Array.isArray(parsed) ? parsed.map((id) => parseInt(id, 10)).filter((n) => !isNaN(n)) : [];
+      } catch (_) {}
+      if (offerProductIds.length === 0) continue;
+      const offerSet = new Set(offerProductIds);
+      const hasAll = offerProductIds.every((pid) => orderProductIds.has(pid));
+      if (!hasAll) continue;
+      const bundleSubtotal = orderItems
+        .filter((oi) => offerSet.has(oi.product_id))
+        .reduce((s, oi) => s + oi.price * oi.quantity, 0);
+      discount += bundleSubtotal * (parseFloat(offer.discount_percent) || 0) / 100;
+      break;
+    }
     if (coupon_code) {
       const [coupon] = await db.query(
         "SELECT discount_percent FROM coupons WHERE code = ? AND active = 1 AND expiration_date > date('now')",
