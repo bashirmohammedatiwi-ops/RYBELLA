@@ -260,15 +260,37 @@ const initDb = async () => {
       saveDb();
     }
   } catch (e) {}
-  // Migration: stories (اليوميات - مثل انستغرام)
+  // Migration: story_groups + story_slides (اليوميات - صور متعددة مثل انستغرام)
   try {
-    db.exec(`CREATE TABLE IF NOT EXISTS stories (
+    db.exec(`CREATE TABLE IF NOT EXISTS story_groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec(`CREATE TABLE IF NOT EXISTS story_slides (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      story_group_id INTEGER NOT NULL,
       image TEXT NOT NULL,
       link_type TEXT DEFAULT 'none',
       link_value TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY (story_group_id) REFERENCES story_groups(id) ON DELETE CASCADE
     )`);
+    const hasOldStories = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='stories'");
+    if (hasOldStories.length && hasOldStories[0].values.length) {
+      const oldRows = db.exec("SELECT id, image, link_type, link_value, created_at FROM stories");
+      if (oldRows.length && oldRows[0].values.length) {
+        const cols = oldRows[0].columns || ['id','image','link_type','link_value','created_at'];
+        const rows = oldRows[0].values;
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const r = {};
+          for (let j = 0; j < cols.length; j++) r[cols[j]] = row[j];
+          db.run('INSERT INTO story_groups (id, created_at) VALUES (?, ?)', [r.id, r.created_at || null]);
+          db.run('INSERT INTO story_slides (story_group_id, image, link_type, link_value, sort_order) VALUES (?, ?, ?, ?, 0)', [r.id, r.image, r.link_type || 'none', r.link_value || null]);
+        }
+      }
+      db.run('DROP TABLE stories');
+    }
     saveDb();
   } catch (e) {}
   // Migration: web_settings (إعدادات الموقع الإلكتروني)

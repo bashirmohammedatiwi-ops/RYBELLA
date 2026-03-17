@@ -55,48 +55,99 @@ async function resolveLinkUrl(linkType, linkValue) {
 }
 
 /**
- * اليوميات - مثل انستغرام: تظهر 24 ساعة ثم تختفي
- * GET /api/stories - للمتجر: يعيد اليوميات النشطة خلال آخر 24 ساعة
+ * اليوميات - للمتجر: مجموعات مع صور متعددة، تظهر 24 ساعة
+ * Response: [{ id, created_at, cover, slides: [{ id, image, link_url, sort_order }] }]
  */
 exports.getAll = async (req, res) => {
   try {
-    const [rows] = await db.query(
-      `SELECT * FROM stories 
-       WHERE created_at > datetime('now', '-24 hours') 
-       ORDER BY created_at DESC`
+    const [groups] = await db.query(
+      `SELECT sg.id, sg.created_at FROM story_groups sg
+       WHERE sg.created_at > datetime('now', '-24 hours')
+       ORDER BY sg.created_at DESC`
     );
-    for (const s of rows) {
-      s.link_url = (s.link_type && s.link_value) ? await resolveLinkUrl(s.link_type, s.link_value) : null;
+    const result = [];
+    for (const g of groups) {
+      const [slides] = await db.query(
+        `SELECT id, image, link_type, link_value, sort_order FROM story_slides
+         WHERE story_group_id = ? ORDER BY sort_order ASC, id ASC`,
+        [g.id]
+      );
+      if (slides.length === 0) continue;
+      const slidesWithUrl = [];
+      for (const s of slides) {
+        const link_url = (s.link_type && s.link_value) ? await resolveLinkUrl(s.link_type, s.link_value) : null;
+        slidesWithUrl.push({ id: s.id, image: s.image, link_url, sort_order: s.sort_order });
+      }
+      result.push({
+        id: g.id,
+        created_at: g.created_at,
+        cover: slides[0].image,
+        slides: slidesWithUrl,
+      });
     }
-    res.json(rows);
+    res.json(result);
   } catch (error) {
     console.error('Get stories error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };
 
+/**
+ * للأدمن: كل المجموعات مع الصور
+ */
 exports.getAllAdmin = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM stories ORDER BY created_at DESC');
-    res.json(rows);
+    const [groups] = await db.query('SELECT id, created_at FROM story_groups ORDER BY created_at DESC');
+    const result = [];
+    for (const g of groups) {
+      const [slides] = await db.query(
+        `SELECT id, image, link_type, link_value, sort_order FROM story_slides
+         WHERE story_group_id = ? ORDER BY sort_order ASC, id ASC`,
+        [g.id]
+      );
+      result.push({
+        id: g.id,
+        created_at: g.created_at,
+        cover: slides[0]?.image,
+        slides: slides,
+      });
+    }
+    res.json(result);
   } catch (error) {
     console.error('Get stories admin error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };
 
+/**
+ * إنشاء يومية جديدة - صور متعددة
+ * Body: images[] (files), slides: JSON [{ link_type, link_value }]
+ */
 exports.create = async (req, res) => {
   try {
-    const { link_type, link_value } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
-    if (!image) {
-      return res.status(400).json({ message: 'الصورة مطلوبة' });
+    const files = req.files?.images || (req.file ? [req.file] : []);
+    if (!files.length) {
+      return res.status(400).json({ message: 'يجب إضافة صورة واحدة على الأقل' });
     }
-    const [result] = await db.query(
-      `INSERT INTO stories (image, link_type, link_value) VALUES (?, ?, ?)`,
-      [image, link_type || 'none', link_value || null]
-    );
-    res.status(201).json({ message: 'تم إضافة اليومية بنجاح', id: result.insertId });
+    let slidesData = [];
+    try {
+      const raw = req.body.slides || req.body.slide;
+      if (raw) slidesData = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (_) {}
+    const [groupResult] = await db.query('INSERT INTO story_groups (created_at) VALUES (CURRENT_TIMESTAMP)');
+    const groupId = groupResult.insertId;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const image = `/uploads/${f.filename}`;
+      const slide = Array.isArray(slidesData) && slidesData[i] ? slidesData[i] : {};
+      const link_type = slide.link_type || 'none';
+      const link_value = slide.link_value || null;
+      await db.query(
+        `INSERT INTO story_slides (story_group_id, image, link_type, link_value, sort_order) VALUES (?, ?, ?, ?, ?)`,
+        [groupId, image, link_type, link_value, i]
+      );
+    }
+    res.status(201).json({ message: 'تم إضافة اليومية بنجاح', id: groupId });
   } catch (error) {
     console.error('Create story error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
@@ -105,7 +156,7 @@ exports.create = async (req, res) => {
 
 exports.delete = async (req, res) => {
   try {
-    await db.query('DELETE FROM stories WHERE id = ?', [req.params.id]);
+    await db.query('DELETE FROM story_groups WHERE id = ?', [req.params.id]);
     res.json({ message: 'تم حذف اليومية بنجاح' });
   } catch (error) {
     console.error('Delete story error:', error);

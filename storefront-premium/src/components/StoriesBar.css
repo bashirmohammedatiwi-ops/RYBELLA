@@ -184,3 +184,12 @@
 .story-viewer-close:hover {
   background: rgba(255, 255, 255, 0.35);
 }
+
+/* دعم السحب (سوايب) مثل انستغرام */
+.story-viewer-content {
+  touch-action: pan-y pinch-zoom;
+}
+
+.story-viewer-nav {
+  -webkit-tap-highlight-color: transparent;
+}

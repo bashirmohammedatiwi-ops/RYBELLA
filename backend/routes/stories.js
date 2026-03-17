@@ -4,7 +4,7 @@ const storyController = require('../controllers/storyController');
 const { auth, adminAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-const storyUpload = upload.single('image');
+const storyUpload = upload.array('images', 10);
 
 const handleMulterError = (err, req, res, next) => {
   if (err) {

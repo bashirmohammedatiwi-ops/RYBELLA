@@ -1,29 +1,43 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { storiesAPI, IMG_BASE } from '../services/api'
 import './StoriesBar.css'
 
 const STORY_DURATION = 5000
+const SWIPE_THRESHOLD = 50
 
 export default function StoriesBar() {
-  const [stories, setStories] = useState([])
+  const touchStartX = useRef(0)
+  const [storyGroups, setStoryGroups] = useState([])
   const [viewerOpen, setViewerOpen] = useState(false)
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [storyIndex, setStoryIndex] = useState(0)
+  const [slideIndex, setSlideIndex] = useState(0)
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
     storiesAPI.getAll().then((r) => {
       const arr = Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : [])
-      setStories(arr)
-    }).catch(() => setStories([]))
+      setStoryGroups(arr)
+    }).catch(() => setStoryGroups([]))
   }, [])
 
-  const currentStory = stories[currentIndex]
-  const hasNext = currentIndex < stories.length - 1
-  const hasPrev = currentIndex > 0
+  const currentGroup = storyGroups[storyIndex]
+  const currentSlide = currentGroup?.slides?.[slideIndex]
+  const allSlides = useMemo(() => storyGroups.flatMap((g) => g.slides || []), [storyGroups])
+  const currentSegmentIndex = useMemo(() => {
+    let idx = 0
+    for (let i = 0; i < storyIndex; i++) idx += (storyGroups[i]?.slides?.length || 0)
+    return idx + slideIndex
+  }, [storyGroups, storyIndex, slideIndex])
 
-  const openViewer = (index) => {
-    setCurrentIndex(index)
+  const hasNextSlide = currentGroup && slideIndex < (currentGroup.slides?.length || 0) - 1
+  const hasNextStory = storyIndex < storyGroups.length - 1
+  const hasPrevSlide = slideIndex > 0
+  const hasPrevStory = storyIndex > 0
+
+  const openViewer = (groupIdx) => {
+    setStoryIndex(groupIdx)
+    setSlideIndex(0)
     setProgress(0)
     setViewerOpen(true)
   }
@@ -33,20 +47,29 @@ export default function StoriesBar() {
   }, [])
 
   const goNext = useCallback(() => {
-    if (hasNext) {
-      setCurrentIndex((i) => i + 1)
+    if (hasNextSlide) {
+      setSlideIndex((i) => i + 1)
+      setProgress(0)
+    } else if (hasNextStory) {
+      setStoryIndex((i) => i + 1)
+      setSlideIndex(0)
       setProgress(0)
     } else {
       closeViewer()
     }
-  }, [hasNext, closeViewer])
+  }, [hasNextSlide, hasNextStory, closeViewer])
 
   const goPrev = useCallback(() => {
-    if (hasPrev) {
-      setCurrentIndex((i) => i - 1)
+    if (hasPrevSlide) {
+      setSlideIndex((i) => i - 1)
+      setProgress(0)
+    } else if (hasPrevStory) {
+      setStoryIndex((i) => i - 1)
+      const prevSlides = storyGroups[storyIndex - 1]?.slides || []
+      setSlideIndex(prevSlides.length - 1)
       setProgress(0)
     }
-  }, [hasPrev])
+  }, [hasPrevSlide, hasPrevStory, storyIndex, storyGroups])
 
   const handleProgress = useCallback(() => {
     setProgress((p) => {
@@ -60,43 +83,68 @@ export default function StoriesBar() {
   }, [goNext])
 
   useEffect(() => {
-    if (!viewerOpen || !currentStory) return
+    if (!viewerOpen || !currentSlide) return
     const t = setInterval(handleProgress, STORY_DURATION / 20)
     return () => clearInterval(t)
-  }, [viewerOpen, currentStory, currentIndex, handleProgress])
+  }, [viewerOpen, currentSlide, storyIndex, slideIndex, handleProgress])
 
-  if (stories.length === 0) return null
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+  const handleTouchEnd = (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    if (dx > SWIPE_THRESHOLD) goPrev()
+    else if (dx < -SWIPE_THRESHOLD) goNext()
+  }
+
+  useEffect(() => {
+    if (!viewerOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowRight') goPrev()
+      else if (e.key === 'ArrowLeft') goNext()
+      else if (e.key === 'Escape') closeViewer()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [viewerOpen, goNext, goPrev, closeViewer])
+
+  if (storyGroups.length === 0) return null
 
   return (
     <>
       <section className="stories-bar">
         <div className="stories-bar-scroll">
-          {stories.map((s, i) => (
+          {storyGroups.map((g, i) => (
             <button
-              key={s.id}
+              key={g.id}
               type="button"
               className="story-circle"
               onClick={() => openViewer(i)}
               aria-label={`يومية ${i + 1}`}
             >
               <div className="story-circle-ring">
-                <img src={`${IMG_BASE}${s.image}`} alt="" />
+                <img src={`${IMG_BASE}${g.cover}`} alt="" />
               </div>
             </button>
           ))}
         </div>
       </section>
 
-      {viewerOpen && currentStory && (
+      {viewerOpen && currentSlide && (
         <div className="story-viewer-overlay" onClick={closeViewer}>
-          <div className="story-viewer" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="story-viewer"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <div className="story-viewer-progress">
-              {stories.map((_, i) => (
+              {allSlides.map((_, i) => (
                 <div key={i} className="story-viewer-progress-track">
                   <div
                     className="story-viewer-progress-fill"
                     style={{
-                      width: i < currentIndex ? '100%' : i === currentIndex ? `${progress}%` : '0%',
+                      width: i < currentSegmentIndex ? '100%' : i === currentSegmentIndex ? `${progress}%` : '0%',
                     }}
                   />
                 </div>
@@ -108,19 +156,19 @@ export default function StoriesBar() {
                 className="story-viewer-nav story-viewer-prev"
                 onClick={(e) => { e.stopPropagation(); goPrev(); }}
                 aria-label="السابق"
-                style={{ visibility: hasPrev ? 'visible' : 'hidden' }}
+                style={{ visibility: hasPrevSlide || hasPrevStory ? 'visible' : 'hidden' }}
               />
               <div className="story-viewer-image-wrap">
-                {currentStory.link_url ? (
+                {currentSlide.link_url ? (
                   <Link
-                    to={currentStory.link_url}
+                    to={currentSlide.link_url}
                     className="story-viewer-link"
                     onClick={closeViewer}
                   >
-                    <img src={`${IMG_BASE}${currentStory.image}`} alt="" />
+                    <img src={`${IMG_BASE}${currentSlide.image}`} alt="" />
                   </Link>
                 ) : (
-                  <img src={`${IMG_BASE}${currentStory.image}`} alt="" />
+                  <img src={`${IMG_BASE}${currentSlide.image}`} alt="" />
                 )}
               </div>
               <button

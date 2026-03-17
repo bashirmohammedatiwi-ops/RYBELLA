@@ -192,13 +192,19 @@ CREATE TABLE IF NOT EXISTS wishlist (
     UNIQUE(user_id, product_id)
 );
 
--- Stories (اليوميات - مثل انستغرام، تختفي بعد 24 ساعة)
-CREATE TABLE IF NOT EXISTS stories (
+-- Story groups (اليوميات - مجموعة صور مثل انستغرام)
+CREATE TABLE IF NOT EXISTS story_groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS story_slides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    story_group_id INTEGER NOT NULL,
     image TEXT NOT NULL,
     link_type TEXT DEFAULT 'none',
     link_value TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    sort_order INTEGER DEFAULT 0,
+    FOREIGN KEY (story_group_id) REFERENCES story_groups(id) ON DELETE CASCADE
 );
 
 -- Banners
