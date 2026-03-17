@@ -42,6 +42,7 @@ export default function Banners() {
     active: 1,
   });
   const [imageFile, setImageFile] = useState(null);
+  const [backgroundImageFile, setBackgroundImageFile] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
@@ -80,6 +81,7 @@ export default function Banners() {
       });
     }
     setImageFile(null);
+    setBackgroundImageFile(null);
     setDialogOpen(true);
   };
 
@@ -93,6 +95,7 @@ export default function Banners() {
       formData.append('sort_order', form.sort_order);
       formData.append('active', form.active ? 1 : 0);
       if (imageFile) formData.append('image', imageFile);
+      if (backgroundImageFile) formData.append('background_image', backgroundImageFile);
 
       if (editingBanner) {
         await bannersAPI.update(editingBanner.id, formData);
@@ -150,7 +153,10 @@ export default function Banners() {
             {banners.map((b) => (
               <TableRow key={b.id}>
                 <TableCell>
-                  <ImageDisplay src={b.image} width={96} height={56} fit="cover" />
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    {b.background_image && <ImageDisplay src={b.background_image} width={64} height={40} fit="cover" title="الخلفية" />}
+                    <ImageDisplay src={b.image} width={64} height={40} fit="cover" title="الصورة العلوية" />
+                  </Box>
                 </TableCell>
                 <TableCell>{b.title || '-'}</TableCell>
                 <TableCell>
@@ -229,12 +235,20 @@ export default function Banners() {
               />
               <Typography>نشط</Typography>
             </Box>
-            <Button variant="outlined" component="label">
-              {imageFile ? imageFile.name : editingBanner?.image ? 'تغيير الصورة' : 'اختر صورة'}
-              <input type="file" hidden accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography variant="subtitle2">صورة الخلفية (تدرج أو صورة كاملة)</Typography>
+              <Button variant="outlined" component="label" size="small">
+                {backgroundImageFile ? backgroundImageFile.name : editingBanner?.background_image ? 'تغيير الخلفية' : 'اختر صورة الخلفية'}
+                <input type="file" hidden accept="image/*" onChange={(e) => setBackgroundImageFile(e.target.files[0])} />
+              </Button>
+              <Typography variant="subtitle2" sx={{ mt: 1 }}>الصورة العلوية (PNG شفاف)</Typography>
+              <Button variant="outlined" component="label" size="small">
+                {imageFile ? imageFile.name : editingBanner?.image ? 'تغيير الصورة' : 'اختر الصورة العلوية'}
+                <input type="file" hidden accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
+              </Button>
+            </Box>
             {!editingBanner && !imageFile && (
-              <Typography variant="caption" color="error">الصورة مطلوبة للبانر الجديد</Typography>
+              <Typography variant="caption" color="error">الصورة العلوية مطلوبة للبانر الجديد</Typography>
             )}
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button onClick={() => setDialogOpen(false)}>إلغاء</Button>

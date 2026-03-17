@@ -19,6 +19,7 @@ import Offers from './pages/Offers'
 import Reports from './pages/Reports'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+import WebStoreSettings from './pages/WebStoreSettings'
 import { useAuth } from './context/AuthContext'
 
 function LoginOrRedirect() {
@@ -62,6 +63,7 @@ function App() {
         <Route path="reports" element={<Reports />} />
         <Route path="profile" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="web-store" element={<WebStoreSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

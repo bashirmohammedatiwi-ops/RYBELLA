@@ -25,6 +25,7 @@ const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
 const bannerRoutes = require('./routes/banners');
 const offerRoutes = require('./routes/offers');
+const webSettingsRoutes = require('./routes/webSettings');
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 5000;
@@ -55,6 +56,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/web-settings', webSettingsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -14,7 +14,7 @@ exports.getCart = async (req, res) => {
     const cartId = await getOrCreateCart(req.user.id);
     const [items] = await db.query(`
       SELECT ci.*, pv.shade_name, pv.color_code, pv.price, pv.stock, pv.image as variant_image,
-        p.name as product_name, p.main_image as product_image
+        p.id as product_id, p.name as product_name, p.main_image as product_image
       FROM cart_items ci
       JOIN product_variants pv ON ci.variant_id = pv.id
       JOIN products p ON pv.product_id = p.id

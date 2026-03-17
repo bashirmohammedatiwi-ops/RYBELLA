@@ -1,0 +1,25 @@
+.floating-contact {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 80px);
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25D366;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+  z-index: 85;
+}
+
+@media (min-width: 769px) {
+  .floating-contact {
+    bottom: 24px;
+  }
+}
+
+.floating-contact-icon {
+  font-size: 1.75rem;
+}

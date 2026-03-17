@@ -26,14 +26,15 @@ exports.getAllAdmin = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { title, link_type, link_value, sort_order, active } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    const image = req.files?.image?.[0] ? `/uploads/${req.files.image[0].filename}` : null;
+    const backgroundImage = req.files?.background_image?.[0] ? `/uploads/${req.files.background_image[0].filename}` : null;
     if (!image) {
       return res.status(400).json({ message: 'الصورة مطلوبة' });
     }
     const [result] = await db.query(
-      `INSERT INTO banners (title, image, link_type, link_value, sort_order, active)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [title || null, image, link_type || 'none', link_value || null, sort_order || 0, active !== undefined ? active : 1]
+      `INSERT INTO banners (title, image, background_image, link_type, link_value, sort_order, active)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [title || null, image, backgroundImage || null, link_type || 'none', link_value || null, sort_order || 0, active !== undefined ? active : 1]
     );
     res.status(201).json({ message: 'تم إنشاء البانر بنجاح', id: result.insertId });
   } catch (error) {
@@ -45,12 +46,17 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { title, link_type, link_value, sort_order, active } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : undefined;
+    const image = req.files?.image?.[0] ? `/uploads/${req.files.image[0].filename}` : undefined;
+    const backgroundImage = req.files?.background_image?.[0] ? `/uploads/${req.files.background_image[0].filename}` : undefined;
     let query = 'UPDATE banners SET title = ?, link_type = ?, link_value = ?, sort_order = ?, active = ?';
     const params = [title || null, link_type || 'none', link_value || null, sort_order || 0, active !== undefined ? active : 1];
     if (image) {
       query += ', image = ?';
       params.push(image);
+    }
+    if (backgroundImage) {
+      query += ', background_image = ?';
+      params.push(backgroundImage);
     }
     query += ' WHERE id = ?';
     params.push(req.params.id);

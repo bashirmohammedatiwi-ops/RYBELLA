@@ -84,6 +84,15 @@ const initDb = async () => {
     )`);
     saveDb();
   } catch (e) {}
+  // Migration: banners.background_image (صورة خلفية + صورة PNG فوقها)
+  try {
+    const bannerInfo = db.exec("PRAGMA table_info(banners)");
+    const bannerCols = (bannerInfo[0]?.values || []).map((r) => r[1]);
+    if (!bannerCols.includes('background_image')) {
+      db.run('ALTER TABLE banners ADD COLUMN background_image TEXT');
+      saveDb();
+    }
+  } catch (e) {}
   // Migration: offers table
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS offers (
@@ -177,6 +186,16 @@ const initDb = async () => {
       db.run('ALTER TABLE categories ADD COLUMN overlay_text TEXT');
       saveDb();
     }
+  } catch (e) {}
+  // Migration: web_settings (إعدادات الموقع الإلكتروني)
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS web_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      setting_key TEXT UNIQUE NOT NULL,
+      setting_value TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    saveDb();
   } catch (e) {}
 };
 

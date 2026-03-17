@@ -1,0 +1,34 @@
+.rybella-trust-badges {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2rem 3rem;
+  padding: 2rem 1.5rem;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.rybella-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rybella-trust-icon {
+  font-size: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .rybella-trust-badges {
+    gap: 1.5rem;
+    padding: 1.5rem 1rem;
+  }
+  .rybella-trust-item {
+    font-size: 0.85rem;
+  }
+}

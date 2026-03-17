@@ -1,0 +1,241 @@
+/* صفحة الفئات - مطابقة لتطبيق الهاتف */
+.categories-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding-bottom: 120px;
+}
+
+/* الهيدر - خلفية وردية */
+.categories-header {
+  position: relative;
+  background: var(--primary);
+  padding: calc(48px + env(safe-area-inset-top, 0px)) 18px 20px;
+  border-radius: 0 0 28px 28px;
+  box-shadow: 0 8px 24px rgba(232,93,122,0.25);
+}
+
+.categories-back-btn {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  right: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.categories-header-text {
+  text-align: right;
+}
+
+.categories-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.categories-subtitle {
+  display: block;
+  font-size: 14px;
+  color: rgba(255,255,255,0.92);
+  margin-top: 4px;
+}
+
+/* قائمة الفئات */
+.categories-list {
+  padding: 18px;
+}
+
+/* بطاقة الفئة */
+.cat-card {
+  display: block;
+  margin-bottom: 12px;
+  text-decoration: none;
+  border-radius: 22px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border: 1px solid rgba(232,93,122,0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.cat-card-inner {
+  position: relative;
+  height: 150px;
+}
+
+.cat-card-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cat-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 40%, transparent 100%);
+}
+
+.cat-card-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary-soft));
+}
+
+.cat-card-content {
+  position: absolute;
+  inset: 0;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cat-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cat-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+}
+
+.cat-icon-badge.light {
+  background: rgba(255,255,255,0.35);
+  color: white;
+}
+
+.cat-icon-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.cat-overlay-text {
+  background: rgba(255,255,255,0.95);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary);
+  text-align: right;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-overlay-text.solid {
+  background: white;
+}
+
+.cat-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cat-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: right;
+  flex: 1;
+}
+
+.cat-card-name.light {
+  color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.cat-arrow-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  color: white;
+}
+
+.cat-card:not(.has-image) .cat-arrow-btn {
+  background: rgba(232,93,122,0.2);
+  color: var(--primary);
+}
+
+/* حالة فارغة */
+.categories-empty {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.categories-empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 40px;
+  background: var(--primary-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto 16px;
+}
+
+.categories-empty-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.categories-empty-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* التحميل */
+.categories-skeleton {
+  background: rgba(255,255,255,0.4);
+  border-radius: 6px;
+  align-self: flex-end;
+}
+
+.categories-skeleton-card {
+  height: 150px;
+  margin-bottom: 12px;
+  border-radius: 22px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}

@@ -193,6 +193,11 @@ export const bannersAPI = {
   delete: (id) => api.delete(`/banners/${id}`),
 };
 
+export const webSettingsAPI = {
+  get: () => api.get('/web-settings'),
+  update: (data) => api.put('/web-settings', data),
+};
+
 export const offersAPI = {
   getAll: () => api.get('/offers/admin'),
   create: (formData) => api.post('/offers', formData, {

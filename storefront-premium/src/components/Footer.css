@@ -1,0 +1,142 @@
+.rybella-footer {
+  background: #1A1A1A;
+  color: rgba(255,255,255,0.9);
+  margin-top: 2rem;
+}
+
+.rybella-footer-newsletter {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.rybella-footer-newsletter h3 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.rybella-newsletter-intro {
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 1rem;
+}
+
+.rybella-newsletter-benefits {
+  text-align: right;
+  list-style: none;
+  margin-bottom: 1.5rem;
+  padding: 0;
+}
+
+.rybella-newsletter-benefits li {
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.rybella-newsletter-benefits strong {
+  color: white;
+  font-weight: 600;
+}
+
+.rybella-footer-newsletter p {
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 1rem;
+}
+
+.rybella-footer-newsletter form {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.rybella-footer-newsletter input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.rybella-footer-newsletter input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+.rybella-footer-newsletter button {
+  padding: 0.75rem 1.25rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.rybella-newsletter-done {
+  color: var(--gold-light) !important;
+}
+
+.rybella-footer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1.5rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.rybella-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.rybella-badge-icon {
+  font-size: 1.25rem;
+}
+
+.rybella-footer-main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+}
+
+.rybella-footer-about h4 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.rybella-footer-about p {
+  color: rgba(255,255,255,0.75);
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.rybella-footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rybella-footer-links a {
+  color: rgba(255,255,255,0.8);
+}
+
+.rybella-footer-links a:hover {
+  color: var(--primary-light);
+}
+
+.rybella-footer-bottom {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
+  border-top: 1px solid rgba(255,255,255,0.1);
+}

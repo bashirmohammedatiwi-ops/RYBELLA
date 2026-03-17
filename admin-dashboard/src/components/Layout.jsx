@@ -29,6 +29,7 @@ import {
   LocalShipping as DeliveryIcon,
   Assessment as ReportIcon,
   ViewCarousel as BannerIcon,
+  Language as WebStoreIcon,
   Percent as OfferIcon,
   Logout as LogoutIcon,
   Person as ProfileIcon,
@@ -60,6 +61,7 @@ const settingsNav = [
   { path: '/delivery-zones', label: 'مناطق التوصيل', icon: <DeliveryIcon /> },
   { path: '/reports', label: 'التقارير', icon: <ReportIcon /> },
   { path: '/settings', label: 'الإعدادات', icon: <SettingsIcon /> },
+  { path: '/web-store', label: 'متجر الويب', icon: <WebStoreIcon /> },
   { path: '/profile', label: 'الملف الشخصي', icon: <ProfileIcon /> },
 ];
 

@@ -1,0 +1,75 @@
+.premium-order-detail {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.premium-order-back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--accent);
+}
+
+.premium-order-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.premium-order-detail-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.premium-order-status {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+.premium-order-detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.premium-order-detail-section h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.premium-order-items {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.premium-order-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.premium-order-item:last-child {
+  border-bottom: none;
+}
+
+.premium-order-detail-totals {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.premium-order-detail-totals > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.premium-order-final {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}

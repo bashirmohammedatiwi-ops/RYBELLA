@@ -1,0 +1,22 @@
+.rybella-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  background: var(--black);
+  color: white;
+  padding: 0.7rem 0;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+.rybella-marquee-inner {
+  display: inline-block;
+  animation: marquee 25s linear infinite;
+  padding-inline-start: 100%;
+}
+
+.rybella-marquee-inner span {
+  display: inline-block;
+  padding-inline-start: 0;
+}
