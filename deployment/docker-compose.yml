@@ -48,13 +48,13 @@ services:
   webstore:
     build:
       context: ..
-      dockerfile: deployment/web-store.Dockerfile
+      dockerfile: deployment/storefront-premium.Dockerfile
       args:
         - VITE_API_URL=
     container_name: rybella-webstore
     restart: unless-stopped
     ports:
-      - "4001:80"
+      - "4003:80"
     depends_on:
       backend:
         condition: service_healthy
