@@ -8,6 +8,8 @@
   padding-bottom: 24px;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -195,24 +197,22 @@
   overflow: visible;
 }
 
-/* حاوية القص: تسمح بالخروج من الأعلى فقط - تُقطع عند اليمين واليسار والأسفل */
+/* حاوية البانر - الخلفية الوردية فقط، الصورة تخرج من الأعلى (مثل الأدمن) */
 .home-banner-clip {
   position: absolute;
   inset: 0;
-  top: -280px; /* توسيع للأعلى لظهور الصورة كاملة */
-  height: calc(100% + 280px);
   border-radius: inherit;
-  overflow: hidden;
-  clip-path: inset(0 0 0 0 round 0 0 20px 20px);
+  overflow: visible;
 }
 
-/* طبقة الخلفية */
+/* طبقة الخلفية الوردية - المستطيل المحدود (مثل الأدمن) */
 .home-banner-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   border-radius: inherit;
+  /* الخلفية فقط داخل الحدود */
 }
 
 .home-banner-bg img {
@@ -224,7 +224,7 @@
   object-position: center top;
 }
 
-/* صورة المنتج/الشخص - مُثبتة من أسفل البانر، تخرج للأعلى خارج الإطار */
+/* صورة المنتج/الشخص - مثل الأدمن: مُثبتة من الأسفل، تخرج للأعلى خارج المستطيل الوردي */
 .home-banner-figure {
   position: absolute;
   bottom: 0;
@@ -235,19 +235,16 @@
   align-items: flex-end;
   justify-content: center;
   pointer-events: none;
-  max-height: none;
-  height: auto;
+  /* الصورة أطول من البانر لتخرج من الأعلى */
 }
 
 .home-banner-figure img {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 380px;
-  min-height: 200px;
+  max-height: 400px;
   object-fit: contain;
   object-position: bottom center;
-  vertical-align: bottom;
 }
 
 /* طبقة المحتوى (النص والزر) */
@@ -421,11 +418,6 @@
   .home-banner-slide {
     aspect-ratio: 22/9;
     min-height: 170px;
-  }
-
-  .home-banner-clip {
-    top: -350px;
-    height: calc(100% + 350px);
   }
 
   .home-banner-figure img {
