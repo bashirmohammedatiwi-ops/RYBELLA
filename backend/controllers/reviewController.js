@@ -4,6 +4,7 @@ exports.create = async (req, res) => {
   try {
     const { product_id, rating, comment } = req.body;
     const user_id = req.user.id;
+    const imageFiles = req.files || [];
 
     if (!product_id || !rating) {
       return res.status(400).json({ message: 'معرف المنتج والتقييم مطلوبان' });
@@ -17,11 +18,16 @@ exports.create = async (req, res) => {
       return res.status(400).json({ message: 'لقد قمت بتقييم هذا المنتج مسبقاً' });
     }
 
-    await db.query(
+    const [result] = await db.query(
       'INSERT INTO reviews (user_id, product_id, rating, comment) VALUES (?, ?, ?, ?)',
       [user_id, product_id, rating, comment || null]
     );
-    res.status(201).json({ message: 'تم إضافة التقييم بنجاح' });
+    const reviewId = result.insertId;
+    for (const file of imageFiles) {
+      const imageUrl = `/uploads/${file.filename}`;
+      await db.query('INSERT INTO review_images (review_id, image_url) VALUES (?, ?)', [reviewId, imageUrl]);
+    }
+    res.status(201).json({ message: 'تم إضافة التقييم بنجاح', id: reviewId });
   } catch (error) {
     console.error('Create review error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
@@ -37,6 +43,10 @@ exports.getAll = async (req, res) => {
       LEFT JOIN products p ON r.product_id = p.id
       ORDER BY r.created_at DESC
     `);
+    for (const r of reviews) {
+      const [imgs] = await db.query('SELECT image_url FROM review_images WHERE review_id = ? ORDER BY id', [r.id]);
+      r.images = (imgs || []).map((i) => i.image_url);
+    }
     res.json(reviews);
   } catch (error) {
     console.error('Get reviews error:', error);
@@ -60,6 +70,7 @@ exports.getByProduct = async (req, res) => {
 
 exports.delete = async (req, res) => {
   try {
+    await db.query('DELETE FROM review_images WHERE review_id = ?', [req.params.id]);
     await db.query('DELETE FROM reviews WHERE id = ?', [req.params.id]);
     res.json({ message: 'تم حذف التقييم بنجاح' });
   } catch (error) {

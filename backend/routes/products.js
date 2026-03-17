@@ -6,6 +6,7 @@ const { auth, adminAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
 router.get('/', productController.getAll);
+router.get('/filters', productController.getFilters);
 router.put('/reorder', auth, adminAuth, productController.reorder);
 router.get('/:id', productController.getById);
 router.get('/:id/reviews', productController.getReviews);

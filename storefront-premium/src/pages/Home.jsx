@@ -87,6 +87,7 @@ export default function Home() {
   const heroSubtitle = settings?.hero_subtitle || 'الجمال الذي تستحقينه'
   const showRecent = settings?.show_recently_viewed !== '0' && recentProducts.length > 0
   const quickViewEnabled = settings?.quick_view_enabled !== '0'
+  const showOffers = settings?.show_offers !== '0' && offers.length > 0
 
   useEffect(() => {
     if (offers.length <= 1) return
@@ -144,25 +145,25 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 1. الفئات - فوق البانرات */}
+      {/* 1. الفئات */}
       <section className="home-section home-section-categories">
-        <div className="home-section-header">
-          <h2 className="home-section-title">المميزة</h2>
-          <Link to="/categories" className="home-section-link">الكل</Link>
+        <div className="home-categories-header">
+          <h2 className="home-categories-title">الفئات</h2>
+          <Link to="/categories" className="home-categories-all">الكل</Link>
         </div>
         <div className="home-categories">
           {categories.slice(0, 8).map((c) => (
             <Link key={c.id} to={`/explore?category=${c.id}`} className="home-category">
-              <div className="home-category-icon">
+              <span className="home-category-icon">
                 {getCatImage(c) ? (
-                  <img src={getCatImage(c)} alt="" />
+                  <img src={getCatImage(c)} alt={c.name} />
                 ) : (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
                   </svg>
                 )}
-              </div>
-              <span>{c.name}</span>
+              </span>
+              <span className="home-category-name">{c.name}</span>
             </Link>
           ))}
         </div>
@@ -265,20 +266,19 @@ export default function Home() {
         </section>
       )}
 
-      {/* 5. العروض الحصرية - سلايدر */}
-      {offers.length > 0 && (
+      {/* 5. العروض الحصرية - سلايدر مثل البانرات */}
+      {showOffers && (
         <section className="home-section home-section-offers">
           <div className="home-offers-header">
-            <div className="home-offers-badge">باكجات حصرية</div>
-            <h2 className="home-offers-title">باكجات بخصم - اشترِ الكل معاً</h2>
-            <Link to="/explore" className="home-offers-link">تصفحي المنتجات</Link>
+            <h2 className="home-offers-title">عروض حصرية</h2>
           </div>
-          <div
-            className="home-offers-slider"
-            ref={offerRef}
-            onScroll={(e) => setOfferIdx(Math.round(e.target.scrollLeft / e.target.clientWidth))}
-          >
-            <div className="home-offers-slider-track">
+          <div className="home-offers-wrapper">
+            <div
+              className="home-offers-slider"
+              ref={offerRef}
+              onScroll={(e) => setOfferIdx(Math.round(e.target.scrollLeft / (e.target.clientWidth || 1)))}
+            >
+              <div className="home-offers-slider-track">
               {offers.map((o) => (
                 <Link key={o.id} to={o.product_ids ? `/offers/${o.id}` : '/explore'} className="home-offer-slide">
                   <div className="home-offer-slide-bg">
@@ -287,14 +287,13 @@ export default function Home() {
                   </div>
                   <div className="home-offer-slide-content">
                     <span className="home-offer-slide-label">{o.discount_label || o.title}</span>
-                    <span className="home-offer-slide-cta">تسوقي الآن</span>
                   </div>
                 </Link>
               ))}
+              </div>
             </div>
-          </div>
-          {offers.length > 1 && (
-            <div className="home-offers-pagination">
+            {offers.length > 1 && (
+              <div className="home-offers-pagination">
               {offers.map((_, i) => (
                 <button
                   key={i}
@@ -307,8 +306,9 @@ export default function Home() {
                   aria-label={`عرض ${i + 1}`}
                 />
               ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </section>
       )}
 

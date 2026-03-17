@@ -32,6 +32,7 @@ api.interceptors.response.use(
 export const productsAPI = {
   getAll: (params) => api.get('/products', { params: { ...params, status: params?.status ?? 'published' } }),
   getById: (id) => api.get(`/products/${id}`),
+  getFilters: () => api.get('/products/filters'),
 }
 export const categoriesAPI = { getAll: () => api.get('/categories') }
 export const subcategoriesAPI = { getAll: (params) => api.get('/subcategories', { params }) }
@@ -66,6 +67,15 @@ export const wishlistAPI = {
   getAll: () => api.get('/wishlist'),
   add: (productId) => api.post(`/wishlist/${productId}`),
   remove: (productId) => api.delete(`/wishlist/${productId}`),
+}
+export const reviewsAPI = {
+  getByProduct: (productId) => api.get(`/reviews/products/${productId}`),
+  create: (data, images) => {
+    const fd = new FormData()
+    Object.entries(data).forEach(([k, v]) => fd.append(k, v))
+    ;(images || []).forEach((f) => fd.append('images', f))
+    return api.post('/reviews', fd)
+  },
 }
 export const deliveryZonesAPI = { getAll: () => api.get('/delivery-zones') }
 export const couponsAPI = { apply: (data) => api.post('/coupons/apply', data) }

@@ -2,7 +2,7 @@ const db = require('../config/database');
 
 exports.getAll = async (req, res) => {
   try {
-    const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, product_ids } = req.query;
+    const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, product_ids, tags, color_code, sort_by } = req.query;
     let query = `
       SELECT p.*, b.name as brand_name, c.name as category_name, s.name as subcategory_name,
         (SELECT COUNT(*) FROM product_variants pv WHERE pv.product_id = p.id AND pv.stock > 0) as available_variants,
@@ -54,8 +54,26 @@ exports.getAll = async (req, res) => {
         params.push(`%${searchVal}%`, `%${searchVal}%`, `%${searchVal}%`);
       }
     }
+    if (tags) {
+      const tagList = String(tags).split(/[,،]/).map((t) => t.trim()).filter(Boolean);
+      if (tagList.length > 0) {
+        const conditions = tagList.map(() => 'p.tags LIKE ?').join(' OR ');
+        query += ' AND (' + conditions + ')';
+        tagList.forEach((t) => params.push(`%${t}%`));
+      }
+    }
+    if (color_code) {
+      query += ' AND EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND (pv.color_code = ? OR LOWER(pv.shade_name) LIKE ?))';
+      params.push(color_code, `%${String(color_code).toLowerCase()}%`);
+    }
 
-    query += ' ORDER BY p.name';
+    const orderMap = {
+      price_asc: '(SELECT MIN(price) FROM product_variants WHERE product_id = p.id) ASC',
+      price_desc: '(SELECT MAX(price) FROM product_variants WHERE product_id = p.id) DESC',
+      newest: 'p.created_at DESC',
+    };
+    const orderClause = orderMap[sort_by] || 'p.sort_order ASC, p.name ASC';
+    query += ' ORDER BY ' + orderClause;
 
     const [products] = await db.query(query, params);
     let filteredProducts = products;
@@ -90,6 +108,32 @@ exports.getAll = async (req, res) => {
   }
 };
 
+exports.getFilters = async (req, res) => {
+  try {
+    let tags = [];
+    const [products] = await db.query('SELECT tags FROM products WHERE tags IS NOT NULL AND tags != \'\' AND COALESCE(status, \'published\') = \'published\'');
+    const tagSet = new Set();
+    products.forEach((p) => {
+      (p.tags || '').split(/[,،]/).forEach((t) => {
+        const v = t.trim();
+        if (v) tagSet.add(v);
+      });
+    });
+    tags = [...tagSet].sort();
+    const [colorRows] = await db.query(
+      `SELECT DISTINCT pv.color_code, pv.shade_name FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id
+       WHERE COALESCE(p.status, 'published') = 'published' AND (pv.color_code IS NOT NULL OR pv.shade_name IS NOT NULL)
+       ORDER BY pv.shade_name`
+    );
+    const colors = colorRows.map((r) => ({ code: r.color_code || '#000000', name: r.shade_name || r.color_code || 'غير محدد' }));
+    res.json({ tags, colors });
+  } catch (error) {
+    console.error('Get filters error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
+
 exports.getById = async (req, res) => {
   try {
     const [products] = await db.query(`
@@ -118,6 +162,10 @@ exports.getById = async (req, res) => {
       LEFT JOIN users u ON r.user_id = u.id
       WHERE r.product_id = ?
     `, [product.id]);
+    for (const r of reviews) {
+      const [imgs] = await db.query('SELECT image_url FROM review_images WHERE review_id = ? ORDER BY id', [r.id]);
+      r.images = (imgs || []).map((i) => i.image_url);
+    }
     product.reviews = reviews;
 
     res.json(product);

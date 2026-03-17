@@ -334,6 +334,17 @@ const initDb = async () => {
       saveDb();
     }
   } catch (e) {}
+  // Migration: review_images (صور المراجعات)
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS review_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      review_id INTEGER NOT NULL,
+      image_url TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+    )`);
+    saveDb();
+  } catch (e) {}
   // Migration: web_settings (إعدادات الموقع الإلكتروني)
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS web_settings (
