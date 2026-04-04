@@ -1,0 +1,49 @@
+.checkout-page {
+  padding: 32px 24px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.checkout-page h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 28px;
+  color: var(--color-charcoal);
+}
+
+.checkout-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.checkout-form input,
+.checkout-form select {
+  padding: 16px 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  background: var(--color-white);
+}
+.checkout-form input:focus,
+.checkout-form select:focus {
+  outline: none;
+  border-color: var(--color-rose);
+  box-shadow: 0 0 0 3px rgba(139, 41, 66, 0.1);
+}
+.checkout-total { font-size: 1.3rem; font-weight: 800; color: var(--color-rose); }
+.checkout-form button {
+  padding: 18px;
+  background: linear-gradient(135deg, var(--color-rose) 0%, var(--color-rose-light) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1.05rem;
+  transition: all var(--transition);
+}
+.checkout-form button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.checkout-form button:disabled { opacity: 0.8; cursor: not-allowed; }

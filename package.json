@@ -1,0 +1,16 @@
+{
+  "name": "rybella-iraq",
+  "version": "1.0.0",
+  "description": "Rybella Iraq - Professional Cosmetics E-commerce Platform",
+  "private": true,
+  "scripts": {
+    "start": "node run.js",
+    "backend": "cd backend && npm start",
+    "backend:dev": "cd backend && npm run dev",
+    "admin": "cd admin-dashboard && npm run dev",
+    "store": "cd storefront && npm run dev",
+    "mobile": "cd mobile-app && npm start",
+    "seed": "cd backend && node ../database/run-seed.js",
+    "setup": "cd backend && npm install && cd ../admin-dashboard && npm install && cd ../mobile-app && npm install"
+  }
+}

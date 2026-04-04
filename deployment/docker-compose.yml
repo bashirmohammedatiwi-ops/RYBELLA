@@ -1,0 +1,70 @@
+# Rybella Iraq - Production Docker Compose
+# Backend (Node.js) + Admin Dashboard (Nginx) + SQLite (file-based, no container)
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: deployment/backend.Dockerfile
+    container_name: rybella-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DB_PATH=/app/data/rybella.db
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - API_URL=${API_URL:-http://localhost}
+      - UPLOAD_PATH=./uploads
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-5242880}
+    volumes:
+      - backend_data:/app/data
+      - backend_uploads:/app/uploads
+    networks:
+      - rybella-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  web:
+    build:
+      context: ..
+      dockerfile: deployment/admin.Dockerfile
+      args:
+        - VITE_API_URL=/api
+    container_name: rybella-web
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-4000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - rybella-network
+
+  webstore:
+    build:
+      context: ..
+      dockerfile: deployment/storefront-premium.Dockerfile
+      args:
+        - VITE_API_URL=
+    container_name: rybella-webstore
+    restart: unless-stopped
+    ports:
+      - "4003:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - rybella-network
+
+volumes:
+  backend_data:
+  backend_uploads:
+
+networks:
+  rybella-network:
+    driver: bridge

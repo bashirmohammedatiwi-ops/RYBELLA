@@ -1,0 +1,237 @@
+/* ═══════════════════════════════════════════════════════════════
+   OfferDetail - صفحة عرض الباكج | العروض الحصرية
+   ═══════════════════════════════════════════════════════════════ */
+
+.offer-detail {
+  min-height: 100vh;
+  padding-bottom: 100px;
+  background: #FAFAFA;
+}
+
+.offer-loading,
+.offer-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+  color: var(--text-muted);
+}
+
+.offer-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--primary-soft);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: offer-spin 0.8s linear infinite;
+}
+
+@keyframes offer-spin {
+  to { transform: rotate(360deg); }
+}
+
+.offer-empty a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ─── Hero ─── */
+.offer-hero {
+  position: relative;
+  aspect-ratio: 16/9;
+  max-height: 320px;
+  overflow: hidden;
+}
+
+.offer-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.offer-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 50%, transparent);
+}
+
+.offer-hero-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 20px;
+  color: #fff;
+}
+
+.offer-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  background: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.offer-hero-content h1 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.offer-discount-label {
+  display: inline-block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #FFE082;
+  margin-bottom: 8px;
+}
+
+.offer-bundle-note {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* ─── Products ─── */
+.offer-products {
+  padding: 24px 16px;
+}
+
+.offer-products h2 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  margin: 0 0 16px;
+  color: var(--text-primary);
+}
+
+.offer-products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.offer-product-card {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s;
+}
+
+.offer-product-card:hover {
+  box-shadow: 0 4px 20px rgba(232,93,122,0.15);
+}
+
+.offer-product-img {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #F5F5F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.offer-product-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.offer-product-img span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.offer-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.offer-product-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+}
+
+.offer-product-brand {
+  font-size: 0.8rem;
+  color: var(--primary);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.offer-product-price {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.offer-product-price .original {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.offer-product-price .discounted {
+  color: var(--primary);
+}
+
+/* ─── Summary ─── */
+.offer-summary {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 20px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+}
+
+.offer-summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.offer-summary-row.highlight {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 1.05rem;
+  margin-bottom: 14px;
+}
+
+.offer-add-bundle {
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.offer-add-bundle:hover:not(:disabled) {
+  opacity: 0.95;
+}
+
+.offer-add-bundle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

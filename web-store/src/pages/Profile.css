@@ -1,0 +1,39 @@
+.profile-page {
+  padding: 32px 24px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.profile-page h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 28px;
+  color: var(--color-charcoal);
+}
+
+.profile-card {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.profile-avatar {
+  width: 96px;
+  height: 96px;
+  background: linear-gradient(135deg, var(--color-rose) 0%, var(--color-rose-light) 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0 auto 20px;
+}
+
+.profile-card h3 { font-size: 1.35rem; margin-bottom: 10px; color: var(--color-charcoal); }
+.profile-card p { color: var(--color-muted); margin-bottom: 6px; }

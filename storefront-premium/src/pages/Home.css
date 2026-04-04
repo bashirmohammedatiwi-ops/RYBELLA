@@ -1,0 +1,1147 @@
+/* ═══════════════════════════════════════════════════════════════
+   Rybella - الواجهة الرئيسية | إعادة بناء كاملة
+   ═══════════════════════════════════════════════════════════════ */
+
+.home {
+  min-height: 100vh;
+  background: #FAFAFA;
+  padding-bottom: 24px;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   1. الشريط العلوي
+   ───────────────────────────────────────────────────────────── */
+.home-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0));
+  padding-left: calc(12px + env(safe-area-inset-left, 0));
+  padding-right: calc(12px + env(safe-area-inset-right, 0));
+  background: #fff;
+  border-bottom: 1px solid #F0F0F0;
+  /* بدون box-shadow لتجنب ظهور ظل فوق البانر عند التداخل */
+}
+
+.home-logo {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+}
+
+.home-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #F5F5F5;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.home-search:focus-within {
+  background: #fff;
+  border-color: rgba(232,93,122,0.3);
+  box-shadow: 0 0 0 3px rgba(232,93,122,0.08);
+}
+
+.home-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-size: 16px; /* يمنع التكبير التلقائي على iOS */
+  font-family: inherit;
+  outline: none;
+}
+
+.home-search input::placeholder {
+  color: #999;
+}
+
+.home-search button {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.home-search button:hover {
+  opacity: 0.9;
+}
+
+.home-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-action-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.home-action-btn:hover {
+  background: rgba(232,93,122,0.1);
+  color: var(--primary);
+}
+
+.home-cart {
+  position: relative;
+}
+
+.home-cart-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   الفئات - تصميم مطوّر
+   ───────────────────────────────────────────────────────────── */
+.home-section-categories {
+  padding: 20px 12px 24px;
+}
+
+.home-categories-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.home-categories-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 0;
+}
+
+.home-categories-all {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 10px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.home-categories-all:hover {
+  color: var(--primary-dark);
+  background: rgba(232, 93, 122, 0.08);
+}
+
+.home-categories {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 8px 4px 12px;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-categories::-webkit-scrollbar {
+  display: none;
+}
+
+.home-category {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  min-width: 70px;
+  scroll-snap-align: center;
+  transition: transform 0.2s;
+}
+
+.home-category:hover {
+  transform: translateY(-2px);
+}
+
+.home-category-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: 2px solid rgba(232, 93, 122, 0.18);
+  color: var(--primary);
+  transition: all 0.25s ease;
+}
+
+.home-category:hover .home-category-icon {
+  box-shadow: 0 6px 20px rgba(232, 93, 122, 0.18);
+  border-color: rgba(232, 93, 122, 0.45);
+}
+
+.home-category-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-category-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  max-width: 70px;
+  line-height: 1.35;
+  transition: color 0.2s;
+}
+
+.home-category:hover .home-category-name {
+  color: var(--primary);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. Hero: بانرات - إعادة بناء كاملة
+   الصورة تخرج من الأعلى فقط، تُقطع عند اليمين واليسار والأسفل
+   ───────────────────────────────────────────────────────────── */
+/* فاصل صغير بين الفئات والبانر */
+.home-hero {
+  margin-bottom: 20px;
+  margin-top: 50px;
+  overflow: visible;
+}
+
+.home-banners-wrapper {
+  position: relative;
+  margin: 0 12px;
+}
+
+.home-banners {
+  position: relative;
+  margin: 0;
+  border-radius: 20px;
+  overflow-x: auto;
+  overflow-y: visible;
+  /* بدون box-shadow لتجنب تغطية الفئات والأيقونات فوق البانر */
+  max-width: 100%;
+  box-sizing: border-box;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* مساحة علوية لخروج الصورة دون قص (overflow-x:auto يجعل overflow-y:auto تلقائياً) */
+  padding-top: 120px;
+  margin-top: -120px;
+}
+
+.home-banners-slider {
+  display: flex;
+  overflow: visible;
+  scroll-snap-type: none;
+}
+
+.home-banners-slider::-webkit-scrollbar {
+  display: none;
+}
+
+/* شريحة البانر - ارتفاع مناسب للهاتف، خصائص من لوحة التحكم */
+.home-banner-slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  width: 100%;
+  min-height: 120px;
+  aspect-ratio: 21/9;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  position: relative;
+  display: block;
+  background: linear-gradient(135deg, #E85D7A 0%, #D14A66 50%, #C94A5A 100%);
+  border-radius: 20px;
+  overflow: visible;
+  border: 2px solid rgba(232, 93, 122, 0.5);
+}
+
+/* حاوية البانر - الصورة تخرج من الأعلى فقط، تُقص من اليمين واليسار */
+.home-banner-clip {
+  position: absolute;
+  inset: 0;
+  top: -120px;
+  height: calc(100% + 120px);
+  border-radius: inherit;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+/* طبقة الخلفية - داخل البانر فقط، لا تمتد للأعلى (لتجنب تغطية الفئات) */
+.home-banner-bg {
+  position: absolute;
+  top: 120px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.home-banner-bg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+
+/* صورة المنتج/الشخص - مثل الأدمن: مُثبتة من الأسفل، تخرج للأعلى خارج المستطيل الوردي */
+.home-banner-figure {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  /* الصورة أطول من البانر لتخرج من الأعلى */
+}
+
+.home-banner-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: clamp(320px, 55vh, 480px);
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+/* طبقة المحتوى (النص والزر) - النص على اليسار مثل الصورة المرجعية */
+.home-banner-content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 14px 16px;
+  pointer-events: none;
+}
+[dir="rtl"] .home-banner-content {
+  justify-content: flex-end; /* في RTL: اليسار = flex-end */
+}
+
+.home-banner-content > * {
+  pointer-events: auto;
+}
+
+/* النص على اليسار */
+.home-banner-content-text-left {
+  justify-content: flex-end;
+}
+
+.home-banner-text {
+  max-width: 55%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.home-banner-offer {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.home-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.98);
+  line-height: 1.3;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.home-banner-content-dark .home-banner-title {
+  color: #1A1A1A;
+  text-shadow: none;
+}
+
+.home-banner-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.95);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.home-banner-content-dark .home-banner-subtitle {
+  color: #4A4A4A;
+  text-shadow: none;
+}
+
+.home-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 18px;
+  background: #1A1A1A;
+  border: none;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+/* شارة الخصم - دائرية مثل الصورة المرجعية */
+.home-banner-discount-badge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E85D7A 0%, #F08FA6 100%);
+  border: 2px dashed rgba(255,255,255,0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(232,93,122,0.4);
+}
+
+.home-banner-discount-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1;
+}
+
+.home-banner-discount-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.home-banner-btn svg {
+  flex-shrink: 0;
+}
+
+[dir="rtl"] .home-banner-btn svg {
+  transform: scaleX(-1);
+}
+
+/* نقاط التنقل */
+.home-banners-pagination {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.home-banners-pagination .home-banners-dot {
+  pointer-events: auto;
+}
+
+.home-banners-dot {
+  width: 4px;
+  height: 4px;
+  padding: 6px;
+  margin: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 4px;
+  min-height: 4px;
+  box-sizing: content-box;
+}
+
+.home-banners-dot:hover {
+  background: rgba(255,255,255,0.8);
+}
+
+.home-banners-dot.active {
+  background: #fff;
+  width: 4px;
+  min-width: 4px;
+  padding: 6px;
+}
+
+/* البانرات والعروض - هواتف */
+@media (max-width: 640px) {
+  .home-banner-slide {
+    min-height: 110px;
+    aspect-ratio: 20/9;
+    max-height: 180px;
+  }
+
+  .home-offer-slide {
+    min-height: 110px;
+    aspect-ratio: 20/9;
+    max-height: 180px;
+  }
+
+  .home-banner-clip {
+    top: -100px;
+    height: calc(100% + 100px);
+  }
+
+  .home-banner-bg {
+    top: 100px;
+  }
+
+  .home-banner-figure img {
+    max-height: clamp(300px, 48vh, 380px);
+  }
+}
+
+@media (max-width: 380px) {
+  .home-category-icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .home-category {
+    min-width: 58px;
+  }
+
+  .home-category-name {
+    font-size: 0.7rem;
+    max-width: 56px;
+  }
+
+  .home-banners {
+    margin: 0 10px;
+    border-radius: 16px;
+  }
+
+  .home-offers-wrapper {
+    margin: 0 10px;
+  }
+
+  .home-offers-slider {
+    border-radius: 16px;
+    border: 1px solid rgba(232, 93, 122, 0.35);
+  }
+
+  .home-offer-slide {
+    min-height: 100px;
+    aspect-ratio: 2/1;
+    max-height: 160px;
+    border-radius: 16px;
+  }
+
+  .home-banner-slide {
+    min-height: 100px;
+    aspect-ratio: 2/1;
+    max-height: 160px;
+    border-radius: 16px;
+  }
+
+  .home-banner-clip {
+    top: -80px;
+    height: calc(100% + 80px);
+  }
+
+  .home-banner-bg {
+    top: 80px;
+  }
+
+  .home-banner-content {
+    padding: 10px 12px;
+  }
+
+  .home-banner-offer {
+    font-size: 1.2rem;
+  }
+
+  .home-banner-figure img {
+    max-height: clamp(260px, 45vh, 340px);
+  }
+}
+
+/* البانرات - شاشات كبيرة */
+@media (min-width: 640px) {
+  .home-banners {
+    margin: 0 20px;
+    border-radius: 24px;
+  }
+
+  .home-banner-slide {
+    aspect-ratio: 22/9;
+    min-height: 170px;
+  }
+
+  .home-banner-clip {
+    top: -150px;
+    height: calc(100% + 150px);
+  }
+
+  .home-banner-bg {
+    top: 150px;
+  }
+
+  .home-banner-figure img {
+    max-height: clamp(450px, 58vh, 650px);
+  }
+
+  .home-banner-content {
+    padding: 28px 32px;
+  }
+
+  .home-banner-offer {
+    font-size: 2rem;
+  }
+
+  .home-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .home-banner-text {
+    max-width: 50%;
+  }
+
+  .home-banners-pagination {
+    bottom: 16px;
+  }
+}
+
+/* البانرات - شاشات كبيرة جداً */
+@media (min-width: 1024px) {
+  .home-banner-figure img {
+    max-height: clamp(550px, 65vh, 800px);
+  }
+}
+
+@media (min-width: 1280px) {
+  .home-banner-figure img {
+    max-height: clamp(600px, 70vh, 900px);
+  }
+}
+
+.home-hero-welcome {
+  padding: 48px 24px;
+  text-align: center;
+  background: linear-gradient(160deg, #FFF5F7 0%, #FFEEF2 50%, #FFF8F9 100%);
+}
+
+.home-hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 8vw, 3rem);
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 0 0 8px;
+}
+
+.home-hero-subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3. الأقسام العامة
+   ───────────────────────────────────────────────────────────── */
+.home-section {
+  padding: 0 12px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.home-section-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin: 0;
+}
+
+.home-section-desc {
+  font-size: 0.85rem;
+  color: #888;
+  margin: 4px 0 0;
+}
+
+.home-section-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+}
+
+.home-section-link:hover {
+  color: var(--primary-dark);
+}
+
+.home-section-link::before {
+  content: '←';
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   5. الفئات الثانوية
+   ───────────────────────────────────────────────────────────── */
+.home-subcategories {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: none;
+}
+
+.home-subcategories::-webkit-scrollbar {
+  display: none;
+}
+
+.home-subcategory {
+  flex: 0 0 100px;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transition: all 0.25s;
+}
+
+.home-subcategory:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(232,93,122,0.15);
+}
+
+.home-subcategory-image {
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #F8F8F8;
+}
+
+.home-subcategory-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.home-subcategory:hover .home-subcategory-image img {
+  transform: scale(1.05);
+}
+
+.home-subcategory-image span {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--primary);
+  opacity: 0.6;
+}
+
+.home-subcategory > span {
+  padding: 12px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. العروض الحصرية - نفس تصميم وحجم البانرات
+   ───────────────────────────────────────────────────────────── */
+.home-section-offers {
+  padding: 20px 0;
+}
+
+.home-offers-header {
+  margin-bottom: 14px;
+  padding: 0 12px;
+}
+
+.home-offers-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin: 0;
+}
+
+.home-offers-wrapper {
+  position: relative;
+  margin: 0 12px;
+}
+
+.home-offers-slider {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border-radius: 20px;
+  border: 1px solid rgba(232, 93, 122, 0.35);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.home-offers-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.home-offers-slider-track {
+  display: flex;
+  overflow: visible;
+}
+
+.home-offer-slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  width: 100%;
+  min-height: 120px;
+  aspect-ratio: 21/9;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  position: relative;
+  display: block;
+  text-decoration: none;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.home-offer-slide-bg {
+  position: absolute;
+  inset: 0;
+}
+
+.home-offer-slide-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.home-offer-slide:hover .home-offer-slide-bg img {
+  transform: scale(1.04);
+}
+
+.home-offer-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #E85D7A 0%, #D14A66 50%, #C94A5A 100%);
+}
+
+.home-offer-slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.home-offer-slide-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 14px 18px;
+}
+
+.home-offer-slide-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  line-height: 1.3;
+}
+
+.home-offers-pagination {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.home-offers-pagination .home-offers-dot {
+  pointer-events: auto;
+}
+
+.home-offers-dot {
+  width: 4px;
+  height: 4px;
+  padding: 6px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.home-offers-dot:hover {
+  background: rgba(255,255,255,0.8);
+}
+
+.home-offers-dot.active {
+  background: #fff;
+  width: 4px;
+  min-width: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   7. المنتجات
+   ───────────────────────────────────────────────────────────── */
+.home-products {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.home-products .premium-product-card-wrap {
+  min-width: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   8. الماركات
+   ───────────────────────────────────────────────────────────── */
+.home-brands {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: none;
+}
+
+.home-brands::-webkit-scrollbar {
+  display: none;
+}
+
+.home-brand {
+  flex: 0 0 76px;
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  transition: all 0.25s;
+}
+
+.home-brand:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(232,93,122,0.2);
+}
+
+.home-brand img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   استجابة الشاشات الكبيرة
+   ───────────────────────────────────────────────────────────── */
+@media (min-width: 640px) {
+  .home-header {
+    gap: 12px;
+    padding: 12px 20px;
+  }
+
+  .home-logo {
+    font-size: 1.4rem;
+  }
+
+  .home-search {
+    padding: 10px 14px;
+  }
+
+  .home-section {
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 32px;
+  }
+
+  .home-section-title {
+    font-size: 1.25rem;
+  }
+
+  .home-category-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .home-category-name {
+    font-size: 0.8rem;
+    max-width: 72px;
+  }
+
+  .home-subcategory {
+    flex: 0 0 100px;
+  }
+
+  .home-brand {
+    flex: 0 0 76px;
+    width: 76px;
+    height: 76px;
+    font-size: 1.4rem;
+  }
+
+  .home-section-offers {
+    padding: 24px 0;
+  }
+
+  .home-offers-header {
+    padding: 0 20px;
+  }
+
+  .home-offers-title {
+    font-size: 1.5rem;
+  }
+
+  .home-offers-wrapper {
+    margin: 0 20px;
+  }
+
+  .home-offers-slider {
+    border-radius: 24px;
+  }
+
+  .home-offer-slide {
+    aspect-ratio: 22/9;
+    min-height: 170px;
+    border-radius: 24px;
+  }
+
+  .home-offers-pagination {
+    bottom: 16px;
+  }
+
+  .home-products {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .home-section {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .home-categories {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+    overflow-x: visible;
+    padding: 8px 0 12px;
+  }
+
+  .home-category {
+    min-width: 76px;
+  }
+
+  .home-category-icon {
+    width: 68px;
+    height: 68px;
+  }
+
+  .home-category-name {
+    font-size: 0.82rem;
+    max-width: 80px;
+  }
+
+  .home-categories-title {
+    font-size: 1.35rem;
+  }
+
+  .home-subcategories {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .home-subcategory {
+    flex: 0 0 calc(20% - 16px);
+  }
+}

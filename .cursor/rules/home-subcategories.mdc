@@ -1,0 +1,12 @@
+﻿---
+description: قواعد قسم الفئات الثانوية
+globs: rybella_flutter/lib/screens/home_screen.dart, rybella_flutter/lib/widgets/home_subcategories_section.dart
+alwaysApply: false
+---
+
+# قسم الفئات الثانوية
+
+- القسم في home_subcategories_section.dart
+- في home_screen استخدم HomeSubcategoriesSection فقط
+- زر الكل: context.push('/subcategories')
+- ارتفاع: 118, padding: 6, صورة: 56x56

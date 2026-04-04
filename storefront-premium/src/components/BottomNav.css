@@ -1,0 +1,148 @@
+/* شريط التنقل السفلي - مطابق لتطبيق الهاتف */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0 16px 16px;
+  padding-bottom: calc(16px + var(--safe-bottom));
+  z-index: 90;
+}
+
+
+.mobile-bottom-nav-bar {
+  height: 70px;
+  border-radius: 36px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F9 30%, #FFEEF2 70%, #FFF8F9 100%);
+  border: 1px solid rgba(232,93,122,0.08);
+  box-shadow: 0 10px 28px rgba(232,93,122,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+}
+
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 12px 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.mobile-nav-item.active {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.mobile-nav-item .mobile-nav-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-nav-item .mobile-nav-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.mobile-nav-item.active .mobile-nav-icon svg {
+  stroke: var(--primary);
+}
+
+.mobile-nav-cart-slot {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: -20px;
+}
+
+.mobile-nav-cart-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF5F7 100%);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 6px 14px rgba(232,93,122,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.mobile-nav-cart-btn.active {
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light) 100%);
+  box-shadow: 0 6px 16px rgba(232,93,122,0.35);
+}
+
+.mobile-nav-cart-btn .mobile-nav-cart-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-nav-cart-btn .mobile-nav-cart-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.mobile-nav-cart-btn.active .mobile-nav-cart-icon svg {
+  stroke: white;
+}
+
+.mobile-nav-cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  background: var(--primary);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #FFF8F9;
+}
+
+.mobile-nav-cart-badge.active {
+  background: white;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.mobile-nav-cart-slot .mobile-nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.mobile-nav-cart-slot .mobile-nav-label.active {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.mobile-nav-label {
+  font-size: 10px;
+}

@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+.expo/
+*.log
+npm-debug.log*
+
+# Database files (schema/seed are copied explicitly)
+*.db
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Uploads (will be volume in production)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Mobile app (not deployed on VPS)
+mobile-app/
+
+# Docs (optional - remove if needed in image)
+docs/

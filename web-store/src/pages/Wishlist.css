@@ -1,0 +1,25 @@
+.wishlist-page {
+  padding: 32px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.wishlist-page h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 28px;
+  color: var(--color-charcoal);
+}
+
+.wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+@media (min-width: 640px) {
+  .wishlist-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1024px) {
+  .wishlist-grid { grid-template-columns: repeat(4, 1fr); }
+}

@@ -1,0 +1,325 @@
+/* ═══════════════════════════════════════════════════════════════
+   اليوميات - شريط أفقي مثل انستغرام
+   ═══════════════════════════════════════════════════════════════ */
+
+.stories-bar {
+  padding: 12px 0 16px;
+  background: #fff;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.stories-bar-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 0 12px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.stories-bar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.story-circle {
+  flex-shrink: 0;
+  width: 72px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.story-circle-name {
+  font-size: 11px;
+  color: #555;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.story-circle-ring {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, #E85D7A 0%, #F08FA6 50%, #E85D7A 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.3s;
+}
+.story-circle.viewed .story-circle-ring {
+  background: linear-gradient(135deg, #888 0%, #aaa 50%, #888 100%);
+}
+
+.story-circle:hover .story-circle-ring {
+  transform: scale(1.05);
+}
+
+.story-circle-ring img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+.story-circle-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #333;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border: 2px solid #fff;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   نافذة عرض اليومية (full-screen)
+   ───────────────────────────────────────────────────────────── */
+.story-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.97);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  animation: storyViewerFadeIn 0.2s ease;
+}
+.story-viewer-overlay::after {
+  content: 'اسحب للأسفل للإغلاق';
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+@keyframes storyViewerFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.story-viewer {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: 95vh;
+  aspect-ratio: 9/16;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.story-viewer-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+.story-viewer-progress {
+  display: flex;
+  gap: 4px;
+  padding: 12px 12px 8px;
+}
+.story-viewer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 12px;
+  flex-wrap: wrap;
+}
+.story-viewer-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+.story-viewer-header span {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+.story-viewer-timer {
+  margin-inline-start: auto;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.story-viewer-progress-track {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.story-viewer-progress-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+  transition: width 0.1s ease-out;
+  will-change: width;
+}
+
+.story-viewer-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.story-viewer-media {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+.story-viewer-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px 16px 20px;
+  padding: 10px 20px;
+  background: var(--primary, #E85D7A);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 24px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(232, 93, 122, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  z-index: 2;
+}
+.story-viewer-link-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 16px rgba(232, 93, 122, 0.5);
+  color: #fff;
+}
+
+.story-viewer-image-wrap {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-viewer-image-wrap img,
+.story-viewer-image-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: storySlideIn 0.2s ease;
+}
+@keyframes storySlideIn {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+.story-viewer-nav {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.story-viewer-prev {
+  left: 0;
+}
+
+.story-viewer-next {
+  right: 0;
+}
+
+.story-viewer-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  z-index: 3;
+  transition: background 0.2s;
+}
+
+.story-viewer-close:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.story-viewer-paused {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 14px;
+  border-radius: 20px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.story-swipe-up-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  margin-bottom: 4px;
+  animation: storySwipeHint 2s ease-in-out infinite;
+}
+.story-swipe-up-hint svg {
+  opacity: 0.9;
+}
+@keyframes storySwipeHint {
+  0%, 100% { transform: translateY(0); opacity: 0.9; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* دعم السحب (سوايب) مثل انستغرام */
+.story-viewer-content {
+  touch-action: pan-y pinch-zoom;
+}
+
+.story-viewer-nav {
+  -webkit-tap-highlight-color: transparent;
+}
