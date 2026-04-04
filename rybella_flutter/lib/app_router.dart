@@ -172,12 +172,15 @@ class _MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).matchedLocation;
+    // إخفاء الشريط في تفاصيل الطلب فقط (/orders/:id) وليس في قائمة طلباتي (/orders أو /orders/)
+    final isOrderDetail =
+        path.startsWith('/orders/') && path.length > '/orders/'.length;
     final hideNav = path.startsWith('/products') ||
         path.startsWith('/offers/') ||
         path.startsWith('/checkout') ||
         path.startsWith('/login') ||
         path.startsWith('/register') ||
-        path.startsWith('/orders/');
+        isOrderDetail;
 
     return Scaffold(
       extendBody: true,

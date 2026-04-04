@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
-import '../providers/wishlist_provider.dart';
-
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -86,9 +84,9 @@ class ProfileScreen extends StatelessWidget {
             textColor: AppTheme.error,
             onTap: () async {
               await auth.logout();
-              if (context.mounted) {
-                context.go('/');
-              }
+              if (!context.mounted) return;
+              await context.read<CartProvider>().loadCart();
+              if (context.mounted) context.go('/');
             },
           ),
         ],

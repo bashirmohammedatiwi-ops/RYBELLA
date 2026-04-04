@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/cart_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -35,7 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
         );
     setState(() => _loading = false);
     if (ok && mounted) {
-      context.go('/');
+      await context.read<CartProvider>().mergeGuestCartAfterLogin();
+      if (mounted) context.go('/');
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('البريد أو كلمة المرور غير صحيحة')),

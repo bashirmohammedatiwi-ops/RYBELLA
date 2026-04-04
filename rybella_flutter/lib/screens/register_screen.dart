@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/cart_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -40,7 +40,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     setState(() => _loading = false);
     if (err == null && mounted) {
-      context.go('/');
+      await context.read<CartProvider>().mergeGuestCartAfterLogin();
+      if (mounted) context.go('/');
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err ?? 'حدث خطأ')));
     }

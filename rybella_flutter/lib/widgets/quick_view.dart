@@ -181,7 +181,16 @@ class _QuickViewSheetState extends State<QuickViewSheet> {
                                             final v = _product!.variants
                                                 .firstWhere((x) => x.stock > 0, orElse: () => _product!.variants.first);
                                             if (v.stock > 0) {
-                                              await context.read<CartProvider>().addItem(v.id, 1);
+                                              final pr = _product!;
+                                              await context.read<CartProvider>().addItem(
+                                                v.id,
+                                                1,
+                                                productName: pr.name,
+                                                shadeName: v.shadeName,
+                                                unitPrice: v.price,
+                                                variantImage: v.image,
+                                                productImage: pr.mainImage,
+                                              );
                                               if (mounted) {
                                                 HapticFeedback.mediumImpact();
                                                 widget.onClose();
