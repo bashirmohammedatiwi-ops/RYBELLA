@@ -9,9 +9,14 @@ import 'providers/cart_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'providers/recently_viewed_provider.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // هاتف + تابلت: عمودي وأفقي للاستفادة من العرض على اللوحي
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
   runApp(const RybellaApp());
 }
 
@@ -38,7 +43,7 @@ class _AppWithAuthSync extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Rybella',
+      title: 'Rybella Iraq',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme.copyWith(
         textTheme: GoogleFonts.tajawalTextTheme(AppTheme.lightTheme.textTheme).copyWith(

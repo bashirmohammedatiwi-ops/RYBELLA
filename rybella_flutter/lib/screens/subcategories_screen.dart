@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
 import '../core/config.dart';
 import '../models/category.dart';
@@ -68,13 +69,18 @@ class _SubcategoriesScreenState extends State<SubcategoriesScreen> {
                     )
                   else
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                      padding: EdgeInsets.fromLTRB(
+                        Responsive.pagePaddingH(context),
+                        0,
+                        Responsive.pagePaddingH(context),
+                        100,
+                      ),
                       sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: Responsive.categoryGridColumns(context),
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
-                          childAspectRatio: 0.82,
+                          childAspectRatio: Responsive.categoryChildAspectRatio(context),
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (_, i) {

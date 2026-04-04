@@ -10,6 +10,7 @@ import 'package:shimmer/shimmer.dart';
 
 import '../core/app_animations.dart';
 import '../core/config.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
 import '../models/product.dart';
 import '../providers/auth_provider.dart';
@@ -240,10 +241,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return Scaffold(
       extendBody: true,
-      body: Stack(
-        children: [
-          _PdBackground(
-            child: CustomScrollView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: Responsive.maxContentWidth(context),
+          ),
+          child: Stack(
+            children: [
+              _PdBackground(
+                child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(child: SizedBox(height: topPad + 8)),
@@ -319,6 +325,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ),
         ],
+          ),
+        ),
       ),
       bottomNavigationBar: _PdCheckoutBar(
         inStock: inStock,

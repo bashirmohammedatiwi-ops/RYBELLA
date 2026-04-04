@@ -6,7 +6,6 @@ import '../models/category.dart';
 import 'app_image.dart';
 
 /// قسم الفئات الثانوية في الصفحة الرئيسية.
-/// يحتوي على الإصلاحات: overflow + زر الكل يفتح /subcategories
 class HomeSubcategoriesSection extends StatelessWidget {
   final List<Subcategory> subcategories;
   final String Function(String?) imageUrl;
@@ -27,7 +26,7 @@ class HomeSubcategoriesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 20, 16, 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -35,7 +34,7 @@ class HomeSubcategoriesSection extends StatelessWidget {
               Text(
                 'تسوقي حسب النوع',
                 style: GoogleFonts.cormorantGaramond(
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textPrimary,
                 ),
@@ -44,18 +43,18 @@ class HomeSubcategoriesSection extends StatelessWidget {
                 onPressed: () => context.push('/subcategories'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
-                child: const Text('الكل'),
+                child: const Text('الكل', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               ),
             ],
           ),
         ),
         SizedBox(
-          height: 130,
+          height: 118,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             itemCount: subcategories.take(10).length,
             itemBuilder: (_, i) {
               final sc = subcategories[i];
@@ -68,39 +67,40 @@ class HomeSubcategoriesSection extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 54,
-                        height: 54,
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.border),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primary.withOpacity(0.06),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
+                              color: AppTheme.primary.withOpacity(0.08),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(15),
                           child: sc.image != null
                               ? AppImage(url: imageUrl(sc.image), fit: BoxFit.cover)
                               : const Center(
-                                  child: Text('✦', style: TextStyle(fontSize: 18, color: AppTheme.primary)),
+                                  child: Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
                                 ),
                         ),
                       ),
                       const SizedBox(height: 3),
                       SizedBox(
-                        width: 60,
+                        width: 64,
                         child: Text(
                           sc.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
                             color: AppTheme.textSecondary,
                           ),
                         ),

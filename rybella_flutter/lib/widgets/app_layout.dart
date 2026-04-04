@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
 import '../services/api_service.dart';
 
@@ -33,7 +34,16 @@ class _AppLayoutState extends State<AppLayout> {
     return Column(
       children: [
         if (_showAnnouncement) _buildAnnouncement(),
-        Expanded(child: widget.child),
+        Expanded(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: Responsive.maxContentWidth(context),
+              ),
+              child: widget.child,
+            ),
+          ),
+        ),
       ],
     );
   }

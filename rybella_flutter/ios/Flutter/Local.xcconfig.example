@@ -1,0 +1,3 @@
+// Copy to Local.xcconfig (gitignored) and set DEVELOPMENT_TEAM to your 10-char Team ID.
+// Xcode: Settings > Accounts > team > Team ID, or developer.apple.com > Membership.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID

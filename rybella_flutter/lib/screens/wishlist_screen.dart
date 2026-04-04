@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
 import '../models/product.dart';
 import '../providers/auth_provider.dart';
@@ -87,12 +88,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
+                    padding: EdgeInsets.all(Responsive.pagePaddingH(context)),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: Responsive.productGridColumns(context),
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 0.65,
+                      childAspectRatio: Responsive.productChildAspectRatio(context),
                     ),
                     itemCount: _products.length,
                     itemBuilder: (_, i) {
