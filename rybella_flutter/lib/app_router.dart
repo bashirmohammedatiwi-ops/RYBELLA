@@ -80,6 +80,7 @@ GoRouter createAppRouter() {
                   minPrice: minP,
                   maxPrice: maxP,
                   featured: q['featured'] == '1',
+                  sortBy: q['sort_by'] ?? q['sort'],
                 ),
               );
             },

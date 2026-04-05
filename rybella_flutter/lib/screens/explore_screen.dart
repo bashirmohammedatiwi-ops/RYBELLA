@@ -50,6 +50,8 @@ class ExploreScreen extends StatefulWidget {
   final double? minPrice;
   final double? maxPrice;
   final bool featured;
+  /// يُمرَّر من عنوان URL (?sort_by=) للمزامنة مع الفلتر من الصفحة الرئيسية.
+  final String? sortBy;
 
   const ExploreScreen({
     super.key,
@@ -62,6 +64,7 @@ class ExploreScreen extends StatefulWidget {
     this.minPrice,
     this.maxPrice,
     this.featured = false,
+    this.sortBy,
   });
 
   @override
@@ -100,6 +103,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void initState() {
     super.initState();
     _searchController.text = widget.search ?? '';
+    _sortBy = widget.sortBy ?? '';
     _exploreScrollController.addListener(_syncSidebarFadeFromScroll);
     _loadFilters();
     _loadProducts();
@@ -156,7 +160,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
         oldWidget.colorCode != widget.colorCode ||
         oldWidget.minPrice != widget.minPrice ||
         oldWidget.maxPrice != widget.maxPrice ||
-        oldWidget.featured != widget.featured) {
+        oldWidget.featured != widget.featured ||
+        oldWidget.sortBy != widget.sortBy) {
+      if (oldWidget.sortBy != widget.sortBy) {
+        _sortBy = widget.sortBy ?? '';
+      }
       _loadProducts();
     }
   }
@@ -203,6 +211,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       if (widget.colorCode != null) 'color': widget.colorCode!,
       if (widget.minPrice != null) 'min_price': widget.minPrice.toString(),
       if (widget.maxPrice != null) 'max_price': widget.maxPrice.toString(),
+      if (widget.featured) 'featured': '1',
+      if (widget.sortBy != null && widget.sortBy!.isNotEmpty)
+        'sort_by': widget.sortBy!,
     };
     overrides?.forEach((k, v) {
       if (v.isEmpty) {
