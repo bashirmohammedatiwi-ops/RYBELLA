@@ -1,131 +1,126 @@
 import { Link } from 'react-router-dom'
 import { IMG_BASE } from '../services/api'
-import './HomeCategoriesSection.css'
 
-function getCategoryCover(c) {
-  if (c.image) return `${IMG_BASE}${c.image}`
-  const iconIsImage = c.icon && (c.icon.startsWith('/') || c.icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp)$/i.test(c.icon))
-  if (iconIsImage) return `${IMG_BASE}${c.icon}`
-  return null
+const ICON_SVG = {
+  'face-woman-outline': (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+      <line x1="9" y1="9" x2="9.01" y2="9" />
+      <line x1="15" y1="9" x2="15.01" y2="9" />
+    </svg>
+  ),
+  'eye-outline': (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ),
+  lipstick: (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path d="M9 22c-2 0-3-1-3-2 0-1 1-2 3-2s3 1 3 2c0 1-1 2-3 2z" />
+      <path d="M9 18c-2 0-3-1-3-2V4c0-1 1-2 3-2s3 1 3 2v12c0 1-1 2-3 2z" />
+    </svg>
+  ),
+  brush: (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path d="M9.06 11.9L2 19l2.5-2.5 5.06-5.06" />
+      <path d="M12 8l4-4 4 4-4 4" />
+    </svg>
+  ),
+  'tag-outline': (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+    </svg>
+  ),
+  'view-grid-outline': (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  ),
 }
 
-function CategoryTile({ category }) {
-  const cover = getCategoryCover(category)
-  const overlay = category.overlay_text?.trim()
+const RING_COLORS = [
+  '#E85D7A',
+  '#A878FF',
+  '#FF9862',
+  '#58A6FF',
+  '#4CAF78',
+  '#FFC148',
+]
 
-  return (
-    <Link
-      to={`/explore?category=${category.id}`}
-      className={`home-cats-tile${cover ? '' : ' home-cats-tile--plain'}`}
-    >
-      <div className="home-cats-tile-media">
-        {cover ? (
-          <img src={cover} alt="" className="home-cats-tile-img" loading="lazy" />
-        ) : (
-          <div className="home-cats-tile-fallback" aria-hidden="true">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21l2.3-7-6-4.6h7.6L12 2z" />
-            </svg>
-          </div>
-        )}
-        <div className="home-cats-tile-shine" aria-hidden="true" />
-        <div className="home-cats-tile-gradient" aria-hidden="true" />
-      </div>
-      {overlay && <span className="home-cats-tile-badge">{overlay}</span>}
-      <div className="home-cats-tile-footer">
-        <span className="home-cats-tile-name">{category.name}</span>
-        <span className="home-cats-tile-arrow" aria-hidden="true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </span>
-      </div>
-    </Link>
-  )
+function isIconImage(icon) {
+  if (!icon || typeof icon !== 'string') return false
+  return icon.startsWith('/') || icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(icon)
 }
 
-function CategoryChip({ category }) {
-  const cover = getCategoryCover(category)
-  return (
-    <Link to={`/explore?category=${category.id}`} className="home-cats-chip">
-      <span className="home-cats-chip-thumb">
-        {cover ? (
-          <img src={cover} alt="" loading="lazy" />
-        ) : (
-          <span>{(category.name || '?').charAt(0)}</span>
-        )}
-      </span>
-      <span className="home-cats-chip-label">{category.name}</span>
-    </Link>
-  )
+function getCategoryIconUrl(category) {
+  const icon = category?.icon
+  if (!isIconImage(icon)) return null
+  if (icon.startsWith('http')) return icon
+  return `${IMG_BASE}${icon}`
+}
+
+function getNamedIcon(category) {
+  const icon = category?.icon?.trim()
+  if (!icon || isIconImage(icon)) return null
+  return ICON_SVG[icon] || ICON_SVG['tag-outline']
 }
 
 export default function HomeCategoriesSection({ categories = [] }) {
   if (!categories.length) return null
 
-  const gridCats = categories.slice(0, 4)
-  const extraCats = categories.slice(4)
-  const moreCount = extraCats.length
+  const visible = categories.slice(0, 14)
+  const extra = categories.length - visible.length
 
   return (
-    <section className="home-cats" aria-label="الفئات الرئيسية">
-      <div className="home-cats-shell">
-        <div className="home-cats-glow home-cats-glow--a" aria-hidden="true" />
-        <div className="home-cats-glow home-cats-glow--b" aria-hidden="true" />
-
-        <header className="home-cats-head">
-          <div>
-            <h2 className="home-cats-title">الفئات الرئيسية</h2>
-            <span className="home-cats-accent" aria-hidden="true" />
-            <p className="home-cats-desc">
-              {moreCount > 0
-                ? `أربع فئات في الشبكة — و${moreCount} قسم إضافي`
-                : 'اختاري قسمك من الشبكة أدناه'}
-            </p>
-          </div>
-        </header>
-
-        <Link to="/categories" className="home-cats-all-row">
-          <span className="home-cats-all-icon" aria-hidden="true">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" />
-              <rect x="14" y="3" width="7" height="7" rx="1.5" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" />
-              <rect x="14" y="14" width="7" height="7" rx="1.5" />
-            </svg>
-          </span>
-          <span className="home-cats-all-label">كل الفئات</span>
-          <span className="home-cats-all-arrow" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </span>
-        </Link>
-
-        <div className={`home-cats-grid home-cats-grid--${Math.min(gridCats.length, 4)}`}>
-          {gridCats.map((c) => (
-            <CategoryTile key={c.id} category={c} />
-          ))}
-        </div>
-
-        {moreCount > 0 && (
-          <div className="home-cats-more">
-            <p className="home-cats-more-label">أقسام أخرى</p>
-            <div className="home-cats-more-track">
-              {extraCats.map((c) => (
-                <CategoryChip key={c.id} category={c} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <Link to="/categories" className="home-cats-see-all">
-          عرض الكل
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </Link>
+    <div className="home-top-cats">
+      <div className="home-top-cats-head">
+        <h2 className="home-top-cats-title">الفئات</h2>
+        <Link to="/categories" className="home-top-cats-all">الكل</Link>
       </div>
-    </section>
+
+      <div className="home-top-cats-scroll">
+        {visible.map((c, i) => {
+          const iconUrl = getCategoryIconUrl(c)
+          const namedIcon = getNamedIcon(c)
+          const ring = RING_COLORS[i % RING_COLORS.length]
+
+          return (
+            <Link
+              key={c.id}
+              to={`/explore?category=${c.id}`}
+              className="home-top-cat"
+              style={{ '--cat-ring': ring }}
+            >
+              <span className="home-top-cat-ring">
+                <span className="home-top-cat-icon">
+                  {iconUrl ? (
+                    <img src={iconUrl} alt="" loading="lazy" />
+                  ) : (
+                    namedIcon
+                  )}
+                </span>
+              </span>
+              <span className="home-top-cat-name">{c.name}</span>
+            </Link>
+          )
+        })}
+
+        {extra > 0 && (
+          <Link to="/categories" className="home-top-cat home-top-cat-more">
+            <span className="home-top-cat-ring">
+              <span className="home-top-cat-icon home-top-cat-icon-more">
+                +{extra}
+              </span>
+            </span>
+            <span className="home-top-cat-name">المزيد</span>
+          </Link>
+        )}
+      </div>
+    </div>
   )
 }
