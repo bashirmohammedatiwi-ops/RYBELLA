@@ -80,7 +80,7 @@ export default function HomeCategoriesSection({ categories = [] }) {
         <Link to="/categories" className="home-top-cats-all">الكل</Link>
       </div>
 
-      <div className="home-top-cats-grid">
+      <div className="home-top-cats-row">
         {categories.map((c, i) => {
           const iconUrl = getCategoryIconUrl(c)
           const namedIcon = getNamedIcon(c)
