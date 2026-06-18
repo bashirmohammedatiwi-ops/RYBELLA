@@ -73,9 +73,6 @@ function getNamedIcon(category) {
 export default function HomeCategoriesSection({ categories = [] }) {
   if (!categories.length) return null
 
-  const visible = categories.slice(0, 14)
-  const extra = categories.length - visible.length
-
   return (
     <div className="home-top-cats">
       <div className="home-top-cats-head">
@@ -83,8 +80,8 @@ export default function HomeCategoriesSection({ categories = [] }) {
         <Link to="/categories" className="home-top-cats-all">الكل</Link>
       </div>
 
-      <div className="home-top-cats-scroll">
-        {visible.map((c, i) => {
+      <div className="home-top-cats-grid">
+        {categories.map((c, i) => {
           const iconUrl = getCategoryIconUrl(c)
           const namedIcon = getNamedIcon(c)
           const ring = RING_COLORS[i % RING_COLORS.length]
@@ -96,7 +93,7 @@ export default function HomeCategoriesSection({ categories = [] }) {
               className="home-top-cat"
               style={{ '--cat-ring': ring }}
             >
-              <span className="home-top-cat-ring">
+              <span className="home-top-cat-box">
                 <span className="home-top-cat-icon">
                   {iconUrl ? (
                     <img src={iconUrl} alt="" loading="lazy" />
@@ -109,17 +106,6 @@ export default function HomeCategoriesSection({ categories = [] }) {
             </Link>
           )
         })}
-
-        {extra > 0 && (
-          <Link to="/categories" className="home-top-cat home-top-cat-more">
-            <span className="home-top-cat-ring">
-              <span className="home-top-cat-icon home-top-cat-icon-more">
-                +{extra}
-              </span>
-            </span>
-            <span className="home-top-cat-name">المزيد</span>
-          </Link>
-        )}
       </div>
     </div>
   )
