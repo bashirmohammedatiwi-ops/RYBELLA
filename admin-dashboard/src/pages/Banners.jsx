@@ -177,8 +177,9 @@ export default function Banners() {
               <TableCell>الترتيب</TableCell>
               <TableCell>نشط</TableCell>
               <TableCell align="left">إجراءات</TableCell>
-            </TableHead>
-            <TableBody>
+            </TableRow>
+          </TableHead>
+          <TableBody>
               {banners.map((b) => (
                 <TableRow key={b.id}>
                   <TableCell>
@@ -204,7 +205,7 @@ export default function Banners() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+          </TableBody>
         </Table>
       </TableContainer>
 
