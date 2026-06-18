@@ -93,7 +93,7 @@ export default function HomeCategoriesSection({ categories = [] }) {
               className="home-top-cat"
               style={{ '--cat-ring': ring }}
             >
-              <span className="home-top-cat-box">
+              <span className="home-top-cat-circle">
                 <span className="home-top-cat-icon">
                   {iconUrl ? (
                     <img src={iconUrl} alt="" loading="lazy" />

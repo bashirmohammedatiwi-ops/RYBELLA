@@ -140,23 +140,18 @@ export default function Explore() {
     return () => el.removeEventListener('scroll', syncSidebarFade)
   }, [syncSidebarFade])
 
+  const railFade = sidebarVisible ? sidebarFade : 0
+  const railOpen = sidebarVisible && sidebarFade > 0.05
+
   return (
     <div className="premium-explore">
       <MobileHeader title="المنتجات" showBack />
 
-      <div className="premium-explore-layout">
-        <ExploreCategorySidebar
-          categories={categories}
-          subcategories={subcategories}
-          categoryId={categoryId}
-          subcategoryId={subcategoryId}
-          buildUrl={buildUrl}
-          visible={sidebarVisible}
-          fade={sidebarFade}
-          onCollapse={handleSidebarCollapse}
-          onExpand={handleSidebarExpand}
-        />
-
+      <div
+        className="premium-explore-layout"
+        style={{ '--rail-fade': railFade }}
+        data-rail-open={railOpen ? 'true' : 'false'}
+      >
         <div className="premium-explore-main" ref={mainScrollRef}>
           <div className="premium-explore-main-inner">
             <div className="premium-explore-hero">
@@ -279,6 +274,18 @@ export default function Explore() {
             )}
           </div>
         </div>
+
+        <ExploreCategorySidebar
+          categories={categories}
+          subcategories={subcategories}
+          categoryId={categoryId}
+          subcategoryId={subcategoryId}
+          buildUrl={buildUrl}
+          visible={sidebarVisible}
+          fade={sidebarFade}
+          onCollapse={handleSidebarCollapse}
+          onExpand={handleSidebarExpand}
+        />
       </div>
     </div>
   )
