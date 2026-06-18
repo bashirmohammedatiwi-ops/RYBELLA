@@ -72,6 +72,34 @@ if ! grep -q '^API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
   echo "API_URL=http://187.124.23.65:4000" >> "$ENV_FILE"
 fi
 
+migrate_docker_volumes_if_needed() {
+  # عند تغيير مجلد التشغيل (deployment/ → جذر المشروع) يُنشئ Docker volumes جديدة فارغة.
+  # ننسخ البيانات من الأسماء القديمة إن وُجدت.
+  local pairs=(
+    "deployment_backend_data:rybella_backend_data"
+    "deployment_backend_uploads:rybella_backend_uploads"
+    "rybella_backend_data:rybella_backend_data"
+    "rybella_backend_uploads:rybella_backend_uploads"
+  )
+  for pair in "${pairs[@]}"; do
+    local from="${pair%%:*}"
+    local to="${pair##*:}"
+    [ "$from" = "$to" ] && continue
+    if docker volume inspect "$from" >/dev/null 2>&1; then
+      docker volume create "$to" >/dev/null 2>&1 || true
+      local from_size to_size
+      from_size="$(docker run --rm -v "${from}:/v" alpine sh -c 'du -sb /v 2>/dev/null | cut -f1' 2>/dev/null || echo 0)"
+      to_size="$(docker run --rm -v "${to}:/v" alpine sh -c 'du -sb /v 2>/dev/null | cut -f1' 2>/dev/null || echo 0)"
+      if [ "${from_size:-0}" -gt 4096 ] && [ "${to_size:-0}" -lt "${from_size:-0}" ]; then
+        echo "==> Migrating volume $from → $to (restoring database/uploads)..."
+        docker run --rm -v "${from}:/from" -v "${to}:/to" alpine sh -c 'cp -a /from/. /to/' 2>/dev/null || true
+      fi
+    fi
+  done
+}
+
+migrate_docker_volumes_if_needed
+
 echo "==> Stopping previous containers (if any)..."
 docker compose --env-file "$ENV_FILE" down --remove-orphans 2>/dev/null || true
 for name in rybella-backend rybella-web rybella-webstore; do

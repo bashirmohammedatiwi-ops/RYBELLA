@@ -66,7 +66,9 @@ services:
 
 volumes:
   backend_data:
+    name: rybella_backend_data
   backend_uploads:
+    name: rybella_backend_uploads
 
 networks:
   rybella-network:
