@@ -72,6 +72,12 @@ if ! grep -q '^API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
   echo "API_URL=http://187.124.23.65:4000" >> "$ENV_FILE"
 fi
 
+echo "==> Stopping previous containers (if any)..."
+docker compose --env-file "$ENV_FILE" down --remove-orphans 2>/dev/null || true
+for name in rybella-backend rybella-web rybella-webstore; do
+  docker rm -f "$name" 2>/dev/null || true
+done
+
 echo "==> Building and starting containers..."
 docker compose --env-file "$ENV_FILE" up -d --build "$@"
 
