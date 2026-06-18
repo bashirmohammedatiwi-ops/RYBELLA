@@ -107,6 +107,11 @@ export default function Home() {
     return iconIsImage ? `${IMG_BASE}${c.icon}` : c.image ? `${IMG_BASE}${c.image}` : null
   }
 
+  const getCategoryCover = (c) => {
+    if (c.image) return `${IMG_BASE}${c.image}`
+    return getCatImage(c)
+  }
+
   return (
     <div className="home">
       {/* 1. شريط علوي ثابت */}
@@ -147,28 +152,54 @@ export default function Home() {
       </header>
 
       {/* 1. الفئات */}
-      <section className="home-section home-section-categories">
-        <div className="home-categories-header">
-          <h2 className="home-categories-title">الفئات</h2>
-          <Link to="/categories" className="home-categories-all">الكل</Link>
-        </div>
-        <div className="home-categories">
-          {categories.slice(0, 8).map((c) => (
-            <Link key={c.id} to={`/explore?category=${c.id}`} className="home-category">
-              <span className="home-category-icon">
-                {getCatImage(c) ? (
-                  <img src={getCatImage(c)} alt={c.name} />
-                ) : (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+      {categories.length > 0 && (
+        <section className="home-section-categories">
+          <div className="home-categories-panel">
+            <div className="home-categories-header">
+              <div className="home-categories-heading">
+                <span className="home-categories-badge" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" />
                   </svg>
-                )}
-              </span>
-              <span className="home-category-name">{c.name}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+                </span>
+                <div>
+                  <h2 className="home-categories-title">الفئات</h2>
+                  <p className="home-categories-subtitle">تسوقي حسب اختيارك</p>
+                </div>
+              </div>
+              <Link to="/categories" className="home-categories-all">الكل</Link>
+            </div>
+            <div className="home-categories-track">
+              {categories.slice(0, 10).map((c) => {
+                const cover = getCategoryCover(c)
+                return (
+                  <Link key={c.id} to={`/explore?category=${c.id}`} className={`home-cat-card${cover ? '' : ' home-cat-card--plain'}`}>
+                    {cover ? (
+                      <>
+                        <img src={cover} alt="" className="home-cat-card-img" loading="lazy" />
+                        <div className="home-cat-card-overlay" />
+                      </>
+                    ) : (
+                      <div className="home-cat-card-gradient" aria-hidden="true" />
+                    )}
+                    <div className="home-cat-card-body">
+                      {!cover && (
+                        <span className="home-cat-card-icon" aria-hidden="true">
+                          {(c.name || '?').charAt(0)}
+                        </span>
+                      )}
+                      <span className="home-cat-card-name">{c.name}</span>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* اليوميات - مثل انستغرام */}
       <StoriesBar />
