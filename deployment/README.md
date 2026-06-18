@@ -23,12 +23,22 @@ cd RYBELLA
 cp deployment/.env.example deployment/.env
 nano deployment/.env   # أو استخدم محرر آخر
 
-# 3. تشغيل المشروع (بناء وتشغيل)
-cd deployment
-docker compose up -d --build
+# 3. تشغيل المشروع (بناء وتشغيل) — من جذر المشروع
+./deploy.sh
+
+# أو يدوياً:
+docker compose --env-file deployment/.env up -d --build
 
 # للتشغيل لاحقاً بدون إعادة بناء:
-docker compose up -d
+docker compose --env-file deployment/.env up -d
+```
+
+### تحديث السيرفر (بعد git pull)
+
+```bash
+cd ~/RYBELLA
+git pull origin master
+./deploy.sh
 ```
 
 ---

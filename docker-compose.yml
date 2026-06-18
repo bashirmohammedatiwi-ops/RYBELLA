@@ -1,14 +1,13 @@
 # Rybella Iraq - Production Docker Compose
-# للتشغيل من مجلد deployment:
-#   cd ~/RYBELLA/deployment && docker compose --env-file .env up -d --build
-#
-# مُوصى به (من جذر المشروع):
-#   cd ~/RYBELLA && ./deploy.sh
+# شغّل دائماً من جذر المشروع:
+#   ./deploy.sh
+# أو:
+#   docker compose --env-file deployment/.env up -d --build
 
 services:
   backend:
     build:
-      context: ..
+      context: .
       dockerfile: deployment/backend.Dockerfile
     container_name: rybella-backend
     restart: unless-stopped
@@ -35,7 +34,7 @@ services:
 
   web:
     build:
-      context: ..
+      context: .
       dockerfile: deployment/admin.Dockerfile
       args:
         - VITE_API_URL=/api
@@ -51,7 +50,7 @@ services:
 
   webstore:
     build:
-      context: ..
+      context: .
       dockerfile: deployment/storefront-premium.Dockerfile
       args:
         - VITE_API_URL=

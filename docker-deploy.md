@@ -7,10 +7,10 @@
 ## التشغيل السريع
 
 ```bash
-cd deployment
-cp .env.example .env
-# عدّل .env: JWT_SECRET, API_URL
-docker compose up -d --build
+cd RYBELLA
+cp deployment/.env.example deployment/.env
+# عدّل deployment/.env: JWT_SECRET, API_URL
+./deploy.sh
 ```
 
 **أو على Windows:** انقر مرتين على `deployment/docker-up.bat`
