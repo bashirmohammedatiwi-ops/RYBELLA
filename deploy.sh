@@ -15,13 +15,42 @@ REQUIRED=(
   deployment/nginx-webstore.conf
 )
 
-for f in "${REQUIRED[@]}"; do
-  if [ ! -f "$f" ]; then
-    echo "ERROR: missing $f"
-    echo "Run: git pull origin master && git checkout HEAD -- deployment/"
-    exit 1
+missing_files() {
+  local f
+  for f in "${REQUIRED[@]}"; do
+    [ -f "$f" ] || return 0
+  done
+  return 1
+}
+
+restore_deployment_files() {
+  echo "==> Restoring deployment files from git..."
+  git fetch origin master 2>/dev/null || true
+
+  # إلغاء sparse-checkout إن كان يمنع الملفات
+  if git config --get core.sparseCheckout 2>/dev/null | grep -qi true; then
+    git sparse-checkout disable 2>/dev/null || true
   fi
-done
+
+  git checkout HEAD -- deployment/ 2>/dev/null || true
+  git checkout origin/master -- deployment/ 2>/dev/null || true
+}
+
+if missing_files; then
+  restore_deployment_files
+fi
+
+if missing_files; then
+  echo "ERROR: deployment Docker files still missing after git restore."
+  echo "Files in deployment/:"
+  ls -la deployment/ 2>/dev/null || true
+  echo ""
+  echo "In git tree:"
+  git ls-tree --name-only HEAD deployment/ 2>/dev/null || true
+  echo ""
+  echo "Try: cd ~/RYBELLA && git reset --hard origin/master"
+  exit 1
+fi
 
 ENV_FILE="deployment/.env"
 if [ ! -f "$ENV_FILE" ]; then
