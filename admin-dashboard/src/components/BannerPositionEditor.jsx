@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Box, Typography, Slider } from '@mui/material';
-import { IMG_BASE } from '../services/api';
+import { getImgBase } from '../services/api';
 
 const PREVIEW_WIDTH = 360;
 const PREVIEW_HEIGHT = 140;
@@ -31,7 +31,7 @@ export default function BannerPositionEditor({
     if (!src) return null;
     if (typeof src === 'object' && src instanceof File) return URL.createObjectURL(src);
     if (typeof src === 'string' && (src.startsWith('blob:') || src.startsWith('http') || src.startsWith('data:'))) return src;
-    return `${IMG_BASE}${src}`;
+    return `${getImgBase()}${src}`;
   };
 
   const [bgUrl, setBgUrl] = useState(null);

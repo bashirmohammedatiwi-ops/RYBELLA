@@ -36,7 +36,7 @@ import {
   Search as SearchIcon,
   ZoomIn as ZoomIcon,
 } from '@mui/icons-material';
-import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, IMG_BASE } from '../services/api';
+import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, getImgBase } from '../services/api';
 import SortableTableRow, { DragHandleCell } from '../components/SortableTableRow';
 import ImageDisplay from '../components/ImageDisplay';
 
@@ -457,7 +457,7 @@ export default function Products() {
               >
                 <Box
                   component="img"
-                  src={`${IMG_BASE}${img}`}
+                  src={`${getImgBase()}${img}`}
                   alt={`صورة ${i + 1}`}
                   sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {

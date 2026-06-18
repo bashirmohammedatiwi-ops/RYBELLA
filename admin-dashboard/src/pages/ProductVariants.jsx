@@ -30,7 +30,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { productsAPI, variantsAPI } from '../services/api';
 
-import { IMG_BASE } from '../services/api';
+import { getImgBase } from '../services/api';
 import ImageDisplay from '../components/ImageDisplay';
 
 export default function ProductVariants() {
@@ -220,7 +220,7 @@ export default function ProductVariants() {
                 <Box sx={{ mb: 1 }}>
                   <Box
                     component="img"
-                    src={imageFile ? URL.createObjectURL(imageFile) : `${IMG_BASE}${editingVariant?.image}`}
+                    src={imageFile ? URL.createObjectURL(imageFile) : `${getImgBase()}${editingVariant?.image}`}
                     alt=""
                     sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee' }}
                   />

@@ -19,7 +19,7 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack as BackIcon, Save as SaveIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, variantsAPI, IMG_BASE } from '../services/api';
+import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, variantsAPI, getImgBase } from '../services/api';
 
 const emptyElement = () => ({ barcode: '', color_code: '#000000', shade_name: '', price: '', stock: '', expiration_date: '', imageFile: null });
 
@@ -359,7 +359,7 @@ export default function ProductForm() {
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
                   <Box
                     component="img"
-                    src={mainImage ? URL.createObjectURL(mainImage) : `${IMG_BASE}${existingMainImage}`}
+                    src={mainImage ? URL.createObjectURL(mainImage) : `${getImgBase()}${existingMainImage}`}
                     alt=""
                     sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee' }}
                   />
@@ -382,7 +382,7 @@ export default function ProductForm() {
                       <Box
                         key={`e-${i}`}
                         component="img"
-                        src={`${IMG_BASE}${img}`}
+                        src={`${getImgBase()}${img}`}
                         alt={`صورة ${i + 1}`}
                         sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee' }}
                         onError={(e) => { e.target.style.display = 'none'; }}
@@ -438,7 +438,7 @@ export default function ProductForm() {
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>صورة العنصر:</Typography>
                       <Box
                         component="img"
-                        src={el.imageFile ? URL.createObjectURL(el.imageFile) : `${IMG_BASE}${el.existingImage}`}
+                        src={el.imageFile ? URL.createObjectURL(el.imageFile) : `${getImgBase()}${el.existingImage}`}
                         alt=""
                         sx={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee' }}
                       />

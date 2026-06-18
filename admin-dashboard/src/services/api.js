@@ -1,7 +1,12 @@
 import axios from 'axios';
+import { getDesktopApiUrl, getDesktopImgBase, isDesktopApp } from '../utils/platform';
 
-const getApiUrl = () => {
+export const getApiUrl = () => {
   try {
+    if (isDesktopApp()) {
+      const desktopUrl = getDesktopApiUrl();
+      if (desktopUrl) return desktopUrl;
+    }
     const env = import.meta?.env;
     if (env?.VITE_API_URL) return env.VITE_API_URL;
     if (env?.DEV) return '/api';
@@ -13,9 +18,12 @@ const getApiUrl = () => {
   }
 };
 
-const API_URL = getApiUrl();
-const getImgBase = () => {
+export const getImgBase = () => {
   try {
+    if (isDesktopApp()) {
+      const desktopBase = getDesktopImgBase();
+      if (desktopBase) return desktopBase;
+    }
     const env = import.meta?.env;
     if (env?.DEV) return '';
     if (env?.VITE_API_URL) return env.VITE_API_URL.replace(/\/api\/?$/, '');
@@ -26,6 +34,8 @@ const getImgBase = () => {
     return '';
   }
 };
+
+/** @deprecated use getImgBase() for desktop-compatible URLs */
 export const IMG_BASE = getImgBase();
 
 if (!axios || typeof axios.create !== 'function') {
@@ -33,7 +43,6 @@ if (!axios || typeof axios.create !== 'function') {
 }
 
 const api = axios.create({
-  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -42,6 +51,7 @@ const api = axios.create({
 export { api };
 
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiUrl();
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

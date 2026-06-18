@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
-import { productsAPI, IMG_BASE } from '../services/api';
+import { productsAPI } from '../services/api';
 import ImageDisplay from './ImageDisplay';
 
 /**

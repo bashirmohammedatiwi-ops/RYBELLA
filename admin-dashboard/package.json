@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:desktop": "vite build --mode desktop",
+    "preview": "vite preview",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+    "desktop:build:mac": "tauri build --target aarch64-apple-darwin",
+    "desktop:build:mac-intel": "tauri build --target x86_64-apple-darwin",
+    "desktop:build:win": "tauri build --target x86_64-pc-windows-msvc",
+    "desktop:icon": "tauri icon public/favicon.svg"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
@@ -20,6 +27,7 @@
     "recharts": "^2.10.3"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.2.0",
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.0.8"
   }

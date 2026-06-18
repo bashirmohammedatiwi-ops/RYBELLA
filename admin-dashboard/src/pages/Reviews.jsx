@@ -14,7 +14,7 @@ import {
   Rating,
 } from '@mui/material'
 import { Delete } from '@mui/icons-material'
-import { reviewsAPI, IMG_BASE } from '../services/api'
+import { reviewsAPI, getImgBase } from '../services/api'
 
 export default function Reviews() {
   const [reviews, setReviews] = useState([])
@@ -75,7 +75,7 @@ export default function Reviews() {
                         <Box
                           key={i}
                           component="img"
-                          src={`${IMG_BASE}${img}`}
+                          src={`${getImgBase()}${img}`}
                           alt={`مراجعة ${i + 1}`}
                           sx={{
                             width: 48,
@@ -87,7 +87,7 @@ export default function Reviews() {
                             cursor: 'pointer',
                             '&:hover': { opacity: 0.9 },
                           }}
-                          onClick={() => window.open(`${IMG_BASE}${img}`, '_blank')}
+                          onClick={() => window.open(`${getImgBase()}${img}`, '_blank')}
                         />
                       ))}
                     </Box>

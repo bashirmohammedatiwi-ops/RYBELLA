@@ -8,6 +8,8 @@
     "backend": "cd backend && npm start",
     "backend:dev": "cd backend && npm run dev",
     "admin": "cd admin-dashboard && npm run dev",
+    "admin:desktop": "cd admin-dashboard && npm run desktop:dev",
+    "admin:desktop:build": "cd admin-dashboard && npm run desktop:build",
     "store": "cd storefront && npm run dev",
     "mobile": "cd mobile-app && npm start",
     "seed": "cd backend && node ../database/run-seed.js",

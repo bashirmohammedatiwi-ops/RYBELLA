@@ -20,7 +20,7 @@ import {
   Alert,
 } from '@mui/material'
 import { Add, Edit, Delete } from '@mui/icons-material'
-import { categoriesAPI, IMG_BASE } from '../services/api'
+import { categoriesAPI, getImgBase } from '../services/api'
 import SortableTableRow, { DragHandleCell } from '../components/SortableTableRow'
 import ImageDisplay from '../components/ImageDisplay'
 
@@ -181,7 +181,7 @@ export default function Categories() {
                 {form.icon_image ? (
                   <ImageDisplay src={URL.createObjectURL(form.icon_image)} size="sm" fit="cover" width={48} height={48} />
                 ) : (
-                  <ImageDisplay src={editing?.icon} size="sm" fit="cover" width={48} height={48} baseUrl={IMG_BASE} />
+                  <ImageDisplay src={editing?.icon} size="sm" fit="cover" width={48} height={48} baseUrl={getImgBase()} />
                 )}
                 {form.icon_image && <Button size="small" onClick={() => setForm({ ...form, icon_image: null })} sx={{ mt: 0.5 }}>إزالة</Button>}
               </Box>
@@ -194,7 +194,7 @@ export default function Categories() {
                   src={form.image ? URL.createObjectURL(form.image) : editing?.image}
                   size="lg"
                   fit="cover"
-                  baseUrl={form.image ? '' : IMG_BASE}
+                  baseUrl={form.image ? '' : getImgBase()}
                 />
               )}
               <Button variant="outlined" component="label">

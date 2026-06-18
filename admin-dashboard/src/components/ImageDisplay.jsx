@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, Skeleton } from '@mui/material';
 import { Image as ImageIcon } from '@mui/icons-material';
-import { IMG_BASE } from '../services/api';
+import { getImgBase } from '../services/api';
 
 const sizes = {
   xs: 32,
@@ -28,7 +28,7 @@ export default function ImageDisplay({
   onClick,
   alt = '',
   sx = {},
-  baseUrl = IMG_BASE,
+  baseUrl = getImgBase(),
 }) {
   const [loading, setLoading] = useState(!!src);
   const [error, setError] = useState(false);
