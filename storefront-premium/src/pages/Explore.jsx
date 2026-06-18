@@ -13,7 +13,6 @@ export default function Explore() {
   const [subcategories, setSubcategories] = useState([])
   const [brands, setBrands] = useState([])
   const [filterTags, setFilterTags] = useState([])
-  const [filterColors, setFilterColors] = useState([])
   const [wishlistIds, setWishlistIds] = useState([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('')
@@ -23,7 +22,6 @@ export default function Explore() {
   const subcategoryId = searchParams.get('subcategory')
   const brandId = searchParams.get('brand')
   const tagFilter = searchParams.get('tag')
-  const colorFilter = searchParams.get('color')
   const minPrice = searchParams.get('min_price')
   const maxPrice = searchParams.get('max_price')
   const search = searchParams.get('search')
@@ -35,12 +33,16 @@ export default function Explore() {
 
   useEffect(() => {
     productsAPI.getFilters()
-      .then((r) => {
-        setFilterTags(r?.data?.tags || [])
-        setFilterColors(r?.data?.colors || [])
-      })
+      .then((r) => setFilterTags(r?.data?.tags || []))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!searchParams.has('color')) return
+    const p = new URLSearchParams(searchParams)
+    p.delete('color')
+    setSearchParams(p, { replace: true })
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     setLoading(true)
@@ -49,7 +51,6 @@ export default function Explore() {
     if (subcategoryId) params.subcategory_id = subcategoryId
     if (brandId) params.brand_id = brandId
     if (tagFilter) params.tags = tagFilter
-    if (colorFilter) params.color_code = colorFilter
     if (minPrice) params.min_price = minPrice
     if (maxPrice) params.max_price = maxPrice
     if (search) params.search = search
@@ -60,7 +61,7 @@ export default function Explore() {
       .then((r) => setProducts(r?.data || []))
       .catch(() => setProducts([]))
       .finally(() => setLoading(false))
-  }, [categoryId, subcategoryId, brandId, tagFilter, colorFilter, minPrice, maxPrice, search, featured, sortBy])
+  }, [categoryId, subcategoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
 
   useEffect(() => {
     categoriesAPI.getAll().then((r) => setCategories(r?.data || [])).catch(() => [])
@@ -150,23 +151,6 @@ export default function Explore() {
             ))}
           </div>
         )}
-        {filterColors.length > 0 && (
-          <div className="premium-filter-block">
-            <h3>درجات الألوان</h3>
-            <Link to={buildUrl({ color: null })} className={!colorFilter ? 'active' : ''}>الكل</Link>
-            <div className="premium-color-filters">
-              {filterColors.map((c) => (
-                <Link
-                  key={c.code + c.name}
-                  to={buildUrl({ color: c.code })}
-                  className={`premium-color-swatch ${colorFilter === c.code ? 'active' : ''}`}
-                  title={c.name}
-                  style={{ backgroundColor: c.code }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
         <div className="premium-filter-block">
           <h3>نطاق السعر</h3>
           <div className="premium-price-range">
@@ -198,21 +182,6 @@ export default function Explore() {
               <Link to={buildUrl({ tag: null })} className={!tagFilter ? 'active' : ''}>الكل</Link>
               {filterTags.slice(0, 5).map((t) => (
                 <Link key={t} to={buildUrl({ tag: t })} className={tagFilter === t ? 'active' : ''}>{t}</Link>
-              ))}
-            </div>
-          )}
-          {filterColors.length > 0 && (
-            <div className="premium-mobile-filter-group">
-              <span className="premium-mobile-filter-label">الألوان:</span>
-              <Link to={buildUrl({ color: null })} className={!colorFilter ? 'active' : ''}>الكل</Link>
-              {filterColors.slice(0, 8).map((c) => (
-                <Link
-                  key={c.code + c.name}
-                  to={buildUrl({ color: c.code })}
-                  className={`premium-mobile-chip premium-color-chip ${colorFilter === c.code ? 'active' : ''}`}
-                  title={c.name}
-                  style={{ backgroundColor: c.code }}
-                />
               ))}
             </div>
           )}

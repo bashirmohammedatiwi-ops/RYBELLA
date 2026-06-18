@@ -1,8 +1,35 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
-import { useAuth } from '../context/AuthContext'
 import { formatCount } from '../utils/format'
 import './BottomNav.css'
+
+function getLoginReturnPath(location) {
+  const from = location.state?.from
+  if (typeof from === 'string') return from
+  return from?.pathname || null
+}
+
+function useIsTabActive(path, end = false) {
+  const location = useLocation()
+  const { pathname } = location
+
+  const matches =
+    end
+      ? pathname === path
+      : pathname === path || pathname.startsWith(`${path}/`)
+
+  if (matches) return true
+
+  if (pathname === '/login') {
+    const fromPath = getLoginReturnPath(location)
+    if (!fromPath) return false
+    return end
+      ? fromPath === path
+      : fromPath === path || fromPath.startsWith(`${path}/`)
+  }
+
+  return false
+}
 
 const TABS = [
   { path: '/', label: 'الرئيسية', icon: 'home', end: true },
@@ -56,72 +83,47 @@ function NavIcon({ name, active }) {
 
 function CartTab({ totalCount }) {
   const badge = formatCount(totalCount)
+  const isActive = useIsTabActive('/cart')
 
   return (
     <NavLink
       to="/cart"
-      className={({ isActive }) => `mobile-nav-cart-slot${isActive ? ' active' : ''}`}
+      className={`mobile-nav-cart-slot${isActive ? ' active' : ''}`}
       aria-label="السلة"
+      aria-current={isActive ? 'page' : undefined}
     >
-      {() => (
-        <>
-          <span className="mobile-nav-cart-btn">
-            <span className="mobile-nav-cart-icon">
-              <NavIcon name="cart" active={false} />
-              {badge && <span className="mobile-nav-cart-badge">{badge}</span>}
-            </span>
-          </span>
-          <span className="mobile-nav-label">السلة</span>
-        </>
-      )}
+      <span className="mobile-nav-cart-btn">
+        <span className="mobile-nav-cart-icon">
+          <NavIcon name="cart" active={isActive} />
+          {badge && <span className="mobile-nav-cart-badge">{badge}</span>}
+        </span>
+      </span>
+      <span className="mobile-nav-label">السلة</span>
     </NavLink>
   )
 }
 
-function NavTab({ tab, user, onAuthRequired }) {
-  if (tab.auth && !user) {
-    return (
-      <button
-        type="button"
-        className="mobile-nav-item"
-        onClick={() => onAuthRequired(tab.path)}
-        aria-label={tab.label}
-      >
-        <span className="mobile-nav-icon-wrap">
-          <NavIcon name={tab.icon} active={false} />
-        </span>
-        <span className="mobile-nav-label">{tab.label}</span>
-      </button>
-    )
-  }
+function NavTab({ tab }) {
+  const isActive = useIsTabActive(tab.path, Boolean(tab.end))
 
   return (
     <NavLink
       to={tab.path}
       end={tab.end}
-      className={({ isActive }) => `mobile-nav-item${isActive ? ' active' : ''}`}
+      className={`mobile-nav-item${isActive ? ' active' : ''}`}
       aria-label={tab.label}
+      aria-current={isActive ? 'page' : undefined}
     >
-      {({ isActive }) => (
-        <>
-          <span className="mobile-nav-icon-wrap">
-            <NavIcon name={tab.icon} active={isActive} />
-          </span>
-          <span className="mobile-nav-label">{tab.label}</span>
-        </>
-      )}
+      <span className="mobile-nav-icon-wrap">
+        <NavIcon name={tab.icon} active={isActive} />
+      </span>
+      <span className="mobile-nav-label">{tab.label}</span>
     </NavLink>
   )
 }
 
 export default function BottomNav() {
-  const navigate = useNavigate()
   const { totalCount } = useCart()
-  const { user } = useAuth()
-
-  const handleAuthRequired = (path) => {
-    navigate('/login', { state: { from: path } })
-  }
 
   return (
     <nav className="mobile-bottom-nav" aria-label="التنقل الرئيسي">
@@ -131,7 +133,7 @@ export default function BottomNav() {
             tab.isCart ? (
               <CartTab key={tab.path} totalCount={totalCount} />
             ) : (
-              <NavTab key={tab.path} tab={tab} user={user} onAuthRequired={handleAuthRequired} />
+              <NavTab key={tab.path} tab={tab} />
             )
           )}
         </div>

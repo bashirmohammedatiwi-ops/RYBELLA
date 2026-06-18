@@ -47,16 +47,6 @@
   border-color: var(--primary);
   color: var(--primary);
 }
-.premium-explore-mobile-filters .premium-color-chip {
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border-radius: 50%;
-}
-.premium-explore-mobile-filters .premium-color-chip.active {
-  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary);
-}
-
 .premium-explore-main {
   padding: 0 4px;
   max-width: 1200px;
@@ -176,26 +166,6 @@
   .premium-filter-block a.active {
     color: var(--primary);
     font-weight: 600;
-  }
-  .premium-color-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 0.5rem;
-  }
-  .premium-color-swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    transition: border-color 0.2s, transform 0.2s;
-  }
-  .premium-color-swatch:hover {
-    transform: scale(1.1);
-  }
-  .premium-color-swatch.active {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary);
   }
   .premium-price-range {
     display: flex;

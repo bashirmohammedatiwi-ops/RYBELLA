@@ -13,7 +13,8 @@ export default function Login() {
   const { mergeGuestCart } = useCart()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from?.pathname || '/'
+  const fromState = location.state?.from
+  const from = typeof fromState === 'string' ? fromState : fromState?.pathname || '/'
 
   const handleSubmit = async (e) => {
     e.preventDefault()

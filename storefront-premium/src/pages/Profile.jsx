@@ -5,8 +5,6 @@ import './Profile.css'
 export default function Profile() {
   const { user, logout } = useAuth()
 
-  if (!user) return null
-
   return (
     <div className="premium-profile">
       <h1>حسابي</h1>

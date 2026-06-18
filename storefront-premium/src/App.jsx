@@ -18,8 +18,9 @@ import OrderDetail from './pages/OrderDetail'
 import Wishlist from './pages/Wishlist'
 
 function PrivateRoute({ children }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const location = useLocation()
+  if (loading) return null
   return user ? children : <Navigate to="/login" state={{ from: location }} replace />
 }
 
@@ -37,7 +38,7 @@ export default function App() {
         <Route path="/checkout" element={<PrivateRoute><Checkout /></PrivateRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
         <Route path="/wishlist" element={<Wishlist />} />

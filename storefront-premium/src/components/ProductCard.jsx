@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { IMG_BASE } from '../services/api'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatCount } from '../utils/format'
+import { getProductColorSwatches } from '../utils/variantColor'
 import './ProductCard.css'
 
 const getBadges = (p) => {
@@ -17,6 +18,10 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
   const img = product.main_image || product.images?.[0] || product.variants?.[0]?.image
   const badges = getBadges(product)
   const inStock = product.variants?.some((v) => v.stock > 0) ?? product.in_stock > 0 ?? true
+  const variants = product.variants || []
+  const { displayed: colorSwatches, remaining: remainingColors, total: totalColors } = getProductColorSwatches(variants)
+  const showColorSwatches = variants.length > 1 && totalColors > 0
+  const shadeCount = variants.filter((v) => v.shade_name).length
 
   return (
     <div className="premium-product-card-wrap">
@@ -44,9 +49,28 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
       <div className="premium-product-body">
         <span className="premium-product-cat">{product.category_name || product.brand_name || 'منتجات'}</span>
         <h3 className="premium-product-title">{product.name}</h3>
-        <span className="premium-product-price">
-          {minPrice != null ? formatPrice(minPrice) : '—'}
-        </span>
+        <div className="premium-product-footer">
+          <span className="premium-product-price">
+            {minPrice != null ? formatPrice(minPrice) : '—'}
+          </span>
+          {showColorSwatches && (
+            <div className="premium-product-shades" aria-label={`${totalColors} درجات لون`}>
+              {colorSwatches.map((color) => (
+                <span
+                  key={color}
+                  className="premium-product-shade-dot"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+              {remainingColors > 0 && (
+                <span className="premium-product-shades-more">+{formatCount(remainingColors, 9)}</span>
+              )}
+            </div>
+          )}
+          {!showColorSwatches && variants.length > 1 && shadeCount > 1 && (
+            <span className="premium-product-shades-count">{shadeCount} درجات</span>
+          )}
+        </div>
       </div>
     </Link>
       {onQuickView && (
