@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { offersAPI, IMG_BASE } from '../services/api'
 import { useCart } from '../context/CartContext'
+import { formatPrice, formatPercent } from '../utils/format'
 import MobileHeader from '../components/MobileHeader'
 import './OfferDetail.css'
 
@@ -89,11 +90,11 @@ export default function OfferDetail() {
                   <div className="offer-product-price">
                     {discount > 0 ? (
                       <>
-                        <span className="original">{price.toLocaleString('ar-IQ')} د.ع</span>
-                        <span className="discounted">{discountedPrice.toLocaleString('ar-IQ')} د.ع</span>
+                        <span className="original">{formatPrice(price)}</span>
+                        <span className="discounted">{formatPrice(discountedPrice)}</span>
                       </>
                     ) : (
-                      <span>{price.toLocaleString('ar-IQ')} د.ع</span>
+                      <span>{formatPrice(price)}</span>
                     )}
                   </div>
                 </div>
@@ -106,16 +107,16 @@ export default function OfferDetail() {
       <div className="offer-summary">
         <div className="offer-summary-row">
           <span>المجموع قبل الخصم</span>
-          <span>{totalOriginal.toLocaleString('ar-IQ')} د.ع</span>
+          <span>{formatPrice(totalOriginal)}</span>
         </div>
         {discount > 0 && (
           <div className="offer-summary-row highlight">
-            <span>المجموع بعد الخصم ({Math.round(offer.discount_percent)}%)</span>
-            <span>{totalAfterDiscount.toLocaleString('ar-IQ')} د.ع</span>
+            <span>المجموع بعد الخصم ({formatPercent(offer.discount_percent)})</span>
+            <span>{formatPrice(totalAfterDiscount)}</span>
           </div>
         )}
         <button className="offer-add-bundle" onClick={handleAddBundle} disabled={!allInStock || products.length === 0}>
-          {allInStock ? `أضيفي الباكج للسلة (${totalAfterDiscount.toLocaleString('ar-IQ')} د.ع)` : 'بعض المنتجات غير متوفرة'}
+          {allInStock ? `أضيفي الباكج للسلة (${formatPrice(totalAfterDiscount)})` : 'بعض المنتجات غير متوفرة'}
         </button>
       </div>
     </div>

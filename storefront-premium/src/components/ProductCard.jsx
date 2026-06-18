@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { IMG_BASE } from '../services/api'
+import { formatPrice } from '../utils/format'
 import './ProductCard.css'
 
 const getBadges = (p) => {
@@ -44,7 +45,7 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
         <span className="premium-product-cat">{product.category_name || product.brand_name || 'منتجات'}</span>
         <h3 className="premium-product-title">{product.name}</h3>
         <span className="premium-product-price">
-          {minPrice != null ? `${Number(minPrice).toLocaleString('ar-IQ')} د.ع` : '—'}
+          {minPrice != null ? formatPrice(minPrice) : '—'}
         </span>
       </div>
     </Link>

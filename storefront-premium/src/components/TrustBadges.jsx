@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { formatPrice } from '../utils/format'
 import './TrustBadges.css'
 
 export default function TrustBadges({ settings }) {
@@ -7,7 +8,7 @@ export default function TrustBadges({ settings }) {
     if (fromSettings.length > 0) return fromSettings
     const threshold = settings?.free_shipping_threshold || '50000'
     return [
-      { icon: 'truck', text: `توصيل مجاني للطلبات فوق ${Number(threshold).toLocaleString('ar-IQ')} د.ع` },
+      { icon: 'truck', text: `توصيل مجاني للطلبات فوق ${formatPrice(threshold)}` },
       { icon: 'refresh', text: 'استرجاع سهل حتى 14 يوماً' },
       { icon: 'shield', text: 'دفع آمن ومحمي' },
     ]

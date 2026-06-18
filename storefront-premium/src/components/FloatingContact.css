@@ -16,7 +16,8 @@
 
 @media (min-width: 769px) {
   .floating-contact {
-    bottom: 24px;
+    bottom: calc(var(--bottom-nav-h) + 72px);
+    right: max(16px, calc(50% - var(--phone-max) / 2 + 16px));
   }
 }
 

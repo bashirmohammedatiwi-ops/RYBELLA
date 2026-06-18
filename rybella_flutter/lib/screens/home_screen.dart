@@ -40,6 +40,14 @@ abstract final class _Hl {
   static const Color chipBg = Color(0xFFFDF8FA);
 }
 
+String _heroSubtitleResolved(Map<String, dynamic>? settings) {
+  final raw = (settings?['hero_subtitle'] as String?)?.trim() ?? '';
+  if (raw.isEmpty) return '';
+  const legacy = 'اكتشفي تشكيلة واسعة من مستحضرات التجميل الأصلية';
+  if (raw == legacy) return '';
+  return raw;
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -569,7 +577,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final cart = context.watch<CartProvider>();
     final wishlist = context.watch<WishlistProvider>();
     final heroTitle = _settings?['hero_title'] ?? 'Rybella';
-    final heroSubtitle = _settings?['hero_subtitle'] ?? '';
+    final heroSubtitle = _heroSubtitleResolved(_settings);
     final showRecent = _settings?['show_recently_viewed'] != '0' && _recentProducts.isNotEmpty;
     final quickViewEnabled = _settings?['quick_view_enabled'] != '0';
     final showOffers = _settings?['show_offers'] != '0' && _offers.isNotEmpty;
@@ -619,7 +627,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.fromLTRB(0, 10, 0, 6),
                     child: const StoriesBar(),
                   ),
                 )
@@ -630,7 +638,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_banners.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(ph, 16, ph, 8),
+                    padding: EdgeInsets.fromLTRB(ph, 2, ph, 8),
                     child: PromoBanner(
                       banners: _banners.cast<Map<String, dynamic>>(),
                       imageUrl: _img,
@@ -1329,7 +1337,7 @@ class _HlRoundCartButton extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// فئات — أسفل الفئات الثانوية: شبكة عمودين + شريط «الكل»
+// فئات — شبكة ٢×٢ داخل لوحة متدرجة + صف «كل الفئات» (محسّنة)
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _HomeCategoriesLight extends StatelessWidget {
@@ -1355,222 +1363,284 @@ class _HomeCategoriesLight extends StatelessWidget {
   Widget build(BuildContext context) {
     final cats = categories.take(4).toList();
     final moreCount = categories.length > 4 ? categories.length - 4 : 0;
+
     return Padding(
-      padding: EdgeInsets.fromLTRB(horizontalPadding, 6, horizontalPadding, 8),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 6, horizontalPadding, 10),
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          color: _Hl.surface,
-          borderRadius: BorderRadius.circular(36),
-          border: Border.all(color: _Hl.cardEdge.withValues(alpha: 0.88)),
+          borderRadius: BorderRadius.circular(30),
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              _Hl.heroA,
+              _Hl.heroB.withValues(alpha: 0.72),
+              _Hl.heroC.withValues(alpha: 0.28),
+            ],
+          ),
+          border: Border.all(color: _Hl.cardEdge.withValues(alpha: 0.55)),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primary.withValues(alpha: 0.05),
+              color: AppTheme.primary.withValues(alpha: 0.08),
               blurRadius: 26,
-              offset: const Offset(0, 10),
+              offset: const Offset(0, 12),
             ),
           ],
         ),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: _Hl.chipBg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _Hl.cardEdge),
-                ),
-                child: Icon(Icons.category_rounded, color: AppTheme.primaryDark, size: 21),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'الفئات الرئيسية',
-                      style: GoogleFonts.cormorantGaramond(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
-                        height: 1.05,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'الفئات الرئيسية',
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                      height: 1.05,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: 48,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(2),
+                      gradient: LinearGradient(
+                        colors: [AppTheme.primary, _Hl.accentLine],
                       ),
                     ),
-                    Text(
-                      categories.length > 4
-                          ? 'أربع فئات مختارة — المزيد في صفحة الفئات'
-                          : 'اختيار سريع حسب القسم',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppTheme.textMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    moreCount > 0
+                        ? 'أربع فئات في الشبكة — و$moreCount قسم إضافي'
+                        : 'اختاري قسمك من الشبكة أدناه',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppTheme.textMuted,
+                      fontWeight: FontWeight.w600,
+                      height: 1.35,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: onSeeAll,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.primaryDark,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  backgroundColor: _Hl.chipBg,
-                  side: BorderSide(color: _Hl.cardEdge),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                ),
-                child: const Text('عرض الكل', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onSelectAll,
-              borderRadius: BorderRadius.circular(20),
-              child: Ink(
-                decoration: BoxDecoration(
+              const SizedBox(height: 10),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onSelectAll,
                   borderRadius: BorderRadius.circular(20),
-                  color: selectedIndex == 0 ? _Hl.chipBg : _Hl.surface,
-                  border: Border.all(
-                    color: selectedIndex == 0 ? AppTheme.primary.withValues(alpha: 0.5) : _Hl.cardEdge,
-                    width: selectedIndex == 0 ? 2 : 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: selectedIndex == 0 ? 0.14 : 0.04),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _Hl.cardEdge),
-                        ),
-                        child: Icon(Icons.apps_rounded, color: AppTheme.primaryDark, size: 22),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          'كل الفئات',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 16,
-                        color: AppTheme.textMuted,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: cats.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.04,
-            ),
-            itemBuilder: (context, i) {
-              final c = cats[i];
-              final idx = i + 1;
-              return _CategoryGridTile(
-                category: c,
-                imageUrl: getCatImage(c),
-                active: selectedIndex == idx,
-                onTap: () => onCategoryTap(c, idx),
-              );
-            },
-          ),
-          if (moreCount > 0) ...[
-            const SizedBox(height: 12),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onSeeAll,
-                borderRadius: BorderRadius.circular(16),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: _Hl.chipBg,
-                    border: Border.all(color: _Hl.cardEdge),
-                  ),
-                  child: Padding(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white.withValues(alpha: selectedIndex == 0 ? 0.72 : 0.45),
+                      border: Border.all(
+                        color: selectedIndex == 0
+                            ? AppTheme.primary.withValues(alpha: 0.42)
+                            : _Hl.cardEdge.withValues(alpha: 0.65),
+                        width: selectedIndex == 0 ? 2 : 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primary.withValues(alpha: selectedIndex == 0 ? 0.14 : 0.06),
+                          blurRadius: selectedIndex == 0 ? 18 : 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
                     child: Row(
                       children: [
-                        Icon(Icons.layers_outlined, color: AppTheme.primaryDark, size: 22),
-                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: selectedIndex == 0
+                                  ? AppTheme.primary.withValues(alpha: 0.2)
+                                  : _Hl.cardEdge,
+                            ),
+                          ),
+                          child: Icon(Icons.apps_rounded, color: AppTheme.primaryDark, size: 21),
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                moreCount == 1
-                                    ? 'فئة إضافية واحدة'
-                                    : '$moreCount فئات إضافية',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'انتقلي إلى صفحة الفئات لعرض الكل',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.textMuted,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'كل الفئات',
+                            style: TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.textPrimary,
+                              letterSpacing: -0.15,
+                            ),
                           ),
                         ),
-                        Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: AppTheme.primary),
+                        Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 14,
+                          color: selectedIndex == 0 ? AppTheme.primary.withValues(alpha: 0.55) : AppTheme.textMuted,
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ],
+              const SizedBox(height: 10),
+              if (cats.isNotEmpty)
+                _HomeCategoryGrid(
+                  cats: cats,
+                  selectedIndex: selectedIndex,
+                  getCatImage: getCatImage,
+                  onCategoryTap: onCategoryTap,
+                ),
+              const SizedBox(height: 2),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onSeeAll,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'عرض الكل',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: AppTheme.primaryDark,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_back_ios_new_rounded, size: 11, color: AppTheme.primaryDark),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (moreCount > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  moreCount == 1 ? 'فئة إضافية واحدة في القائمة الكاملة' : '$moreCount فئات إضافية في القائمة الكاملة',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppTheme.textMuted,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _CategoryGridTile extends StatelessWidget {
+class _HomeCategoryGrid extends StatelessWidget {
+  final List<Category> cats;
+  final int selectedIndex;
+  final String? Function(Category) getCatImage;
+  final void Function(Category c, int index) onCategoryTap;
+
+  const _HomeCategoryGrid({
+    required this.cats,
+    required this.selectedIndex,
+    required this.getCatImage,
+    required this.onCategoryTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const gap = 11.0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 0.97,
+                child: _HomeCategoryGridTile(
+                  category: cats[0],
+                  imageUrl: getCatImage(cats[0]),
+                  active: selectedIndex == 1,
+                  onTap: () => onCategoryTap(cats[0], 1),
+                ),
+              ),
+            ),
+            const SizedBox(width: gap),
+            Expanded(
+              child: cats.length > 1
+                  ? AspectRatio(
+                      aspectRatio: 0.97,
+                      child: _HomeCategoryGridTile(
+                        category: cats[1],
+                        imageUrl: getCatImage(cats[1]),
+                        active: selectedIndex == 2,
+                        onTap: () => onCategoryTap(cats[1], 2),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+        if (cats.length > 2) ...[
+          const SizedBox(height: gap),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AspectRatio(
+                  aspectRatio: 0.97,
+                  child: _HomeCategoryGridTile(
+                    category: cats[2],
+                    imageUrl: getCatImage(cats[2]),
+                    active: selectedIndex == 3,
+                    onTap: () => onCategoryTap(cats[2], 3),
+                  ),
+                ),
+              ),
+              const SizedBox(width: gap),
+              Expanded(
+                child: cats.length > 3
+                    ? AspectRatio(
+                        aspectRatio: 0.97,
+                        child: _HomeCategoryGridTile(
+                          category: cats[3],
+                          imageUrl: getCatImage(cats[3]),
+                          active: selectedIndex == 4,
+                          onTap: () => onCategoryTap(cats[3], 4),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _HomeCategoryGridTile extends StatelessWidget {
   final Category category;
   final String? imageUrl;
   final bool active;
   final VoidCallback onTap;
 
-  const _CategoryGridTile({
+  const _HomeCategoryGridTile({
     required this.category,
     required this.imageUrl,
     required this.active,
@@ -1581,84 +1651,108 @@ class _CategoryGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(24),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
-        child: Ink(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            color: _Hl.surface,
             border: Border.all(
-              color: active ? AppTheme.primary.withValues(alpha: 0.55) : _Hl.cardEdge,
-              width: active ? 2 : 1,
+              color: active ? AppTheme.primary : _Hl.cardEdge.withValues(alpha: 0.75),
+              width: active ? 2.5 : 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primary.withValues(alpha: active ? 0.16 : 0.05),
-                blurRadius: active ? 18 : 12,
-                offset: const Offset(0, 6),
+                color: AppTheme.primary.withValues(alpha: active ? 0.14 : 0.05),
+                blurRadius: active ? 12 : 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ColoredBox(
-                        color: _Hl.chipBg,
-                        child: imageUrl != null && imageUrl!.isNotEmpty
-                            ? AppImage(url: imageUrl!, fit: BoxFit.cover)
-                            : Center(
-                                child: Icon(
-                                  Icons.spa_rounded,
-                                  size: 36,
-                                  color: AppTheme.primary.withValues(alpha: 0.45),
-                                ),
-                              ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          height: 36,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.white.withValues(alpha: 0.95),
-                              ],
-                            ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(21.5),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(
+                  color: _Hl.chipBg,
+                  child: imageUrl != null && imageUrl!.isNotEmpty
+                      ? AppImage(url: imageUrl!, fit: BoxFit.cover)
+                      : Center(
+                          child: Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 38,
+                            color: AppTheme.primary.withValues(alpha: 0.38),
                           ),
                         ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.08),
+                          Colors.black.withValues(alpha: 0.52),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
                       ),
-                    ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 18, 10, 10),
+                      child: Text(
+                        category.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: active ? FontWeight.w900 : FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.2,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x66000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Text(
-                  category.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: active ? FontWeight.w900 : FontWeight.w700,
-                    color: active ? AppTheme.primaryDark : AppTheme.textPrimary,
-                    height: 1.25,
+                if (active)
+                  PositionedDirectional(
+                    top: 8,
+                    start: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(Icons.check_rounded, size: 14, color: AppTheme.primaryDark),
+                    ),
                   ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

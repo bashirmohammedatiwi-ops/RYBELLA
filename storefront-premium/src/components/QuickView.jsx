@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { productsAPI, IMG_BASE } from '../services/api'
 import { useCart } from '../context/CartContext'
-import './QuickView.css'
+import { formatPrice } from '../utils/format'
 
 export default function QuickView({ productId, onClose }) {
   const [product, setProduct] = useState(null)
@@ -43,7 +43,7 @@ export default function QuickView({ productId, onClose }) {
             </div>
             <div className="qv-info">
               <h3>{product.name}</h3>
-              {price != null && <p className="qv-price">{Number(price).toLocaleString('ar-IQ')} د.ع</p>}
+              {price != null && <p className="qv-price">{formatPrice(price)}</p>}
               <p className="qv-desc">{product.description ? `${product.description.slice(0, 120)}...` : ''}</p>
               <div className="qv-actions">
                 <Link to={`/products/${product.id}`} className="qv-btn qv-detail" onClick={onClose}>عرض التفاصيل</Link>

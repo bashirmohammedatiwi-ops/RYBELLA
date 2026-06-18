@@ -4,6 +4,7 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import { formatPrice, formatNumber } from '../utils/format'
 import MobileHeader from '../components/MobileHeader'
 import './ProductDetail.css'
 
@@ -261,7 +262,7 @@ export default function ProductDetail() {
           </div>
           <h1 className="pd-title">{product.name}</h1>
           <p className="pd-price">
-            {selectedVariant ? `${Number(selectedVariant.price).toLocaleString('ar-IQ')} د.ع` : (product.min_price ?? product.price ?? '—') + ' د.ع'}
+            {formatPrice(selectedVariant?.price ?? product.min_price ?? product.price)}
           </p>
         </div>
 
@@ -336,7 +337,7 @@ export default function ProductDetail() {
 
       <div className="pd-sticky-bar">
         <span className="pd-sticky-price">
-          {selectedVariant ? `${(selectedVariant.price * qty).toLocaleString('ar-IQ')} د.ع` : '—'}
+          {selectedVariant ? formatPrice(selectedVariant.price * qty) : '—'}
         </span>
         <button className="pd-sticky-add" onClick={handleAddToCart} disabled={!selectedVariant || (selectedVariant?.stock ?? 0) < 1}>
           {selectedVariant && selectedVariant.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}

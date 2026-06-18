@@ -1,9 +1,12 @@
 /* تخطيط تطبيق الهاتف على الويب */
 .app-layout {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: transparent;
   display: flex;
   flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
 }
 
 .app-announcement {

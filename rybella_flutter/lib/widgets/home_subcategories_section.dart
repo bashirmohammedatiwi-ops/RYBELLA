@@ -22,97 +22,187 @@ class HomeSubcategoriesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (subcategories.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 16, 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
+    final items = subcategories.take(12).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          gradient: const LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Colors.white,
+              Color(0xFFFFF5F8),
+              AppTheme.surfaceAlt,
+            ],
+          ),
+          border: Border.all(color: AppTheme.border.withValues(alpha: 0.85)),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withValues(alpha: 0.07),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 12, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'تسوقي حسب النوع',
-                style: GoogleFonts.cormorantGaramond(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primary.withValues(alpha: 0.14),
+                          AppTheme.primary.withValues(alpha: 0.06),
+                        ],
+                      ),
+                    ),
+                    child: const Icon(Icons.style_outlined, size: 20, color: AppTheme.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'تسوقي حسب النوع',
+                          style: GoogleFonts.cormorantGaramond(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                            height: 1.05,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'أقسام فرعية للوصول السريع',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => context.push('/subcategories'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    ),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14),
+                    label: const Text('الكل', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () => context.push('/subcategories'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 124,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (_, i) {
+                    final sc = items[i];
+                    return _SubcategoryChip(
+                      name: sc.name,
+                      imageUrl: sc.image != null ? imageUrl(sc.image) : null,
+                      onTap: () => onSubcategoryTap(subcategoryId: sc.id),
+                    );
+                  },
                 ),
-                child: const Text('الكل', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               ),
             ],
           ),
         ),
-        SizedBox(
-          height: 118,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            itemCount: subcategories.take(10).length,
-            itemBuilder: (_, i) {
-              final sc = subcategories[i];
-              return Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: GestureDetector(
-                  onTap: () => onSubcategoryTap(subcategoryId: sc.id),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.border),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primary.withOpacity(0.08),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: sc.image != null
-                              ? AppImage(url: imageUrl(sc.image), fit: BoxFit.cover)
-                              : const Center(
-                                  child: Icon(Icons.auto_awesome, size: 20, color: AppTheme.primary),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      SizedBox(
-                        width: 64,
-                        child: Text(
-                          sc.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textSecondary,
+      ),
+    );
+  }
+}
+
+class _SubcategoryChip extends StatelessWidget {
+  final String name;
+  final String? imageUrl;
+  final VoidCallback onTap;
+
+  const _SubcategoryChip({
+    required this.name,
+    this.imageUrl,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: SizedBox(
+          width: 72,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.12)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(17),
+                  child: imageUrl != null && imageUrl!.isNotEmpty
+                      ? AppImage(url: imageUrl!, fit: BoxFit.cover)
+                      : Container(
+                          color: AppTheme.primary.withValues(alpha: 0.08),
+                          child: const Center(
+                            child: Icon(Icons.spa_rounded, size: 24, color: AppTheme.primary),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
                 ),
-              );
-            },
+              ),
+              const SizedBox(height: 6),
+              Text(
+                name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textSecondary,
+                  height: 1.2,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

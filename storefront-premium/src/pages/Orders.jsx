@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ordersAPI } from '../services/api'
+import { formatPrice, formatNumber, formatDate } from '../utils/format'
 import './Orders.css'
 
 export default function Orders() {
@@ -29,11 +30,11 @@ export default function Orders() {
           {orders.map((o) => (
             <Link key={o.id} to={`/orders/${o.id}`} className="premium-order-card">
               <div className="premium-order-head">
-                <span>طلب #{o.id}</span>
+                <span>طلب #{formatNumber(o.id)}</span>
                 <span className={`premium-order-status premium-status-${o.status}`}>{o.status}</span>
               </div>
-              <p>المجموع: {Number(o.final_price || o.total_price || 0).toLocaleString('ar-IQ')} د.ع</p>
-              <p className="premium-order-date">{new Date(o.created_at).toLocaleDateString('ar-IQ')}</p>
+              <p>المجموع: {formatPrice(o.final_price || o.total_price || 0)}</p>
+              <p className="premium-order-date">{formatDate(o.created_at)}</p>
             </Link>
           ))}
         </div>

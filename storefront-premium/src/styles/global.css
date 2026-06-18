@@ -32,7 +32,8 @@
   --touch: 44px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --header-h: 56px;
-  --bottom-nav-h: 90px;
+  --bottom-nav-bar-h: 64px;
+  --bottom-nav-h: calc(var(--bottom-nav-bar-h) + 28px + var(--safe-bottom));
   --phone-max: 430px;
   --bg-primary: #FFFFFF;
   --bg-card: white;
@@ -62,27 +63,29 @@ html {
 
 body {
   overflow-x: hidden;
-}
-
-body {
   font-family: var(--font-body);
-  background: #FDFBF9;
+  background: linear-gradient(180deg, #FFFBFC 0%, #FDFBF9 40%, #FAF7F5 100%);
   color: var(--text-primary);
   line-height: 1.7;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+body.has-bottom-nav {
+  padding-bottom: var(--bottom-nav-h);
+}
+
+body:not(.has-bottom-nav) {
+  padding-bottom: var(--safe-bottom);
 }
 
 /* عرض كامل مثل الموبايل على جميع الشاشات */
 @media (min-width: 768px) {
   body {
-    background: var(--bg-primary);
+    background: linear-gradient(180deg, #fff 0%, #FDF8F9 100%);
   }
-}
-
-body {
-  padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom));
 }
 
 a {

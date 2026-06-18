@@ -2,7 +2,7 @@ const db = require('../config/database');
 
 const DEFAULTS = {
   hero_title: 'تسوق التجميل بفرح',
-  hero_subtitle: 'اكتشفي تشكيلة واسعة من مستحضرات التجميل الأصلية',
+  hero_subtitle: '',
   site_title: 'Rybella Iraq',
   primary_color: '#E85D7A',
   show_banners: '1',

@@ -18,6 +18,7 @@
 
 @media (min-width: 769px) {
   .back-to-top {
-    bottom: 24px;
+    bottom: calc(var(--bottom-nav-h) + 16px);
+    left: max(16px, calc(50% - var(--phone-max) / 2 + 16px));
   }
 }

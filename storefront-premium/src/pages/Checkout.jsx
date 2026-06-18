@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { deliveryZonesAPI, couponsAPI, ordersAPI, IMG_BASE } from '../services/api'
+import { formatPrice, formatNumber } from '../utils/format'
 import './Checkout.css'
 
 export default function Checkout() {
@@ -132,16 +133,16 @@ export default function Checkout() {
           <div className="premium-checkout-items">
             {list.map((i) => (
               <div key={i.id ?? i.variant_id} className="premium-checkout-item">
-                <span>{getItemName(i)} × {i.quantity || 1}</span>
-                <span>{(getItemPrice(i) * (i.quantity || 1)).toLocaleString('ar-IQ')} د.ع</span>
+                <span>{getItemName(i)} × {formatNumber(i.quantity || 1)}</span>
+                <span>{formatPrice(getItemPrice(i) * (i.quantity || 1))}</span>
               </div>
             ))}
           </div>
           <div className="premium-checkout-totals">
-            <div><span>المجموع الفرعي</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
-            {discount > 0 && <div><span>الخصم</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>}
-            {deliveryFee > 0 && <div><span>التوصيل</span><span>{deliveryFee.toLocaleString('ar-IQ')} د.ع</span></div>}
-            <div className="premium-checkout-final"><span>المجموع</span><strong>{finalTotal.toLocaleString('ar-IQ')} د.ع</strong></div>
+            <div><span>المجموع الفرعي</span><span>{formatPrice(subtotal)}</span></div>
+            {discount > 0 && <div><span>الخصم</span><span>-{formatPrice(discount)}</span></div>}
+            {deliveryFee > 0 && <div><span>التوصيل</span><span>{formatPrice(deliveryFee)}</span></div>}
+            <div className="premium-checkout-final"><span>المجموع</span><strong>{formatPrice(finalTotal)}</strong></div>
           </div>
           <button className="premium-checkout-submit" onClick={handlePlaceOrder} disabled={submitting}>
             {submitting ? 'جاري الطلب...' : 'تأكيد الطلب'}

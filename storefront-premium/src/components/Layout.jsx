@@ -13,6 +13,13 @@ export default function Layout({ children }) {
     webSettingsAPI.get().then((r) => r?.data && setSettings(r.data)).catch(() => {})
   }, [])
 
+  const showBottomNav = settings?.show_bottom_nav !== '0'
+
+  useEffect(() => {
+    document.body.classList.toggle('has-bottom-nav', showBottomNav)
+    return () => document.body.classList.remove('has-bottom-nav')
+  }, [showBottomNav])
+
   const showAnnouncement = settings?.announcement_bar_enabled === '1' && settings?.announcement_bar
 
   return (
@@ -25,7 +32,7 @@ export default function Layout({ children }) {
       <main className="app-main">
         {children}
       </main>
-      {settings?.show_bottom_nav !== '0' && <BottomNav />}
+      {showBottomNav && <BottomNav />}
       {settings?.show_back_to_top !== '0' && <BackToTop />}
       {settings?.show_contact_float !== '0' && <FloatingContact whatsappNumber={settings?.whatsapp_number} />}
     </div>

@@ -1,35 +1,46 @@
-/* شريط التنقل السفلي - مطابق لتطبيق الهاتف */
+/* شريط التنقل السفلي */
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 0 16px 16px;
-  padding-bottom: calc(16px + var(--safe-bottom));
   z-index: 90;
+  pointer-events: none;
 }
 
+.mobile-bottom-nav-inner {
+  pointer-events: auto;
+  max-width: var(--phone-max);
+  margin: 0 auto;
+  padding: 0 12px calc(10px + var(--safe-bottom));
+}
 
 .mobile-bottom-nav-bar {
-  height: 70px;
-  border-radius: 36px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F9 30%, #FFEEF2 70%, #FFF8F9 100%);
-  border: 1px solid rgba(232,93,122,0.08);
-  box-shadow: 0 10px 28px rgba(232,93,122,0.15);
+  height: var(--bottom-nav-bar-h);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(232, 93, 122, 0.1);
+  box-shadow:
+    0 4px 24px rgba(232, 93, 122, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  padding: 0 8px;
+  padding: 0 4px;
+  gap: 2px;
 }
 
 .mobile-nav-item {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 12px 8px;
+  gap: 3px;
+  padding: 8px 4px 6px;
   background: none;
   border: none;
   color: var(--text-muted);
@@ -37,7 +48,9 @@
   font-size: 10px;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.2s;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-nav-item.active {
@@ -45,104 +58,121 @@
   font-weight: 700;
 }
 
-.mobile-nav-item .mobile-nav-icon {
+.mobile-nav-icon-wrap {
   width: 40px;
-  height: 40px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 16px;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.mobile-nav-item .mobile-nav-icon svg {
-  width: 24px;
-  height: 24px;
+.mobile-nav-item.active .mobile-nav-icon-wrap {
+  background: rgba(232, 93, 122, 0.12);
 }
 
-.mobile-nav-item.active .mobile-nav-icon svg {
-  stroke: var(--primary);
+.mobile-nav-label {
+  font-size: 10px;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* زر السلة البارز */
 .mobile-nav-cart-slot {
-  width: 80px;
+  flex: 0 0 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  margin-top: -20px;
+  justify-content: flex-end;
+  padding-bottom: 4px;
+  margin-top: -18px;
+  text-decoration: none;
+  color: var(--text-muted);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-cart-slot.active {
+  color: var(--primary);
+}
+
+.mobile-nav-cart-slot.active .mobile-nav-label {
+  color: var(--primary);
+  font-weight: 700;
 }
 
 .mobile-nav-cart-btn {
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  background: linear-gradient(180deg, #FFFFFF 0%, #FFF5F7 100%);
-  border: 2px solid rgba(255,255,255,0.9);
-  box-shadow: 0 6px 14px rgba(232,93,122,0.25);
+  background: linear-gradient(145deg, #ffffff 0%, #fff0f3 100%);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 8px 20px rgba(232, 93, 122, 0.28),
+    0 2px 6px rgba(232, 93, 122, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.mobile-nav-cart-btn.active {
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light) 100%);
-  box-shadow: 0 6px 16px rgba(232,93,122,0.35);
+.mobile-nav-cart-slot:active .mobile-nav-cart-btn {
+  transform: scale(0.96);
 }
 
-.mobile-nav-cart-btn .mobile-nav-cart-icon {
+.mobile-nav-cart-slot.active .mobile-nav-cart-btn {
+  background: linear-gradient(145deg, var(--primary) 0%, var(--primary-light) 100%);
+  box-shadow: 0 8px 22px rgba(232, 93, 122, 0.38);
+}
+
+.mobile-nav-cart-slot.active .mobile-nav-cart-icon svg {
+  stroke: #fff;
+}
+
+.mobile-nav-cart-icon {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.mobile-nav-cart-btn .mobile-nav-cart-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.mobile-nav-cart-btn.active .mobile-nav-cart-icon svg {
-  stroke: white;
 }
 
 .mobile-nav-cart-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 4px;
+  top: -6px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   background: var(--primary);
-  color: white;
+  color: #fff;
   font-size: 10px;
   font-weight: 800;
-  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #FFF8F9;
+  border: 2px solid #fff;
+  line-height: 1;
 }
 
-.mobile-nav-cart-badge.active {
-  background: white;
+.mobile-nav-cart-slot.active .mobile-nav-cart-badge {
+  background: #fff;
   color: var(--primary);
   border-color: var(--primary);
 }
 
 .mobile-nav-cart-slot .mobile-nav-label {
+  margin-top: 4px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--text-muted);
-  margin-top: 4px;
 }
 
-.mobile-nav-cart-slot .mobile-nav-label.active {
-  color: var(--primary);
-  font-weight: 700;
-}
-
-.mobile-nav-label {
-  font-size: 10px;
+@media (min-width: 768px) {
+  .mobile-bottom-nav-inner {
+    max-width: 480px;
+  }
 }

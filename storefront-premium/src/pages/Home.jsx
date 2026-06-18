@@ -7,6 +7,7 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
 import QuickView from '../components/QuickView'
 import StoriesBar from '../components/StoriesBar'
+import { formatCount, formatPercent } from '../utils/format'
 import './Home.css'
 
 export default function Home() {
@@ -140,7 +141,7 @@ export default function Home() {
               <line x1="3" y1="6" x2="21" y2="6" />
               <path d="M16 10a4 4 0 01-8 0" />
             </svg>
-            {totalCount > 0 && <span className="home-cart-badge">{totalCount > 99 ? '99+' : totalCount}</span>}
+            {formatCount(totalCount) && <span className="home-cart-badge">{formatCount(totalCount)}</span>}
           </Link>
         </div>
       </header>
@@ -224,7 +225,7 @@ export default function Home() {
                     {b.discount_percent != null && b.discount_percent > 0 && (
                       <div className="home-banner-discount-badge">
                         <span className="home-banner-discount-label">خصم</span>
-                        <span className="home-banner-discount-value">{b.discount_percent}%</span>
+                        <span className="home-banner-discount-value">{formatPercent(b.discount_percent)}</span>
                       </div>
                     )}
                     {/* صورة المنتج/الشخص - موضع وحجم من لوحة التحكم، تخرج من الأعلى */}
