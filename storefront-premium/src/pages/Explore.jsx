@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { productsAPI, categoriesAPI, subcategoriesAPI, brandsAPI, wishlistAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import ProductCard from '../components/ProductCard'
 import MobileHeader from '../components/MobileHeader'
+import ExploreCategorySidebar, { loadSidebarVisible, saveSidebarVisible } from '../components/ExploreCategorySidebar'
 import './Explore.css'
+
+const SIDEBAR_FADE_SCROLL_PX = 280
 
 export default function Explore() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -16,6 +19,9 @@ export default function Explore() {
   const [wishlistIds, setWishlistIds] = useState([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('')
+  const [sidebarVisible, setSidebarVisible] = useState(loadSidebarVisible)
+  const [sidebarFade, setSidebarFade] = useState(1)
+  const mainScrollRef = useRef(null)
   const { user } = useAuth()
 
   const categoryId = searchParams.get('category')
@@ -109,118 +115,170 @@ export default function Explore() {
     setSearchParams(p)
   }
 
+  const handleSidebarCollapse = useCallback(() => {
+    setSidebarVisible(false)
+    saveSidebarVisible(false)
+  }, [])
+
+  const handleSidebarExpand = useCallback(() => {
+    setSidebarVisible(true)
+    saveSidebarVisible(true)
+  }, [])
+
+  const syncSidebarFade = useCallback(() => {
+    const el = mainScrollRef.current
+    if (!el) return
+    const next = Math.max(0, Math.min(1, 1 - el.scrollTop / SIDEBAR_FADE_SCROLL_PX))
+    setSidebarFade((prev) => (Math.abs(prev - next) > 0.002 ? next : prev))
+  }, [])
+
+  useEffect(() => {
+    const el = mainScrollRef.current
+    if (!el) return undefined
+    syncSidebarFade()
+    el.addEventListener('scroll', syncSidebarFade, { passive: true })
+    return () => el.removeEventListener('scroll', syncSidebarFade)
+  }, [syncSidebarFade])
+
   return (
     <div className="premium-explore">
       <MobileHeader title="المنتجات" showBack />
-      <div className="premium-explore-sidebar">
-        <div className="premium-filter-block">
-          <h3>الفئات</h3>
-          <Link to={buildUrl({ category: null })} className={!categoryId ? 'active' : ''}>الكل</Link>
-          {categories.map((c) => (
-            <Link key={c.id} to={buildUrl({ category: c.id })} className={categoryId === String(c.id) ? 'active' : ''}>
-              {c.name}
-            </Link>
-          ))}
-        </div>
-        {subcategories.length > 0 && (
-          <div className="premium-filter-block">
-            <h3>النوع</h3>
-            <Link to={buildUrl({ subcategory: null })} className={!subcategoryId ? 'active' : ''}>الكل</Link>
-            {subcategories.map((sc) => (
-              <Link key={sc.id} to={buildUrl({ subcategory: sc.id })} className={subcategoryId === String(sc.id) ? 'active' : ''}>
-                {sc.name}
-              </Link>
-            ))}
-          </div>
-        )}
-        <div className="premium-filter-block">
-          <h3>العلامات التجارية</h3>
-          <Link to={buildUrl({ brand: null })} className={!brandId ? 'active' : ''}>الكل</Link>
-          {brands.map((b) => (
-            <Link key={b.id} to={buildUrl({ brand: b.id })} className={brandId === String(b.id) ? 'active' : ''}>
-              {b.name}
-            </Link>
-          ))}
-        </div>
-        {filterTags.length > 0 && (
-          <div className="premium-filter-block">
-            <h3>العلامات</h3>
-            <Link to={buildUrl({ tag: null })} className={!tagFilter ? 'active' : ''}>الكل</Link>
-            {filterTags.map((t) => (
-              <Link key={t} to={buildUrl({ tag: t })} className={tagFilter === t ? 'active' : ''}>{t}</Link>
-            ))}
-          </div>
-        )}
-        <div className="premium-filter-block">
-          <h3>نطاق السعر</h3>
-          <div className="premium-price-range">
-            <input
-              id="filter-min-price"
-              type="number"
-              placeholder="من"
-              min="0"
-              defaultValue={minPrice}
-              className="premium-price-input"
-            />
-            <input
-              id="filter-max-price"
-              type="number"
-              placeholder="إلى"
-              min="0"
-              defaultValue={maxPrice}
-              className="premium-price-input"
-            />
-            <button type="button" className="premium-price-btn" onClick={applyPriceRange}>تطبيق</button>
-          </div>
-        </div>
-      </div>
-      <div className="premium-explore-main">
-        <div className="premium-explore-mobile-filters">
-          {filterTags.length > 0 && (
-            <div className="premium-mobile-filter-group">
-              <span className="premium-mobile-filter-label">العلامات:</span>
-              <Link to={buildUrl({ tag: null })} className={!tagFilter ? 'active' : ''}>الكل</Link>
-              {filterTags.slice(0, 5).map((t) => (
-                <Link key={t} to={buildUrl({ tag: t })} className={tagFilter === t ? 'active' : ''}>{t}</Link>
-              ))}
+
+      <div className="premium-explore-layout">
+        <ExploreCategorySidebar
+          categories={categories}
+          subcategories={subcategories}
+          categoryId={categoryId}
+          subcategoryId={subcategoryId}
+          buildUrl={buildUrl}
+          visible={sidebarVisible}
+          fade={sidebarFade}
+          onCollapse={handleSidebarCollapse}
+          onExpand={handleSidebarExpand}
+        />
+
+        <div className="premium-explore-main" ref={mainScrollRef}>
+          <div className="premium-explore-main-inner">
+            <div className="premium-explore-hero">
+              <p className="premium-explore-eyebrow">
+                <span>المتجر</span>
+                <span className="premium-explore-eyebrow-dot" aria-hidden="true" />
+                <span className="premium-explore-eyebrow-brand">Rybella</span>
+              </p>
+              <h1 className="premium-explore-page-title">المنتجات</h1>
+              {featured && (
+                <span className="premium-explore-featured-badge">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2l1.8 5.5H19l-4.5 3.3 1.7 5.2L12 14.8 7.8 16l1.7-5.2L5 7.5h5.2L12 2z" />
+                  </svg>
+                  تشكيلة مميزة
+                </span>
+              )}
             </div>
-          )}
-          {(minPrice || maxPrice) && (
-            <Link to={buildUrl({ min_price: null, max_price: null })} className="premium-mobile-chip">
-              مسح السعر
-            </Link>
-          )}
-        </div>
-        <div className="premium-explore-header">
-          <h1>استكشف المنتجات</h1>
-          <select
-            value={sortBy}
-            onChange={(e) => {
-              const v = e.target.value
-              setSortBy(v)
-              const p = new URLSearchParams(searchParams)
-              if (v) p.set('sort', v); else p.delete('sort')
-              setSearchParams(p)
-            }}
-            className="premium-sort-select"
-          >
-            <option value="">ترتيب افتراضي</option>
-            <option value="price_asc">السعر: من الأقل للأعلى</option>
-            <option value="price_desc">السعر: من الأعلى للأقل</option>
-            <option value="newest">الأحدث</option>
-          </select>
-        </div>
-        {loading ? (
-          <div className="premium-loading">جاري التحميل...</div>
-        ) : products.length === 0 ? (
-          <div className="premium-empty">لا توجد منتجات.</div>
-        ) : (
-          <div className="premium-products-grid">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} />
-            ))}
+
+            <div className="premium-explore-filters">
+              <div className="premium-explore-filters-head">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <line x1="4" y1="6" x2="20" y2="6" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                  <line x1="10" y1="18" x2="14" y2="18" />
+                </svg>
+                تصفية سريعة
+              </div>
+
+              <div className="premium-explore-pills">
+                <Link
+                  to={buildUrl({ brand: null, tag: null })}
+                  className={!brandId && !tagFilter ? 'active' : ''}
+                >
+                  الكل
+                </Link>
+                {brands.slice(0, 12).map((b) => (
+                  <Link
+                    key={b.id}
+                    to={buildUrl({ brand: b.id })}
+                    className={brandId === String(b.id) ? 'active' : ''}
+                  >
+                    {b.name}
+                  </Link>
+                ))}
+              </div>
+
+              {filterTags.length > 0 && (
+                <div className="premium-explore-pills premium-explore-pills--tags">
+                  <Link to={buildUrl({ tag: null })} className={!tagFilter ? 'active' : ''}>كل العلامات</Link>
+                  {filterTags.slice(0, 10).map((t) => (
+                    <Link key={t} to={buildUrl({ tag: t })} className={tagFilter === t ? 'active' : ''}>{t}</Link>
+                  ))}
+                </div>
+              )}
+
+              <div className="premium-explore-price-row">
+                <input
+                  id="filter-min-price"
+                  type="number"
+                  placeholder="من"
+                  min="0"
+                  defaultValue={minPrice}
+                  className="premium-price-input"
+                />
+                <input
+                  id="filter-max-price"
+                  type="number"
+                  placeholder="إلى"
+                  min="0"
+                  defaultValue={maxPrice}
+                  className="premium-price-input"
+                />
+                <button type="button" className="premium-price-btn" onClick={applyPriceRange}>تطبيق</button>
+                {(minPrice || maxPrice) && (
+                  <Link to={buildUrl({ min_price: null, max_price: null })} className="premium-explore-clear-price">
+                    مسح
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            <div className="premium-explore-header">
+              <p className="premium-explore-count">
+                {loading ? '...' : `${products.length} منتج`}
+              </p>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setSortBy(v)
+                  const p = new URLSearchParams(searchParams)
+                  if (v) p.set('sort', v); else p.delete('sort')
+                  setSearchParams(p)
+                }}
+                className="premium-sort-select"
+              >
+                <option value="">ترتيب افتراضي</option>
+                <option value="price_asc">السعر: من الأقل للأعلى</option>
+                <option value="price_desc">السعر: من الأعلى للأقل</option>
+                <option value="newest">الأحدث</option>
+              </select>
+            </div>
+
+            {loading ? (
+              <div className="premium-loading">جاري التحميل...</div>
+            ) : products.length === 0 ? (
+              <div className="premium-empty">لا توجد منتجات.</div>
+            ) : (
+              <div className="premium-products-grid">
+                {products.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    wishlistIds={wishlistIds}
+                    onWishlistToggle={user ? toggleWishlist : undefined}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

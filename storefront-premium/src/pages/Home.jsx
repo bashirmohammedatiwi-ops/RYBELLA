@@ -7,8 +7,9 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
 import QuickView from '../components/QuickView'
 import HomeCategoriesSection from '../components/HomeCategoriesSection'
+import HomeOffersSection from '../components/HomeOffersSection'
 import StoriesBar from '../components/StoriesBar'
-import { formatCount, formatPercent } from '../utils/format'
+import { formatCount } from '../utils/format'
 import './Home.css'
 
 export default function Home() {
@@ -27,8 +28,6 @@ export default function Home() {
   const [recentProducts, setRecentProducts] = useState([])
   const [bannerIdx, setBannerIdx] = useState(0)
   const bannerRef = useRef(null)
-  const [offerIdx, setOfferIdx] = useState(0)
-  const offerRef = useRef(null)
   const navigate = useNavigate()
   const { user } = useAuth()
   const { totalCount } = useCart()
@@ -90,18 +89,6 @@ export default function Home() {
   const showRecent = settings?.show_recently_viewed !== '0' && recentProducts.length > 0
   const quickViewEnabled = settings?.quick_view_enabled !== '0'
   const showOffers = settings?.show_offers !== '0' && offers.length > 0
-
-  useEffect(() => {
-    if (offers.length <= 1) return
-    const t = setInterval(() => {
-      const el = offerRef.current
-      if (!el) return
-      const idx = Math.round(el.scrollLeft / el.clientWidth)
-      const next = (idx + 1) % offers.length
-      el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' })
-    }, 5000)
-    return () => clearInterval(t)
-  }, [offers.length])
 
   return (
     <div className="home">
@@ -270,51 +257,8 @@ export default function Home() {
         </section>
       )}
 
-      {/* 5. العروض الحصرية - سلايدر مثل البانرات */}
-      {showOffers && (
-        <section className="home-section home-section-offers">
-          <div className="home-offers-header">
-            <h2 className="home-offers-title">عروض حصرية</h2>
-          </div>
-          <div className="home-offers-wrapper">
-            <div
-              className="home-offers-slider"
-              ref={offerRef}
-              onScroll={(e) => setOfferIdx(Math.round(e.target.scrollLeft / (e.target.clientWidth || 1)))}
-            >
-              <div className="home-offers-slider-track">
-              {offers.map((o) => (
-                <Link key={o.id} to={o.product_ids ? `/offers/${o.id}` : '/explore'} className="home-offer-slide">
-                  <div className="home-offer-slide-bg">
-                    {o.image ? <img src={`${IMG_BASE}${o.image}`} alt={o.title} /> : <div className="home-offer-placeholder" />}
-                    <div className="home-offer-slide-overlay" />
-                  </div>
-                  <div className="home-offer-slide-content">
-                    <span className="home-offer-slide-label">{o.discount_label || o.title}</span>
-                  </div>
-                </Link>
-              ))}
-              </div>
-            </div>
-            {offers.length > 1 && (
-              <div className="home-offers-pagination">
-              {offers.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={`home-offers-dot ${i === offerIdx ? 'active' : ''}`}
-                  onClick={() => {
-                    if (offerRef.current) offerRef.current.scrollTo({ left: i * offerRef.current.clientWidth, behavior: 'smooth' })
-                    setOfferIdx(i)
-                  }}
-                  aria-label={`عرض ${i + 1}`}
-                />
-              ))}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      {/* 5. العروض الحصرية */}
+      {showOffers && <HomeOffersSection offers={offers} />}
 
       {/* 6. المنتجات المميزة */}
       {featured.length > 0 && (
