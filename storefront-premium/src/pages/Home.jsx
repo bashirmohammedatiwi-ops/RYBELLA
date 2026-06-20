@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
-import QuickView from '../components/QuickView'
 import HomeCategoriesSection from '../components/HomeCategoriesSection'
 import HomeOffersSection from '../components/HomeOffersSection'
 import StoriesBar from '../components/StoriesBar'
@@ -24,7 +23,6 @@ export default function Home() {
   const [bestSellers, setBestSellers] = useState([])
   const [wishlistIds, setWishlistIds] = useState([])
   const [settings, setSettings] = useState(null)
-  const [quickViewId, setQuickViewId] = useState(null)
   const [recentProducts, setRecentProducts] = useState([])
   const [bannerIdx, setBannerIdx] = useState(0)
   const bannerRef = useRef(null)
@@ -87,7 +85,6 @@ export default function Home() {
   const heroTitle = settings?.hero_title || 'Rybella'
   const heroSubtitle = settings?.hero_subtitle || 'الجمال الذي تستحقينه'
   const showRecent = settings?.show_recently_viewed !== '0' && recentProducts.length > 0
-  const quickViewEnabled = settings?.quick_view_enabled !== '0'
   const showOffers = settings?.show_offers !== '0' && offers.length > 0
 
   return (
@@ -272,7 +269,7 @@ export default function Home() {
           </div>
           <div className="home-products">
             {featured.map((p) => (
-              <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} onQuickView={quickViewEnabled ? setQuickViewId : undefined} />
+              <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} />
             ))}
           </div>
         </section>
@@ -287,7 +284,7 @@ export default function Home() {
           </div>
           <div className="home-products">
             {(bestSellers.length ? bestSellers : popular.slice(0, 8)).map((p) => (
-              <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} onQuickView={quickViewEnabled ? setQuickViewId : undefined} />
+              <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} />
             ))}
           </div>
         </section>
@@ -318,13 +315,12 @@ export default function Home() {
           </div>
           <div className="home-products">
             {recentProducts.map((p) => (
-              <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} onQuickView={quickViewEnabled ? setQuickViewId : undefined} />
+              <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} />
             ))}
           </div>
         </section>
       )}
 
-      {quickViewId && <QuickView productId={quickViewId} onClose={() => setQuickViewId(null)} />}
     </div>
   )
 }

@@ -10,7 +10,7 @@ function isNewProduct(p) {
   return false
 }
 
-export default function ProductCard({ product, wishlistIds = [], onWishlistToggle, onQuickView }) {
+export default function ProductCard({ product, wishlistIds = [], onWishlistToggle }) {
   const minPrice = product.min_price ?? product.variants?.[0]?.price
   const img = product.main_image || product.images?.[0] || product.variants?.[0]?.image
   const inStock = product.variants?.some((v) => v.stock > 0) ?? product.in_stock > 0 ?? true
@@ -114,16 +114,6 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
           </div>
         </div>
       </Link>
-
-      {onQuickView && (
-        <button
-          type="button"
-          className="premium-quick-view-btn"
-          onClick={(e) => { e.preventDefault(); onQuickView(product.id) }}
-        >
-          معاينة سريعة
-        </button>
-      )}
     </div>
   )
 }
