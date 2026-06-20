@@ -7,7 +7,24 @@ import MobileHeader from '../components/MobileHeader'
 import ExploreCategorySidebar, { loadSidebarVisible, saveSidebarVisible } from '../components/ExploreCategorySidebar'
 import './Explore.css'
 
-const SIDEBAR_FADE_SCROLL_PX = 280
+const SIDEBAR_FADE_SCROLL_PX = 320
+const RAIL_TRANSITION_MS = 480
+
+function smoothstep(value) {
+  return value * value * (3 - 2 * value)
+}
+
+function setLayoutRailVars(layoutEl, { scrollFade, open }) {
+  if (!layoutEl) return
+  if (scrollFade != null) {
+    layoutEl.style.setProperty('--rail-scroll-fade', scrollFade.toFixed(4))
+    layoutEl.dataset.railScrolled = scrollFade < 0.12 ? 'true' : 'false'
+  }
+  if (open != null) {
+    layoutEl.style.setProperty('--rail-open', open ? '1' : '0')
+    layoutEl.dataset.railOpen = open ? 'true' : 'false'
+  }
+}
 
 export default function Explore() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -20,8 +37,10 @@ export default function Explore() {
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('')
   const [sidebarVisible, setSidebarVisible] = useState(loadSidebarVisible)
-  const [sidebarFade, setSidebarFade] = useState(1)
+  const layoutRef = useRef(null)
   const mainScrollRef = useRef(null)
+  const scrollFadeRef = useRef(1)
+  const scrollRafRef = useRef(null)
   const { user } = useAuth()
 
   const categoryId = searchParams.get('category')
@@ -115,42 +134,84 @@ export default function Explore() {
     setSearchParams(p)
   }
 
+  const runRailTransition = useCallback((nextVisible) => {
+    const layoutEl = layoutRef.current
+    if (!layoutEl) return
+    layoutEl.classList.add('rail-transitioning')
+    setLayoutRailVars(layoutEl, { open: nextVisible })
+    window.setTimeout(() => {
+      layoutEl.classList.remove('rail-transitioning')
+    }, RAIL_TRANSITION_MS)
+  }, [])
+
   const handleSidebarCollapse = useCallback(() => {
     setSidebarVisible(false)
     saveSidebarVisible(false)
-  }, [])
+    runRailTransition(false)
+  }, [runRailTransition])
 
   const handleSidebarExpand = useCallback(() => {
     setSidebarVisible(true)
     saveSidebarVisible(true)
-  }, [])
+    runRailTransition(true)
+    const scrollEl = mainScrollRef.current
+    if (scrollEl && scrollEl.scrollTop > 0) {
+      scrollEl.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [runRailTransition])
 
   const syncSidebarFade = useCallback(() => {
-    const el = mainScrollRef.current
-    if (!el) return
-    const next = Math.max(0, Math.min(1, 1 - el.scrollTop / SIDEBAR_FADE_SCROLL_PX))
-    setSidebarFade((prev) => (Math.abs(prev - next) > 0.002 ? next : prev))
+    const scrollEl = mainScrollRef.current
+    const layoutEl = layoutRef.current
+    if (!scrollEl || !layoutEl) return
+
+    const progress = Math.max(0, Math.min(1, scrollEl.scrollTop / SIDEBAR_FADE_SCROLL_PX))
+    const next = smoothstep(1 - progress)
+
+    if (Math.abs(scrollFadeRef.current - next) < 0.001) return
+    scrollFadeRef.current = next
+    setLayoutRailVars(layoutEl, { scrollFade: next })
   }, [])
 
   useEffect(() => {
-    const el = mainScrollRef.current
-    if (!el) return undefined
+    const layoutEl = layoutRef.current
+    if (!layoutEl) return
+    setLayoutRailVars(layoutEl, { open: sidebarVisible })
     syncSidebarFade()
-    el.addEventListener('scroll', syncSidebarFade, { passive: true })
-    return () => el.removeEventListener('scroll', syncSidebarFade)
-  }, [syncSidebarFade])
+  }, [sidebarVisible, syncSidebarFade])
 
-  const railFade = sidebarVisible ? sidebarFade : 0
-  const railOpen = sidebarVisible && sidebarFade > 0.05
+  useEffect(() => {
+    const scrollEl = mainScrollRef.current
+    if (!scrollEl) return undefined
+
+    syncSidebarFade()
+
+    const onScroll = () => {
+      if (scrollRafRef.current != null) return
+      scrollRafRef.current = window.requestAnimationFrame(() => {
+        syncSidebarFade()
+        scrollRafRef.current = null
+      })
+    }
+
+    scrollEl.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      scrollEl.removeEventListener('scroll', onScroll)
+      if (scrollRafRef.current != null) {
+        window.cancelAnimationFrame(scrollRafRef.current)
+      }
+    }
+  }, [syncSidebarFade])
 
   return (
     <div className="premium-explore">
       <MobileHeader title="المنتجات" showBack />
 
       <div
+        ref={layoutRef}
         className="premium-explore-layout"
-        style={{ '--rail-fade': railFade }}
-        data-rail-open={railOpen ? 'true' : 'false'}
+        data-rail-open={sidebarVisible ? 'true' : 'false'}
+        data-rail-scrolled="false"
       >
         <div className="premium-explore-main" ref={mainScrollRef}>
           <div className="premium-explore-main-inner">
@@ -282,7 +343,6 @@ export default function Explore() {
           subcategoryId={subcategoryId}
           buildUrl={buildUrl}
           visible={sidebarVisible}
-          fade={sidebarFade}
           onCollapse={handleSidebarCollapse}
           onExpand={handleSidebarExpand}
         />

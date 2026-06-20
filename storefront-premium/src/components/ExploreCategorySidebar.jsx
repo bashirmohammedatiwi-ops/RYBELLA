@@ -87,94 +87,85 @@ export default function ExploreCategorySidebar({
   subcategoryId,
   buildUrl,
   visible = true,
-  fade = 1,
   onCollapse,
   onExpand,
 }) {
-  const showRail = visible && fade > 0.04
-  const showExpand = !visible || fade < 0.05
-
   return (
     <>
       <aside
         className={`explore-category-rail${visible ? '' : ' collapsed'}`}
-        style={{ opacity: fade, '--rail-fade': visible ? fade : 0 }}
-        aria-hidden={!showRail}
+        aria-hidden={!visible}
       >
-        {showRail && (
-          <div className="explore-category-rail-inner">
-            <div className="explore-category-rail-head">
-              <span className="explore-category-rail-title">فئات</span>
-              <button
-                type="button"
-                className="explore-category-rail-collapse"
-                onClick={onCollapse}
-                aria-label="إخفاء الفئات"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="explore-category-rail-scroll">
-              <SidebarItem
-                to={buildUrl({ category: null, subcategory: null })}
-                selected={!categoryId}
-                iconType="all"
-                label="كل الفئات"
-              />
-
-              {categories.map((c) => (
-                <SidebarItem
-                  key={c.id}
-                  to={buildUrl({ category: c.id, subcategory: null })}
-                  selected={categoryId === String(c.id)}
-                  iconUrl={getCategoryIconUrl(c)}
-                  label={c.name}
-                />
-              ))}
-
-              {categoryId && subcategories.length > 0 && (
-                <>
-                  <div className="explore-category-rail-divider" aria-hidden="true" />
-                  <span className="explore-category-rail-label">فرعية</span>
-                  <SidebarItem
-                    to={buildUrl({ subcategory: null })}
-                    selected={!subcategoryId}
-                    compact
-                    iconType="sub-all"
-                    label="كل الفرعية"
-                  />
-                  {subcategories.map((sc) => (
-                    <SidebarItem
-                      key={sc.id}
-                      to={buildUrl({ subcategory: sc.id })}
-                      selected={subcategoryId === String(sc.id)}
-                      compact
-                      iconUrl={sc.image ? `${IMG_BASE}${sc.image}` : null}
-                      label={sc.name}
-                    />
-                  ))}
-                </>
-              )}
-            </div>
+        <div className="explore-category-rail-inner">
+          <div className="explore-category-rail-head">
+            <span className="explore-category-rail-title">فئات</span>
+            <button
+              type="button"
+              className="explore-category-rail-collapse"
+              onClick={onCollapse}
+              aria-label="إخفاء الفئات"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
           </div>
-        )}
+
+          <div className="explore-category-rail-scroll">
+            <SidebarItem
+              to={buildUrl({ category: null, subcategory: null })}
+              selected={!categoryId}
+              iconType="all"
+              label="كل الفئات"
+            />
+
+            {categories.map((c) => (
+              <SidebarItem
+                key={c.id}
+                to={buildUrl({ category: c.id, subcategory: null })}
+                selected={categoryId === String(c.id)}
+                iconUrl={getCategoryIconUrl(c)}
+                label={c.name}
+              />
+            ))}
+
+            {categoryId && subcategories.length > 0 && (
+              <>
+                <div className="explore-category-rail-divider" aria-hidden="true" />
+                <span className="explore-category-rail-label">فرعية</span>
+                <SidebarItem
+                  to={buildUrl({ subcategory: null })}
+                  selected={!subcategoryId}
+                  compact
+                  iconType="sub-all"
+                  label="كل الفرعية"
+                />
+                {subcategories.map((sc) => (
+                  <SidebarItem
+                    key={sc.id}
+                    to={buildUrl({ subcategory: sc.id })}
+                    selected={subcategoryId === String(sc.id)}
+                    compact
+                    iconUrl={sc.image ? `${IMG_BASE}${sc.image}` : null}
+                    label={sc.name}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        </div>
       </aside>
 
-      {showExpand && (
-        <button
-          type="button"
-          className="explore-category-rail-expand"
-          onClick={onExpand}
-          aria-label="عرض الفئات"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      )}
+      <button
+        type="button"
+        className="explore-category-rail-expand"
+        onClick={onExpand}
+        aria-label="عرض الفئات"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
     </>
   )
 }

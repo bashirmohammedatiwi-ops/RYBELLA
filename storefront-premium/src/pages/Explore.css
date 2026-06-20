@@ -18,7 +18,9 @@
   align-items: stretch;
   position: relative;
   --rail-base: 72px;
-  --rail-fade: 1;
+  --rail-scroll-fade: 1;
+  --rail-open: 1;
+  --rail-width: calc(var(--rail-base) * var(--rail-scroll-fade) * var(--rail-open));
 }
 
 .premium-explore-main {
@@ -28,7 +30,17 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  transition: flex 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+.premium-explore-layout.rail-transitioning .premium-explore-main-inner {
+  transition: padding 0.48s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.premium-explore-layout[data-rail-open='false'] .premium-explore-main-inner,
+.premium-explore-layout[data-rail-scrolled='true'] .premium-explore-main-inner {
+  padding-left: clamp(52px, 12vw, 64px);
 }
 
 .premium-explore-main-inner {
@@ -252,12 +264,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 142px), 1fr));
   gap: clamp(10px, 2.5cqi, 18px);
-  transition: gap 0.26s ease;
 }
 
 .premium-products-grid .premium-product-card-wrap {
   min-width: 0;
-  transition: transform 0.26s ease;
 }
 
 @container explore-main (min-width: 360px) {

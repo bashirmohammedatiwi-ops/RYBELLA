@@ -302,9 +302,6 @@ export default function ProductDetail() {
         </div>
 
         <div className="pd-actions">
-          <button className="pd-add-cart" onClick={handleAddToCart} disabled={!selectedVariant || (selectedVariant?.stock ?? 0) < 1}>
-            {selectedVariant && selectedVariant.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}
-          </button>
           {user && (
             <button type="button" className={`pd-wishlist ${isInWishlist ? 'active' : ''}`} onClick={toggleWishlist} aria-label="المفضلة">
               {isInWishlist ? '♥' : '♡'}
@@ -314,12 +311,24 @@ export default function ProductDetail() {
       </div>
 
       <div className="pd-sticky-bar">
-        <span className="pd-sticky-price">
-          {selectedVariant ? formatPrice(selectedVariant.price * qty) : '—'}
-        </span>
-        <button className="pd-sticky-add" onClick={handleAddToCart} disabled={!selectedVariant || (selectedVariant?.stock ?? 0) < 1}>
-          {selectedVariant && selectedVariant.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}
-        </button>
+        <div className="pd-sticky-bar-inner">
+          <div className="pd-sticky-price-block">
+            <span className="pd-sticky-price-label">
+              {qty > 1 ? `الإجمالي (${formatNumber(qty)})` : 'السعر'}
+            </span>
+            <span className="pd-sticky-price">
+              {selectedVariant ? formatPrice(selectedVariant.price * qty) : '—'}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="pd-sticky-add"
+            onClick={handleAddToCart}
+            disabled={!selectedVariant || (selectedVariant?.stock ?? 0) < 1}
+          >
+            {selectedVariant && selectedVariant.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}
+          </button>
+        </div>
       </div>
     </div>
   )
