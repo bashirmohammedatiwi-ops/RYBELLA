@@ -157,6 +157,11 @@
 .home-banners-wrapper {
   position: relative;
   margin: 0 12px;
+  --banner-overflow-top: 120px;
+  --banner-height: auto;
+  padding-top: var(--banner-overflow-top);
+  margin-top: calc(var(--banner-overflow-top) * -1);
+  overflow: visible;
 }
 
 .home-banners {
@@ -164,16 +169,12 @@
   margin: 0;
   border-radius: 20px;
   overflow-x: auto;
-  overflow-y: visible;
-  /* بدون box-shadow لتجنب تغطية الفئات والأيقونات فوق البانر */
+  overflow-y: hidden;
   max-width: 100%;
   box-sizing: border-box;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  /* مساحة علوية لخروج الصورة دون قص (overflow-x:auto يجعل overflow-y:auto تلقائياً) */
-  padding-top: 120px;
-  margin-top: -120px;
 }
 
 .home-banners-slider {
@@ -203,27 +204,32 @@
   border: 2px solid rgba(232, 93, 122, 0.5);
 }
 
-/* حاوية البانر - الصورة تخرج من الأعلى فقط، تُقص من اليمين واليسار */
+/* حاوية البانر — الصورة تخرج من الأعلى، بدون قص جانبي على الهاتف */
 .home-banner-clip {
   position: absolute;
   inset: 0;
-  top: -120px;
-  height: calc(100% + 120px);
+  top: calc(var(--banner-overflow-top, 120px) * -1);
+  height: calc(100% + var(--banner-overflow-top, 120px));
   border-radius: inherit;
-  overflow-x: clip;
-  overflow-y: visible;
+  overflow: visible;
+  pointer-events: none;
 }
 
-/* طبقة الخلفية - داخل البانر فقط، لا تمتد للأعلى (لتجنب تغطية الفئات) */
+.home-banner-clip > * {
+  pointer-events: auto;
+}
+
+/* طبقة الخلفية - داخل البانر فقط */
 .home-banner-bg {
   position: absolute;
-  top: 120px;
+  top: var(--banner-overflow-top, 120px);
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 0;
   overflow: hidden;
   border-radius: inherit;
+  pointer-events: none;
 }
 
 .home-banner-bg img {
@@ -255,7 +261,7 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: clamp(320px, 55vh, 480px);
+  max-height: clamp(240px, 52vh, 480px);
   object-fit: contain;
   object-position: bottom center;
 }
@@ -264,6 +270,7 @@
 .home-banner-content {
   position: absolute;
   inset: 0;
+  top: var(--banner-overflow-top, 120px);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -345,7 +352,7 @@
 .home-banner-discount-badge {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: calc(var(--banner-overflow-top, 120px) + (100% - var(--banner-overflow-top, 120px)) / 2);
   transform: translate(-50%, -50%);
   z-index: 2;
   width: 72px;
@@ -427,48 +434,42 @@
   padding: 6px;
 }
 
-/* البانرات والعروض - هواتف */
+/* البانرات — هواتف (مطابق لتطبيق Flutter) */
 @media (max-width: 640px) {
+  .home-banners-wrapper {
+    --banner-overflow-top: 88px;
+    margin: 0 10px;
+  }
+
   .home-banner-slide {
-    min-height: 110px;
-    aspect-ratio: 20/9;
-    max-height: 180px;
-  }
-
-  .home-banner-clip {
-    top: -100px;
-    height: calc(100% + 100px);
-  }
-
-  .home-banner-bg {
-    top: 100px;
+    min-height: 167px;
+    height: 167px;
+    max-height: none;
+    aspect-ratio: unset;
   }
 
   .home-banner-figure img {
-    max-height: clamp(300px, 48vh, 380px);
+    max-height: 240px;
+  }
+
+  .home-banner-content {
+    padding: 12px 14px;
   }
 }
 
 @media (max-width: 380px) {
-  .home-banners {
-    margin: 0 10px;
-    border-radius: 16px;
+  .home-banners-wrapper {
+    --banner-overflow-top: 76px;
   }
 
   .home-banner-slide {
-    min-height: 100px;
-    aspect-ratio: 2/1;
-    max-height: 160px;
+    min-height: 155px;
+    height: 155px;
     border-radius: 16px;
   }
 
-  .home-banner-clip {
-    top: -80px;
-    height: calc(100% + 80px);
-  }
-
-  .home-banner-bg {
-    top: 80px;
+  .home-banners {
+    border-radius: 16px;
   }
 
   .home-banner-content {
@@ -480,12 +481,16 @@
   }
 
   .home-banner-figure img {
-    max-height: clamp(260px, 45vh, 340px);
+    max-height: 220px;
   }
 }
 
 /* البانرات - شاشات كبيرة */
-@media (min-width: 640px) {
+@media (min-width: 641px) {
+  .home-banners-wrapper {
+    --banner-overflow-top: 150px;
+  }
+
   .home-banners {
     margin: 0 20px;
     border-radius: 24px;
@@ -497,12 +502,7 @@
   }
 
   .home-banner-clip {
-    top: -150px;
-    height: calc(100% + 150px);
-  }
-
-  .home-banner-bg {
-    top: 150px;
+    overflow-x: clip;
   }
 
   .home-banner-figure img {
