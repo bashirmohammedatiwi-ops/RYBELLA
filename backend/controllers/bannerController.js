@@ -109,11 +109,8 @@ exports.getAllAdmin = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { title, subtitle, discount_percent, discount_label, button_text, button_color, background_color, border_color, border_radius, link_type, link_value, sort_order, active, image_pos_x, image_pos_y, image_size } = req.body;
-    const image = req.files?.image?.[0] ? `/uploads/${req.files.image[0].filename}` : null;
+    const image = req.files?.image?.[0] ? `/uploads/${req.files.image[0].filename}` : '';
     const backgroundImage = req.files?.background_image?.[0] ? `/uploads/${req.files.background_image[0].filename}` : null;
-    if (!image) {
-      return res.status(400).json({ message: 'الصورة مطلوبة' });
-    }
     const posX = image_pos_x != null ? parseFloat(image_pos_x) : 80;
     const posY = image_pos_y != null ? parseFloat(image_pos_y) : 70;
     const size = image_size != null ? parseFloat(image_size) : 0;

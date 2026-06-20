@@ -185,7 +185,7 @@ export default function Banners() {
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                       {b.background_image && <ImageDisplay src={b.background_image} width={48} height={32} fit="cover" title="الخلفية" />}
-                      <ImageDisplay src={b.image} width={48} height={32} fit="cover" title="الصورة الأمامية" />
+                      {b.image ? <ImageDisplay src={b.image} width={48} height={32} fit="cover" title="الصورة الأمامية" /> : null}
                     </Box>
                   </TableCell>
                   <TableCell>{b.title || '-'}</TableCell>
@@ -258,8 +258,8 @@ export default function Banners() {
                   </Button>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>الصورة الأمامية (مطلوبة) — تظهر على اليمين وتخرج من أعلى البانر</Typography>
-                  <Button variant="outlined" component="label" size="small" color={!editingBanner && !imageFile ? 'error' : 'primary'}>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>الصورة الأمامية (اختياري) — تظهر على اليمين وتخرج من أعلى البانر</Typography>
+                  <Button variant="outlined" component="label" size="small">
                     {imageFile ? imageFile.name : editingBanner?.image ? 'تغيير الصورة' : 'اختر الصورة'}
                     <input type="file" hidden accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
                   </Button>
@@ -274,9 +274,6 @@ export default function Banners() {
                     onPositionChange={({ x, y }) => setForm((f) => ({ ...f, image_pos_x: x, image_pos_y: y }))}
                     onSizeChange={(v) => setForm((f) => ({ ...f, image_size: v }))}
                   />
-                )}
-                {!editingBanner && !imageFile && (
-                  <Typography variant="caption" color="error">الصورة الأمامية مطلوبة للبانر الجديد</Typography>
                 )}
               </AccordionDetails>
             </Accordion>
@@ -358,7 +355,7 @@ export default function Banners() {
             <Divider sx={{ my: 2 }} />
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button onClick={() => setDialogOpen(false)}>إلغاء</Button>
-              <Button type="submit" variant="contained" disabled={!editingBanner && !imageFile}>
+              <Button type="submit" variant="contained">
                 {editingBanner ? 'تحديث' : 'إضافة'}
               </Button>
             </Box>
