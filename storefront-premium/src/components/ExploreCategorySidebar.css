@@ -251,11 +251,11 @@
   transform: scale(0.97);
 }
 
-/* ─── Expand button ─── */
+/* ─── Expand button — طبقة عائمة، لا تدفع البطاقات ─── */
 .premium-explore-layout .explore-category-rail-expand {
-  position: absolute;
-  left: 6px;
-  top: 8px;
+  position: fixed;
+  left: max(8px, env(safe-area-inset-left, 0px));
+  top: 50%;
   z-index: 45;
   width: 44px;
   height: 44px;
@@ -267,10 +267,10 @@
   background: #fff;
   color: var(--primary);
   cursor: pointer;
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
   opacity: 0;
   pointer-events: none;
-  transform: translate3d(-10px, 0, 0) scale(0.88);
+  transform: translate3d(-12px, -50%, 0) scale(0.88);
   transition:
     opacity 0.38s cubic-bezier(0.32, 0.72, 0, 1),
     transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
@@ -281,16 +281,16 @@
 .premium-explore-layout[data-rail-scrolled='true'] .explore-category-rail-expand {
   opacity: 1;
   pointer-events: auto;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, -50%, 0) scale(1);
 }
 
 .premium-explore-layout .explore-category-rail-expand:hover {
-  transform: translate3d(0, 0, 0) scale(1.06);
-  box-shadow: 0 6px 20px rgba(232, 93, 122, 0.2);
+  transform: translate3d(0, -50%, 0) scale(1.06);
+  box-shadow: 0 6px 22px rgba(232, 93, 122, 0.22);
 }
 
 .premium-explore-layout .explore-category-rail-expand:active {
-  transform: translate3d(0, 0, 0) scale(0.96);
+  transform: translate3d(0, -50%, 0) scale(0.96);
 }
 
 @media (min-width: 600px) {

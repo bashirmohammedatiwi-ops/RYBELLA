@@ -38,11 +38,6 @@
   transition: padding 0.48s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.premium-explore-layout[data-rail-open='false'] .premium-explore-main-inner,
-.premium-explore-layout[data-rail-scrolled='true'] .premium-explore-main-inner {
-  padding-left: clamp(52px, 12vw, 64px);
-}
-
 .premium-explore-main-inner {
   padding: 12px 14px 2rem;
   width: 100%;

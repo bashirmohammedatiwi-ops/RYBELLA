@@ -10,6 +10,10 @@ function isNewProduct(p) {
   return false
 }
 
+function isTruthyFlag(value) {
+  return value === true || value === 1 || value === '1'
+}
+
 export default function ProductCard({ product, wishlistIds = [], onWishlistToggle }) {
   const minPrice = product.min_price ?? product.variants?.[0]?.price
   const img = product.main_image || product.images?.[0] || product.variants?.[0]?.image
@@ -36,7 +40,7 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
           </div>
 
           <div className="premium-product-badges">
-            {product.is_featured && (
+            {isTruthyFlag(product.is_featured) && (
               <span className="premium-product-badge premium-product-badge--featured">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M12 2l1.8 5.5H19l-4.5 3.3 1.7 5.2L12 14.8 7.8 16l1.7-5.2L5 7.5h5.2L12 2z" />
@@ -44,7 +48,7 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
                 مميز
               </span>
             )}
-            {product.is_best_seller && (
+            {isTruthyFlag(product.is_best_seller) && (
               <span className="premium-product-badge premium-product-badge--bestseller">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                   <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
@@ -53,7 +57,7 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
                 الأكثر مبيعاً
               </span>
             )}
-            {!product.is_featured && !product.is_best_seller && isNewProduct(product) && (
+            {!isTruthyFlag(product.is_featured) && !isTruthyFlag(product.is_best_seller) && isNewProduct(product) && (
               <span className="premium-product-badge premium-product-badge--new">جديد</span>
             )}
           </div>

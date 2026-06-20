@@ -4,7 +4,7 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
-import { formatPrice, formatNumber } from '../utils/format'
+import { formatPrice } from '../utils/format'
 import { getVariantColor, isMetallicShade } from '../utils/variantColor'
 import MobileHeader from '../components/MobileHeader'
 import './ProductDetail.css'
@@ -315,27 +315,6 @@ export default function ProductDetail() {
               {isInWishlist ? '♥' : '♡'}
             </button>
           )}
-        </div>
-      </div>
-
-      <div className="pd-sticky-bar">
-        <div className="pd-sticky-bar-inner">
-          <div className="pd-sticky-price-block">
-            <span className="pd-sticky-price-label">
-              {qty > 1 ? `الإجمالي (${formatNumber(qty)})` : 'السعر'}
-            </span>
-            <span className="pd-sticky-price">
-              {selectedVariant ? formatPrice(selectedVariant.price * qty) : '—'}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="pd-sticky-add"
-            onClick={handleAddToCart}
-            disabled={!selectedVariant || (selectedVariant?.stock ?? 0) < 1}
-          >
-            {selectedVariant && selectedVariant.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}
-          </button>
         </div>
       </div>
     </div>
