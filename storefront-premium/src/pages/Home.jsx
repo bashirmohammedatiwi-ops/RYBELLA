@@ -162,7 +162,7 @@ export default function Home() {
                   {/* حاوية القص: تسمح بالخروج من الأعلى فقط */}
                   <div className="home-banner-clip">
                     {/* طبقة الخلفية */}
-                    <div className="home-banner-bg" style={{ background: b.background_image ? undefined : bgColor }}>
+                    <div className="home-banner-bg" style={{ background: bgColor }}>
                       {b.background_image ? (
                         <img src={`${IMG_BASE}${b.background_image}`} alt="" />
                       ) : null}
