@@ -20,7 +20,7 @@
   --rail-base: 72px;
   --rail-scroll-fade: 1;
   --rail-open: 1;
-  --rail-width: calc(var(--rail-base) * var(--rail-open));
+  --rail-width: calc(var(--rail-base) * var(--rail-scroll-fade, 1) * var(--rail-open, 1));
   --rail-visual: calc(var(--rail-scroll-fade, 1) * var(--rail-open, 1));
 }
 

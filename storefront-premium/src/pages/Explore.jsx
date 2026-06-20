@@ -141,9 +141,17 @@ export default function Explore() {
     setSidebarVisible(true)
     saveSidebarVisible(true)
     runRailTransition(true)
-    const scrollEl = mainScrollRef.current
-    if (scrollEl && scrollEl.scrollTop > 0) {
-      scrollEl.scrollTo({ top: 0, behavior: 'smooth' })
+
+    scrollFadeRef.current = 1
+    scrollFadeTargetRef.current = 1
+    if (scrollAnimRef.current != null) {
+      window.cancelAnimationFrame(scrollAnimRef.current)
+      scrollAnimRef.current = null
+    }
+
+    const layoutEl = layoutRef.current
+    if (layoutEl) {
+      setLayoutRailVars(layoutEl, { scrollFade: 1 })
     }
   }, [runRailTransition])
 

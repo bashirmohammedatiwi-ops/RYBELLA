@@ -5,11 +5,16 @@
 .explore-category-rail {
   flex: 0 0 var(--rail-width, var(--rail-base, 72px));
   width: var(--rail-width, var(--rail-base, 72px));
+  min-width: 0;
   align-self: stretch;
   position: relative;
   overflow: hidden;
   z-index: 40;
   contain: layout style;
+}
+
+.premium-explore-layout[data-rail-scrolled='true'] .explore-category-rail:not(.collapsed) {
+  pointer-events: none;
 }
 
 .premium-explore-layout.rail-transitioning .explore-category-rail {
@@ -40,24 +45,21 @@
   transform-origin: left center;
   opacity: var(--rail-visual, 1);
   transform:
-    translate3d(calc((1 - var(--rail-visual, 1)) * -16px), 0, 0)
-    scale(calc(0.92 + (var(--rail-visual, 1) * 0.08)));
-  clip-path: inset(0 calc((1 - var(--rail-visual, 1)) * 100%) 0 0);
-  will-change: transform, opacity, clip-path;
+    translate3d(calc((1 - var(--rail-visual, 1)) * -8px), 0, 0)
+    scale(calc(0.96 + (var(--rail-visual, 1) * 0.04)));
+  will-change: transform, opacity;
 }
 
 .premium-explore-layout.rail-transitioning .explore-category-rail-inner {
   transition:
     opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.52s cubic-bezier(0.22, 1, 0.36, 1),
-    clip-path 0.52s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.52s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .explore-category-rail.collapsed .explore-category-rail-inner {
   opacity: 0;
-  transform: translate3d(-18px, 0, 0) scale(0.9);
-  clip-path: inset(0 100% 0 0);
+  transform: translate3d(-12px, 0, 0) scale(0.94);
   pointer-events: none;
 }
 
@@ -334,6 +336,6 @@
   }
 
   .explore-category-rail-inner {
-    clip-path: none;
+    transform: none;
   }
 }
