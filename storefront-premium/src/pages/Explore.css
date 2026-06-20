@@ -33,6 +33,7 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
+  transition: flex 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .premium-explore-layout.rail-transitioning .premium-explore-main {

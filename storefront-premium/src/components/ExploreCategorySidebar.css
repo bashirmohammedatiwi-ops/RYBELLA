@@ -10,10 +10,12 @@
   position: relative;
   overflow: hidden;
   z-index: 40;
-  contain: layout style;
+  transition:
+    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    flex-basis 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.premium-explore-layout[data-rail-scrolled='true'] .explore-category-rail:not(.collapsed) {
+.premium-explore-layout[data-rail-scrolled='true']:not([data-rail-pinned='true']) .explore-category-rail:not(.collapsed) {
   pointer-events: none;
 }
 
@@ -47,7 +49,10 @@
   transform:
     translate3d(calc((1 - var(--rail-visual, 1)) * -8px), 0, 0)
     scale(calc(0.96 + (var(--rail-visual, 1) * 0.04)));
-  will-change: transform, opacity;
+  transition:
+    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .premium-explore-layout.rail-transitioning .explore-category-rail-inner {

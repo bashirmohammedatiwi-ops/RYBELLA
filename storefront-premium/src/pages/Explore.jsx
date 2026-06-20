@@ -9,13 +9,12 @@ import './Explore.css'
 
 const SIDEBAR_FADE_SCROLL_PX = 400
 const RAIL_TRANSITION_MS = 520
-const SCROLL_FADE_LERP = 0.16
 
 function easeOutCubic(value) {
   return 1 - (1 - value) ** 3
 }
 
-function setLayoutRailVars(layoutEl, { scrollFade, open }) {
+function setLayoutRailVars(layoutEl, { scrollFade, open, pinned }) {
   if (!layoutEl) return
   if (scrollFade != null) {
     layoutEl.style.setProperty('--rail-scroll-fade', scrollFade.toFixed(4))
@@ -26,6 +25,9 @@ function setLayoutRailVars(layoutEl, { scrollFade, open }) {
   if (open != null) {
     layoutEl.style.setProperty('--rail-open', open ? '1' : '0')
     layoutEl.dataset.railOpen = open ? 'true' : 'false'
+  }
+  if (pinned != null) {
+    layoutEl.dataset.railPinned = pinned ? 'true' : 'false'
   }
 }
 
@@ -41,9 +43,8 @@ export default function Explore() {
   const layoutRef = useRef(null)
   const mainScrollRef = useRef(null)
   const scrollFadeRef = useRef(1)
-  const scrollFadeTargetRef = useRef(1)
+  const scrollFadeLockedRef = useRef(false)
   const scrollRafRef = useRef(null)
-  const scrollAnimRef = useRef(null)
   const { user } = useAuth()
 
   const categoryId = searchParams.get('category')
@@ -132,63 +133,44 @@ export default function Explore() {
   }, [])
 
   const handleSidebarCollapse = useCallback(() => {
+    scrollFadeLockedRef.current = false
     setSidebarVisible(false)
     saveSidebarVisible(false)
     runRailTransition(false)
+    const layoutEl = layoutRef.current
+    if (layoutEl) {
+      setLayoutRailVars(layoutEl, { pinned: false })
+    }
   }, [runRailTransition])
 
   const handleSidebarExpand = useCallback(() => {
+    scrollFadeLockedRef.current = true
+    scrollFadeRef.current = 1
+
     setSidebarVisible(true)
     saveSidebarVisible(true)
     runRailTransition(true)
 
-    scrollFadeRef.current = 1
-    scrollFadeTargetRef.current = 1
-    if (scrollAnimRef.current != null) {
-      window.cancelAnimationFrame(scrollAnimRef.current)
-      scrollAnimRef.current = null
-    }
-
     const layoutEl = layoutRef.current
     if (layoutEl) {
-      setLayoutRailVars(layoutEl, { scrollFade: 1 })
+      setLayoutRailVars(layoutEl, { scrollFade: 1, pinned: true })
     }
   }, [runRailTransition])
 
-  const animateScrollFade = useCallback(() => {
-    const layoutEl = layoutRef.current
-    if (!layoutEl) {
-      scrollAnimRef.current = null
-      return
-    }
-
-    const current = scrollFadeRef.current
-    const target = scrollFadeTargetRef.current
-    const next = current + (target - current) * SCROLL_FADE_LERP
-
-    if (Math.abs(next - target) < 0.003) {
-      scrollFadeRef.current = target
-      setLayoutRailVars(layoutEl, { scrollFade: target })
-      scrollAnimRef.current = null
-      return
-    }
-
-    scrollFadeRef.current = next
-    setLayoutRailVars(layoutEl, { scrollFade: next })
-    scrollAnimRef.current = window.requestAnimationFrame(animateScrollFade)
-  }, [])
-
   const syncSidebarFade = useCallback(() => {
+    if (scrollFadeLockedRef.current) return
+
     const scrollEl = mainScrollRef.current
-    if (!scrollEl) return
+    const layoutEl = layoutRef.current
+    if (!scrollEl || !layoutEl) return
 
     const progress = Math.max(0, Math.min(1, scrollEl.scrollTop / SIDEBAR_FADE_SCROLL_PX))
-    scrollFadeTargetRef.current = easeOutCubic(1 - progress)
+    const next = easeOutCubic(1 - progress)
 
-    if (scrollAnimRef.current == null) {
-      scrollAnimRef.current = window.requestAnimationFrame(animateScrollFade)
-    }
-  }, [animateScrollFade])
+    if (Math.abs(scrollFadeRef.current - next) < 0.002) return
+    scrollFadeRef.current = next
+    setLayoutRailVars(layoutEl, { scrollFade: next, pinned: false })
+  }, [])
 
   useEffect(() => {
     const layoutEl = layoutRef.current
@@ -204,6 +186,14 @@ export default function Explore() {
     syncSidebarFade()
 
     const onScroll = () => {
+      if (scrollFadeLockedRef.current) {
+        scrollFadeLockedRef.current = false
+        const layoutEl = layoutRef.current
+        if (layoutEl) {
+          setLayoutRailVars(layoutEl, { pinned: false })
+        }
+      }
+
       if (scrollRafRef.current != null) return
       scrollRafRef.current = window.requestAnimationFrame(() => {
         syncSidebarFade()
@@ -217,9 +207,6 @@ export default function Explore() {
       if (scrollRafRef.current != null) {
         window.cancelAnimationFrame(scrollRafRef.current)
       }
-      if (scrollAnimRef.current != null) {
-        window.cancelAnimationFrame(scrollAnimRef.current)
-      }
     }
   }, [syncSidebarFade])
 
@@ -232,6 +219,7 @@ export default function Explore() {
         className="premium-explore-layout"
         data-rail-open={sidebarVisible ? 'true' : 'false'}
         data-rail-scrolled="false"
+        data-rail-pinned="false"
       >
         <div className="premium-explore-main" ref={mainScrollRef}>
           <div className="premium-explore-main-inner">
