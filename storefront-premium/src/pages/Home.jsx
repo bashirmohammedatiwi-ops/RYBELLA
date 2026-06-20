@@ -9,7 +9,7 @@ import QuickView from '../components/QuickView'
 import HomeCategoriesSection from '../components/HomeCategoriesSection'
 import HomeOffersSection from '../components/HomeOffersSection'
 import StoriesBar from '../components/StoriesBar'
-import { formatCount } from '../utils/format'
+import { formatCount, formatPercent } from '../utils/format'
 import './Home.css'
 
 export default function Home() {
