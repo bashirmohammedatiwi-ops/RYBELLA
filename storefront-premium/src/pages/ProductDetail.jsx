@@ -302,6 +302,14 @@ export default function ProductDetail() {
         </div>
 
         <div className="pd-actions">
+          <button
+            type="button"
+            className="pd-add-cart"
+            onClick={handleAddToCart}
+            disabled={!selectedVariant || (selectedVariant?.stock ?? 0) < 1}
+          >
+            {selectedVariant && selectedVariant.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}
+          </button>
           {user && (
             <button type="button" className={`pd-wishlist ${isInWishlist ? 'active' : ''}`} onClick={toggleWishlist} aria-label="المفضلة">
               {isInWishlist ? '♥' : '♡'}
