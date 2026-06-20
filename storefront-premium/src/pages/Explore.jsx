@@ -1,24 +1,27 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { productsAPI, categoriesAPI, subcategoriesAPI, brandsAPI, wishlistAPI } from '../services/api'
+import { useSearchParams } from 'react-router-dom'
+import { productsAPI, categoriesAPI, subcategoriesAPI, wishlistAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import ProductCard from '../components/ProductCard'
 import MobileHeader from '../components/MobileHeader'
 import ExploreCategorySidebar, { loadSidebarVisible, saveSidebarVisible } from '../components/ExploreCategorySidebar'
 import './Explore.css'
 
-const SIDEBAR_FADE_SCROLL_PX = 320
-const RAIL_TRANSITION_MS = 480
+const SIDEBAR_FADE_SCROLL_PX = 400
+const RAIL_TRANSITION_MS = 520
+const SCROLL_FADE_LERP = 0.16
 
-function smoothstep(value) {
-  return value * value * (3 - 2 * value)
+function easeOutCubic(value) {
+  return 1 - (1 - value) ** 3
 }
 
 function setLayoutRailVars(layoutEl, { scrollFade, open }) {
   if (!layoutEl) return
   if (scrollFade != null) {
     layoutEl.style.setProperty('--rail-scroll-fade', scrollFade.toFixed(4))
-    layoutEl.dataset.railScrolled = scrollFade < 0.12 ? 'true' : 'false'
+    const prev = layoutEl.dataset.railScrolled === 'true'
+    const next = prev ? scrollFade < 0.24 : scrollFade < 0.1
+    layoutEl.dataset.railScrolled = next ? 'true' : 'false'
   }
   if (open != null) {
     layoutEl.style.setProperty('--rail-open', open ? '1' : '0')
@@ -31,8 +34,6 @@ export default function Explore() {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
-  const [brands, setBrands] = useState([])
-  const [filterTags, setFilterTags] = useState([])
   const [wishlistIds, setWishlistIds] = useState([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('')
@@ -40,7 +41,9 @@ export default function Explore() {
   const layoutRef = useRef(null)
   const mainScrollRef = useRef(null)
   const scrollFadeRef = useRef(1)
+  const scrollFadeTargetRef = useRef(1)
   const scrollRafRef = useRef(null)
+  const scrollAnimRef = useRef(null)
   const { user } = useAuth()
 
   const categoryId = searchParams.get('category')
@@ -55,12 +58,6 @@ export default function Explore() {
   useEffect(() => {
     setSortBy(searchParams.get('sort') || '')
   }, [searchParams])
-
-  useEffect(() => {
-    productsAPI.getFilters()
-      .then((r) => setFilterTags(r?.data?.tags || []))
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     if (!searchParams.has('color')) return
@@ -90,7 +87,6 @@ export default function Explore() {
 
   useEffect(() => {
     categoriesAPI.getAll().then((r) => setCategories(r?.data || [])).catch(() => [])
-    brandsAPI.getAll().then((r) => setBrands(r?.data || [])).catch(() => [])
   }, [])
 
   useEffect(() => {
@@ -125,15 +121,6 @@ export default function Explore() {
     return '/explore' + (p.toString() ? '?' + p.toString() : '')
   }
 
-  const applyPriceRange = () => {
-    const min = document.getElementById('filter-min-price')?.value
-    const max = document.getElementById('filter-max-price')?.value
-    const p = new URLSearchParams(searchParams)
-    if (min) p.set('min_price', min); else p.delete('min_price')
-    if (max) p.set('max_price', max); else p.delete('max_price')
-    setSearchParams(p)
-  }
-
   const runRailTransition = useCallback((nextVisible) => {
     const layoutEl = layoutRef.current
     if (!layoutEl) return
@@ -160,18 +147,40 @@ export default function Explore() {
     }
   }, [runRailTransition])
 
-  const syncSidebarFade = useCallback(() => {
-    const scrollEl = mainScrollRef.current
+  const animateScrollFade = useCallback(() => {
     const layoutEl = layoutRef.current
-    if (!scrollEl || !layoutEl) return
+    if (!layoutEl) {
+      scrollAnimRef.current = null
+      return
+    }
 
-    const progress = Math.max(0, Math.min(1, scrollEl.scrollTop / SIDEBAR_FADE_SCROLL_PX))
-    const next = smoothstep(1 - progress)
+    const current = scrollFadeRef.current
+    const target = scrollFadeTargetRef.current
+    const next = current + (target - current) * SCROLL_FADE_LERP
 
-    if (Math.abs(scrollFadeRef.current - next) < 0.001) return
+    if (Math.abs(next - target) < 0.003) {
+      scrollFadeRef.current = target
+      setLayoutRailVars(layoutEl, { scrollFade: target })
+      scrollAnimRef.current = null
+      return
+    }
+
     scrollFadeRef.current = next
     setLayoutRailVars(layoutEl, { scrollFade: next })
+    scrollAnimRef.current = window.requestAnimationFrame(animateScrollFade)
   }, [])
+
+  const syncSidebarFade = useCallback(() => {
+    const scrollEl = mainScrollRef.current
+    if (!scrollEl) return
+
+    const progress = Math.max(0, Math.min(1, scrollEl.scrollTop / SIDEBAR_FADE_SCROLL_PX))
+    scrollFadeTargetRef.current = easeOutCubic(1 - progress)
+
+    if (scrollAnimRef.current == null) {
+      scrollAnimRef.current = window.requestAnimationFrame(animateScrollFade)
+    }
+  }, [animateScrollFade])
 
   useEffect(() => {
     const layoutEl = layoutRef.current
@@ -199,6 +208,9 @@ export default function Explore() {
       scrollEl.removeEventListener('scroll', onScroll)
       if (scrollRafRef.current != null) {
         window.cancelAnimationFrame(scrollRafRef.current)
+      }
+      if (scrollAnimRef.current != null) {
+        window.cancelAnimationFrame(scrollAnimRef.current)
       }
     }
   }, [syncSidebarFade])
@@ -230,69 +242,6 @@ export default function Explore() {
                   تشكيلة مميزة
                 </span>
               )}
-            </div>
-
-            <div className="premium-explore-filters">
-              <div className="premium-explore-filters-head">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <line x1="4" y1="6" x2="20" y2="6" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
-                  <line x1="10" y1="18" x2="14" y2="18" />
-                </svg>
-                تصفية سريعة
-              </div>
-
-              <div className="premium-explore-pills">
-                <Link
-                  to={buildUrl({ brand: null, tag: null })}
-                  className={!brandId && !tagFilter ? 'active' : ''}
-                >
-                  الكل
-                </Link>
-                {brands.slice(0, 12).map((b) => (
-                  <Link
-                    key={b.id}
-                    to={buildUrl({ brand: b.id })}
-                    className={brandId === String(b.id) ? 'active' : ''}
-                  >
-                    {b.name}
-                  </Link>
-                ))}
-              </div>
-
-              {filterTags.length > 0 && (
-                <div className="premium-explore-pills premium-explore-pills--tags">
-                  <Link to={buildUrl({ tag: null })} className={!tagFilter ? 'active' : ''}>كل العلامات</Link>
-                  {filterTags.slice(0, 10).map((t) => (
-                    <Link key={t} to={buildUrl({ tag: t })} className={tagFilter === t ? 'active' : ''}>{t}</Link>
-                  ))}
-                </div>
-              )}
-
-              <div className="premium-explore-price-row">
-                <input
-                  id="filter-min-price"
-                  type="number"
-                  placeholder="من"
-                  min="0"
-                  defaultValue={minPrice}
-                  className="premium-price-input"
-                />
-                <input
-                  id="filter-max-price"
-                  type="number"
-                  placeholder="إلى"
-                  min="0"
-                  defaultValue={maxPrice}
-                  className="premium-price-input"
-                />
-                <button type="button" className="premium-price-btn" onClick={applyPriceRange}>تطبيق</button>
-                {(minPrice || maxPrice) && (
-                  <Link to={buildUrl({ min_price: null, max_price: null })} className="premium-explore-clear-price">
-                    مسح
-                  </Link>
-                )}
-              </div>
             </div>
 
             <div className="premium-explore-header">
