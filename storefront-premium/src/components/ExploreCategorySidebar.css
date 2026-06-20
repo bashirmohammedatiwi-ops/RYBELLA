@@ -10,9 +10,6 @@
   position: relative;
   overflow: hidden;
   z-index: 40;
-  transition:
-    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    flex-basis 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .premium-explore-layout[data-rail-scrolled='true']:not([data-rail-pinned='true']) .explore-category-rail:not(.collapsed) {
@@ -21,8 +18,8 @@
 
 .premium-explore-layout.rail-transitioning .explore-category-rail {
   transition:
-    width 0.52s cubic-bezier(0.22, 1, 0.36, 1),
-    flex-basis 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+    width 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+    flex-basis 0.48s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .explore-category-rail.collapsed {
@@ -46,25 +43,19 @@
   position: relative;
   transform-origin: left center;
   opacity: var(--rail-visual, 1);
-  transform:
-    translate3d(calc((1 - var(--rail-visual, 1)) * -8px), 0, 0)
-    scale(calc(0.96 + (var(--rail-visual, 1) * 0.04)));
-  transition:
-    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translate3d(calc((1 - var(--rail-visual, 1)) * -6px), 0, 0);
 }
 
 .premium-explore-layout.rail-transitioning .explore-category-rail-inner {
   transition:
-    opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.52s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.48s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .explore-category-rail.collapsed .explore-category-rail-inner {
   opacity: 0;
-  transform: translate3d(-12px, 0, 0) scale(0.94);
+  transform: translate3d(-10px, 0, 0);
   pointer-events: none;
 }
 
@@ -298,7 +289,14 @@
   transition-delay: 0.12s;
 }
 
-.premium-explore-layout[data-rail-open='true'][data-rail-scrolled='false'] .explore-category-rail-expand {
+.premium-explore-layout[data-rail-pinned='true'] .explore-category-rail-expand {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-16px, -50%, 0) scale(0.84);
+  transition-delay: 0s;
+}
+
+.premium-explore-layout[data-rail-open='true'][data-rail-scrolled='false']:not([data-rail-pinned='true']) .explore-category-rail-expand {
   opacity: 0;
   pointer-events: none;
   transform: translate3d(-16px, -50%, 0) scale(0.84);

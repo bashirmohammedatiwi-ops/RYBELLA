@@ -40,10 +40,13 @@ export default function Explore() {
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('')
   const [sidebarVisible, setSidebarVisible] = useState(loadSidebarVisible)
+  const [railPinned, setRailPinned] = useState(false)
   const layoutRef = useRef(null)
   const mainScrollRef = useRef(null)
   const scrollFadeRef = useRef(1)
   const scrollFadeLockedRef = useRef(false)
+  const pinnedScrollTopRef = useRef(0)
+  const expandLockUntilRef = useRef(0)
   const scrollRafRef = useRef(null)
   const { user } = useAuth()
 
@@ -134,6 +137,7 @@ export default function Explore() {
 
   const handleSidebarCollapse = useCallback(() => {
     scrollFadeLockedRef.current = false
+    setRailPinned(false)
     setSidebarVisible(false)
     saveSidebarVisible(false)
     runRailTransition(false)
@@ -144,8 +148,12 @@ export default function Explore() {
   }, [runRailTransition])
 
   const handleSidebarExpand = useCallback(() => {
+    const scrollEl = mainScrollRef.current
+    pinnedScrollTopRef.current = scrollEl?.scrollTop ?? 0
+    expandLockUntilRef.current = Date.now() + RAIL_TRANSITION_MS + 80
     scrollFadeLockedRef.current = true
     scrollFadeRef.current = 1
+    setRailPinned(true)
 
     setSidebarVisible(true)
     saveSidebarVisible(true)
@@ -153,7 +161,7 @@ export default function Explore() {
 
     const layoutEl = layoutRef.current
     if (layoutEl) {
-      setLayoutRailVars(layoutEl, { scrollFade: 1, pinned: true })
+      setLayoutRailVars(layoutEl, { scrollFade: 1, open: true, pinned: true })
     }
   }, [runRailTransition])
 
@@ -167,7 +175,6 @@ export default function Explore() {
     const progress = Math.max(0, Math.min(1, scrollEl.scrollTop / SIDEBAR_FADE_SCROLL_PX))
     const next = easeOutCubic(1 - progress)
 
-    if (Math.abs(scrollFadeRef.current - next) < 0.002) return
     scrollFadeRef.current = next
     setLayoutRailVars(layoutEl, { scrollFade: next, pinned: false })
   }, [])
@@ -176,7 +183,9 @@ export default function Explore() {
     const layoutEl = layoutRef.current
     if (!layoutEl) return
     setLayoutRailVars(layoutEl, { open: sidebarVisible })
-    syncSidebarFade()
+    if (!scrollFadeLockedRef.current) {
+      syncSidebarFade()
+    }
   }, [sidebarVisible, syncSidebarFade])
 
   useEffect(() => {
@@ -186,12 +195,16 @@ export default function Explore() {
     syncSidebarFade()
 
     const onScroll = () => {
+      const scrollEl = mainScrollRef.current
+      const layoutEl = layoutRef.current
+      if (!scrollEl || !layoutEl) return
+
       if (scrollFadeLockedRef.current) {
+        if (Date.now() < expandLockUntilRef.current) return
+        if (scrollEl.scrollTop <= pinnedScrollTopRef.current + 32) return
         scrollFadeLockedRef.current = false
-        const layoutEl = layoutRef.current
-        if (layoutEl) {
-          setLayoutRailVars(layoutEl, { pinned: false })
-        }
+        setRailPinned(false)
+        setLayoutRailVars(layoutEl, { pinned: false })
       }
 
       if (scrollRafRef.current != null) return
@@ -218,8 +231,7 @@ export default function Explore() {
         ref={layoutRef}
         className="premium-explore-layout"
         data-rail-open={sidebarVisible ? 'true' : 'false'}
-        data-rail-scrolled="false"
-        data-rail-pinned="false"
+        data-rail-pinned={railPinned ? 'true' : 'false'}
       >
         <div className="premium-explore-main" ref={mainScrollRef}>
           <div className="premium-explore-main-inner">
