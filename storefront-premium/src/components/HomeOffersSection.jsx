@@ -14,15 +14,20 @@ function getDiscountPercent(offer) {
 }
 
 export default function HomeOffersSection({ offers = [] }) {
+  const sectionRef = useRef(null)
   const trackRef = useRef(null)
+  const activeIdxRef = useRef(0)
   const [activeIdx, setActiveIdx] = useState(0)
+  const [inView, setInView] = useState(true)
 
   const scrollToIndex = useCallback((index) => {
     const track = trackRef.current
     if (!track) return
     const card = track.children[index]
     if (!card) return
-    card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    const targetLeft = card.offsetLeft - (track.clientWidth - card.clientWidth) / 2
+    track.scrollTo({ left: targetLeft, behavior: 'smooth' })
+    activeIdxRef.current = index
     setActiveIdx(index)
   }, [])
 
@@ -40,21 +45,34 @@ export default function HomeOffersSection({ offers = [] }) {
         closest = i
       }
     })
+    activeIdxRef.current = closest
     setActiveIdx(closest)
   }, [])
 
   useEffect(() => {
-    if (offers.length <= 1) return
+    const el = sectionRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.15 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (offers.length <= 1 || !inView) return
     const t = setInterval(() => {
-      scrollToIndex((activeIdx + 1) % offers.length)
+      const next = (activeIdxRef.current + 1) % offers.length
+      scrollToIndex(next)
     }, 6000)
     return () => clearInterval(t)
-  }, [offers.length, activeIdx, scrollToIndex])
+  }, [offers.length, inView, scrollToIndex])
 
   if (!offers.length) return null
 
   return (
-    <section className="ho-section" aria-label="عروض حصرية">
+    <section ref={sectionRef} className="ho-section" aria-label="عروض حصرية">
       <div className="ho-section-bg" aria-hidden="true" />
       <div className="ho-section-glow ho-section-glow--a" aria-hidden="true" />
       <div className="ho-section-glow ho-section-glow--b" aria-hidden="true" />
