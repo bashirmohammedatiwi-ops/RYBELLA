@@ -116,6 +116,19 @@ export default function Explore() {
       .catch(() => [])
   }, [categoryId])
 
+  useEffect(() => {
+    const scrollEl = mainScrollRef.current
+    const layoutEl = layoutRef.current
+    scrollEl?.scrollTo({ top: 0, behavior: 'auto' })
+    scrollFadeLockedRef.current = false
+    expandLockUntilRef.current = 0
+    scrollFadeRef.current = 1
+    setRailPinned(false)
+    if (layoutEl) {
+      setLayoutRailVars(layoutEl, { scrollFade: 1, pinned: false })
+    }
+  }, [categoryId, subcategoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
+
   const buildUrl = (overrides = {}) => {
     const p = new URLSearchParams(searchParams)
     Object.entries(overrides).forEach(([k, v]) => {
@@ -190,6 +203,18 @@ export default function Explore() {
 
   useEffect(() => {
     const scrollEl = mainScrollRef.current
+    const layoutEl = layoutRef.current
+    scrollEl?.scrollTo({ top: 0, behavior: 'auto' })
+    scrollFadeLockedRef.current = false
+    scrollFadeRef.current = 1
+    setRailPinned(false)
+    if (layoutEl) {
+      setLayoutRailVars(layoutEl, { scrollFade: 1, pinned: false, open: sidebarVisible })
+    }
+  }, [])
+
+  useEffect(() => {
+    const scrollEl = mainScrollRef.current
     if (!scrollEl) return undefined
 
     syncSidebarFade()
@@ -198,6 +223,14 @@ export default function Explore() {
       const scrollEl = mainScrollRef.current
       const layoutEl = layoutRef.current
       if (!scrollEl || !layoutEl) return
+
+      if (scrollEl.scrollTop <= 8) {
+        scrollFadeLockedRef.current = false
+        expandLockUntilRef.current = 0
+        scrollFadeRef.current = 1
+        setRailPinned(false)
+        setLayoutRailVars(layoutEl, { scrollFade: 1, pinned: false })
+      }
 
       if (scrollFadeLockedRef.current) {
         if (Date.now() < expandLockUntilRef.current) return

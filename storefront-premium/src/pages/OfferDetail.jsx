@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { offersAPI, IMG_BASE } from '../services/api'
 import { useCart } from '../context/CartContext'
 import { formatPrice, formatPercent } from '../utils/format'
@@ -8,9 +8,9 @@ import './OfferDetail.css'
 
 export default function OfferDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const [offer, setOffer] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [addedToCart, setAddedToCart] = useState(false)
   const { addItem } = useCart()
 
   useEffect(() => {
@@ -38,7 +38,8 @@ export default function OfferDetail() {
         image: v.image || p.main_image || p.images?.[0],
       })
     }
-    navigate('/cart')
+    setAddedToCart(true)
+    window.setTimeout(() => setAddedToCart(false), 2200)
   }
 
   if (loading) return <div className="offer-detail offer-loading"><div className="offer-spinner" /><span>جاري التحميل...</span></div>
@@ -116,7 +117,11 @@ export default function OfferDetail() {
           </div>
         )}
         <button className="offer-add-bundle" onClick={handleAddBundle} disabled={!allInStock || products.length === 0}>
-          {allInStock ? `أضيفي الباكج للسلة (${formatPrice(totalAfterDiscount)})` : 'بعض المنتجات غير متوفرة'}
+          {!allInStock
+            ? 'بعض المنتجات غير متوفرة'
+            : addedToCart
+              ? 'تمت الإضافة ✓'
+              : `أضيفي الباكج للسلة (${formatPrice(totalAfterDiscount)})`}
         </button>
       </div>
     </div>

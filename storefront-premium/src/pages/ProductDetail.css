@@ -5,7 +5,7 @@
 .pd-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #FFFBF9 0%, #FFF 24%);
-  padding-bottom: 2rem;
+  padding-bottom: 1.5rem;
 }
 
 .pd-loading,
@@ -527,6 +527,11 @@
   opacity: 0.55;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.pd-add-cart.is-added {
+  background: linear-gradient(135deg, #2e9e5a 0%, #248a4d 100%);
+  box-shadow: 0 4px 16px rgba(46, 158, 90, 0.35);
 }
 
 .pd-wishlist {

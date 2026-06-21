@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import BottomNav from './BottomNav'
 import BackToTop from './BackToTop'
 import FloatingContact from './FloatingContact'
+import ScrollToTop from './ScrollToTop'
 import './Layout.css'
 
 export default function Layout({ children }) {
@@ -24,6 +25,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="app-layout">
+      <ScrollToTop />
       {showAnnouncement && (
         <div className="app-announcement">
           <span>{settings.announcement_bar}</span>

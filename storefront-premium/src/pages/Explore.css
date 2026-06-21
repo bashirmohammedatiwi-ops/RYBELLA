@@ -5,6 +5,7 @@
 .premium-explore {
   min-height: 100dvh;
   height: 100dvh;
+  height: 100svh;
   background: #fff;
   display: flex;
   flex-direction: column;
@@ -31,7 +32,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: auto;
 }
 
 .premium-explore-layout.rail-transitioning .premium-explore-main {
@@ -47,7 +48,7 @@
 }
 
 .premium-explore-main-inner {
-  padding: 12px 14px 2rem;
+  padding: 12px 14px calc(var(--bottom-nav-h) + 20px);
   width: 100%;
   max-width: none;
   container-type: inline-size;
@@ -197,7 +198,7 @@
 
 @media (min-width: 640px) {
   .premium-explore-main-inner {
-    padding: 16px 20px 2.5rem;
+    padding: 16px 20px calc(var(--bottom-nav-h) + 24px);
   }
 
   .premium-explore-page-title {
@@ -207,6 +208,6 @@
 
 @media (min-width: 768px) {
   .premium-explore-main-inner {
-    padding: 20px 24px 2.5rem;
+    padding: 20px 24px calc(var(--bottom-nav-h) + 28px);
   }
 }

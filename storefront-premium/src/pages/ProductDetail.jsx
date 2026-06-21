@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -11,7 +11,6 @@ import './ProductDetail.css'
 
 export default function ProductDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const galleryRef = useRef(null)
   const [product, setProduct] = useState(null)
   const [selectedVariant, setSelectedVariant] = useState(null)
@@ -19,6 +18,7 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1)
   const [isInWishlist, setIsInWishlist] = useState(false)
   const [galleryIdx, setGalleryIdx] = useState(0)
+  const [addedToCart, setAddedToCart] = useState(false)
   const { user } = useAuth()
   const { addItem } = useCart()
   const { addProduct } = useRecentlyViewed()
@@ -47,6 +47,8 @@ export default function ProductDetail() {
 
   useEffect(() => {
     setGalleryIdx(0)
+    setAddedToCart(false)
+    window.scrollTo(0, 0)
   }, [id])
 
   const trackRef = useRef(null)
@@ -101,7 +103,8 @@ export default function ProductDetail() {
       image: selectedVariant.image || product.main_image || product.images?.[0],
     } : null
     addItem(selectedVariant.id, qty, guestData)
-    navigate('/cart')
+    setAddedToCart(true)
+    window.setTimeout(() => setAddedToCart(false), 2200)
   }
 
   const goToSlide = (i) => {
@@ -304,11 +307,13 @@ export default function ProductDetail() {
         <div className="pd-actions">
           <button
             type="button"
-            className="pd-add-cart"
+            className={`pd-add-cart${addedToCart ? ' is-added' : ''}`}
             onClick={handleAddToCart}
             disabled={!selectedVariant || (selectedVariant?.stock ?? 0) < 1}
           >
-            {selectedVariant && selectedVariant.stock > 0 ? 'أضف للسلة' : 'غير متوفر'}
+            {selectedVariant && selectedVariant.stock > 0
+              ? (addedToCart ? 'تمت الإضافة ✓' : 'أضف للسلة')
+              : 'غير متوفر'}
           </button>
           {user && (
             <button type="button" className={`pd-wishlist ${isInWishlist ? 'active' : ''}`} onClick={toggleWishlist} aria-label="المفضلة">

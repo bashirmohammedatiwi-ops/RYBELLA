@@ -2,7 +2,7 @@
 .categories-page {
   min-height: 100vh;
   background: var(--bg-primary);
-  padding-bottom: 120px;
+  padding-bottom: calc(var(--bottom-nav-h) + 24px);
 }
 
 /* الهيدر - خلفية وردية */

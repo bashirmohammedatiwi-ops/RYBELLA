@@ -1,6 +1,6 @@
 .floating-contact {
   position: fixed;
-  bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 80px);
+  bottom: calc(var(--bottom-nav-h) + 80px);
   right: 16px;
   width: 56px;
   height: 56px;

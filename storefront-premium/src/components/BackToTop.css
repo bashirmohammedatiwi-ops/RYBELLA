@@ -1,6 +1,6 @@
 .back-to-top {
   position: fixed;
-  bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 16px);
+  bottom: calc(var(--bottom-nav-h) + 16px);
   left: 16px;
   width: 48px;
   height: 48px;
