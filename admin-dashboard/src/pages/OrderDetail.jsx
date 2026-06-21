@@ -143,7 +143,6 @@ export default function OrderDetail() {
               ))}
             </CardContent>
           </Card>
-          </Card>
           )}
           {(order.items || []).length > 0 && (
           <Card>
