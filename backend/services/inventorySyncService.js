@@ -60,8 +60,10 @@ async function loginExternalApi(forceRefresh = false) {
     return staticToken || null
   }
 
-  const payload = unwrapExternalPayload(data) || data
-  const token = payload?.accessToken || payload?.access_token
+  const inner = data?.data && typeof data.data === 'object' && !Array.isArray(data.data)
+    ? data.data
+    : data
+  const token = inner?.accessToken || inner?.access_token || data?.accessToken
   if (!token) {
     lastExternalFetchError = 'login_failed: no accessToken in response'
     console.error('External inventory login failed:', lastExternalFetchError)
@@ -69,7 +71,7 @@ async function loginExternalApi(forceRefresh = false) {
   }
 
   cachedExternalToken = token
-  cachedExternalTokenExpiresAt = Date.now() + (Number(payload.expiresIn) || 900) * 1000
+  cachedExternalTokenExpiresAt = Date.now() + (Number(inner.expiresIn || data.expiresIn) || 900) * 1000
   lastExternalFetchError = null
   return token
 }
