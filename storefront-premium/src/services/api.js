@@ -1,7 +1,8 @@
 import axios from 'axios'
 
 const getBase = () => {
-  const url = import.meta.env.VITE_API_URL || 'http://187.124.23.65:4000'
+  const url = import.meta.env.VITE_API_URL
+  if (!url) return ''
   return url.replace(/\/api\/?$/, '') || url
 }
 const API_URL = import.meta.env.DEV ? '' : getBase()
