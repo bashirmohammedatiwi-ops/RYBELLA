@@ -1,10 +1,19 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react'
 import { useAuth } from './AuthContext'
 import { cartAPI } from '../services/api'
 import { roundDisplayPrice } from '../utils/pricing'
 
 const CART_KEY = 'rybella_guest_cart'
-const SYNC_DEBOUNCE_MS = 450
+const SERVER_SYNC_MS = 500
 const CartContext = createContext(null)
 
 function parseGuestCart(raw) {
@@ -32,34 +41,77 @@ function matchesBundle(bundle, bundleId) {
     || String(bundle.offer_id) === String(bundleId)
 }
 
-function itemPendingKeys(item) {
-  const keys = []
-  if (item?.id != null) keys.push(`item:${item.id}`)
-  if (item?.variant_id != null) keys.push(`variant:${item.variant_id}`)
-  return keys
+function cartReducer(state, action) {
+  switch (action.type) {
+    case 'SET_CART':
+      return { items: action.items, bundles: action.bundles }
+
+    case 'SET_ITEM_QTY':
+      return {
+        ...state,
+        items: state.items
+          .map((item) => (
+            matchesCartItem(item, action.itemId)
+              ? { ...item, quantity: action.quantity }
+              : item
+          ))
+          .filter((item) => (item.quantity || 0) > 0),
+      }
+
+    case 'SET_BUNDLE_QTY':
+      return {
+        ...state,
+        bundles: state.bundles
+          .map((bundle) => (
+            matchesBundle(bundle, action.bundleId)
+              ? {
+                ...bundle,
+                quantity: action.quantity,
+                total_price: (bundle.unit_price || 0) * action.quantity,
+              }
+              : bundle
+          ))
+          .filter((bundle) => (bundle.quantity || 0) > 0),
+      }
+
+    case 'REMOVE_ITEM':
+      return {
+        ...state,
+        items: state.items.filter((item) => !matchesCartItem(item, action.itemId)),
+      }
+
+    case 'REMOVE_BUNDLE':
+      return {
+        ...state,
+        bundles: state.bundles.filter((bundle) => !matchesBundle(bundle, action.bundleId)),
+      }
+
+    default:
+      return state
+  }
 }
 
-function bundlePendingKeys(bundle) {
-  const keys = []
-  if (bundle?.id != null) keys.push(`bundle:${bundle.id}`)
-  if (bundle?.offer_id != null) keys.push(`offer:${bundle.offer_id}`)
-  if (bundle?.bundle_key) keys.push(`bundleKey:${bundle.bundle_key}`)
-  return keys
+function normalizeServerCart(data) {
+  if (Array.isArray(data)) {
+    return { items: data, bundles: [] }
+  }
+  return {
+    items: data?.items || [],
+    bundles: data?.bundles || [],
+  }
 }
 
 export function CartProvider({ children }) {
   const { user } = useAuth()
-  const [items, setItems] = useState([])
-  const [bundles, setBundles] = useState([])
+  const [{ items, bundles }, dispatch] = useReducer(cartReducer, { items: [], bundles: [] })
   const [loading, setLoading] = useState(false)
 
   const itemsRef = useRef(items)
   const bundlesRef = useRef(bundles)
-  const pendingItemQtyRef = useRef(new Map())
-  const pendingBundleQtyRef = useRef(new Map())
-  const itemSyncTimersRef = useRef(new Map())
-  const bundleSyncTimersRef = useRef(new Map())
-  const loadCartSeqRef = useRef(0)
+  const itemSyncRef = useRef(new Map())
+  const bundleSyncRef = useRef(new Map())
+  const syncTimerRef = useRef(null)
+  const syncRunningRef = useRef(false)
 
   useEffect(() => {
     itemsRef.current = items
@@ -70,176 +122,160 @@ export function CartProvider({ children }) {
   }, [bundles])
 
   useEffect(() => () => {
-    itemSyncTimersRef.current.forEach((timer) => clearTimeout(timer))
-    bundleSyncTimersRef.current.forEach((timer) => clearTimeout(timer))
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
   }, [])
 
   const findItem = useCallback((itemId) => (
-    itemsRef.current.find((i) => matchesCartItem(i, itemId))
+    itemsRef.current.find((item) => matchesCartItem(item, itemId))
   ), [])
 
   const findBundle = useCallback((bundleId) => (
-    bundlesRef.current.find((b) => matchesBundle(b, bundleId))
+    bundlesRef.current.find((bundle) => matchesBundle(bundle, bundleId))
   ), [])
 
-  const setItemPending = useCallback((itemId, quantity) => {
-    const item = findItem(itemId)
-    const keys = item ? itemPendingKeys(item) : [`raw:${itemId}`]
-    keys.forEach((key) => pendingItemQtyRef.current.set(key, quantity))
-  }, [findItem])
-
-  const clearItemPending = useCallback((itemId) => {
-    const item = findItem(itemId)
-    const keys = item ? itemPendingKeys(item) : [`raw:${itemId}`]
-    keys.forEach((key) => pendingItemQtyRef.current.delete(key))
-  }, [findItem])
-
-  const getItemPendingQuantity = useCallback((item) => {
-    for (const key of itemPendingKeys(item)) {
-      if (pendingItemQtyRef.current.has(key)) {
-        return pendingItemQtyRef.current.get(key)
-      }
-    }
-    return null
-  }, [])
-
-  const setBundlePending = useCallback((bundleId, quantity) => {
-    const bundle = findBundle(bundleId)
-    const keys = bundle ? bundlePendingKeys(bundle) : [`rawBundle:${bundleId}`]
-    keys.forEach((key) => pendingBundleQtyRef.current.set(key, quantity))
-  }, [findBundle])
-
-  const clearBundlePending = useCallback((bundleId) => {
-    const bundle = findBundle(bundleId)
-    const keys = bundle ? bundlePendingKeys(bundle) : [`rawBundle:${bundleId}`]
-    keys.forEach((key) => pendingBundleQtyRef.current.delete(key))
-  }, [findBundle])
-
-  const getBundlePendingQuantity = useCallback((bundle) => {
-    for (const key of bundlePendingKeys(bundle)) {
-      if (pendingBundleQtyRef.current.has(key)) {
-        return pendingBundleQtyRef.current.get(key)
-      }
-    }
-    return null
-  }, [])
-
-  const applyPendingToItems = useCallback((serverItems) => {
-    if (!pendingItemQtyRef.current.size) return serverItems
-    return serverItems.map((item) => {
-      const pendingQty = getItemPendingQuantity(item)
-      return pendingQty == null ? item : { ...item, quantity: pendingQty }
+  const mergeServerCart = useCallback((serverItems, serverBundles) => {
+    const mergedItems = serverItems.map((item) => {
+      const pending = item.id != null ? itemSyncRef.current.get(String(item.id)) : undefined
+      return pending == null ? item : { ...item, quantity: pending }
     })
-  }, [getItemPendingQuantity])
 
-  const applyPendingToBundles = useCallback((serverBundles) => {
-    if (!pendingBundleQtyRef.current.size) return serverBundles
-    return serverBundles.map((bundle) => {
-      const pendingQty = getBundlePendingQuantity(bundle)
-      if (pendingQty == null) return bundle
+    const mergedBundles = serverBundles.map((bundle) => {
+      const pending = bundle.id != null ? bundleSyncRef.current.get(String(bundle.id)) : undefined
+      if (pending == null) return bundle
       return {
         ...bundle,
-        quantity: pendingQty,
-        total_price: (bundle.unit_price || 0) * pendingQty,
+        quantity: pending,
+        total_price: (bundle.unit_price || 0) * pending,
       }
     })
-  }, [getBundlePendingQuantity])
 
-  const resolveServerItemId = useCallback((itemId) => {
-    const match = findItem(itemId)
-    return match?.id ?? itemId
-  }, [findItem])
+    dispatch({ type: 'SET_CART', items: mergedItems, bundles: mergedBundles })
+  }, [])
 
-  const resolveServerBundleId = useCallback((bundleId) => {
-    const match = findBundle(bundleId)
-    return match?.id ?? bundleId
-  }, [findBundle])
+  const fetchServerCart = useCallback(async () => {
+    const { data } = await cartAPI.get()
+    const { items: serverItems, bundles: serverBundles } = normalizeServerCart(data)
+    mergeServerCart(serverItems, serverBundles)
+  }, [mergeServerCart])
 
-  const loadCart = useCallback(async ({ silent = false } = {}) => {
+  const loadGuestCart = useCallback(() => {
+    const guest = parseGuestCart(localStorage.getItem(CART_KEY))
+    dispatch({ type: 'SET_CART', items: guest.items, bundles: guest.bundles })
+    setLoading(false)
+  }, [])
+
+  const flushServerSync = useCallback(async () => {
+    if (!user || syncRunningRef.current) return
+    if (!itemSyncRef.current.size && !bundleSyncRef.current.size) return
+
+    syncRunningRef.current = true
+    try {
+      const itemJobs = [...itemSyncRef.current.entries()]
+      for (const [serverItemId, quantity] of itemJobs) {
+        if (itemSyncRef.current.get(serverItemId) !== quantity) continue
+        await cartAPI.update(serverItemId, { quantity })
+        if (itemSyncRef.current.get(serverItemId) === quantity) {
+          itemSyncRef.current.delete(serverItemId)
+        }
+      }
+
+      const bundleJobs = [...bundleSyncRef.current.entries()]
+      for (const [serverBundleId, quantity] of bundleJobs) {
+        if (bundleSyncRef.current.get(serverBundleId) !== quantity) continue
+        await cartAPI.updateBundle(serverBundleId, { quantity })
+        if (bundleSyncRef.current.get(serverBundleId) === quantity) {
+          bundleSyncRef.current.delete(serverBundleId)
+        }
+      }
+    } catch {
+      itemSyncRef.current.clear()
+      bundleSyncRef.current.clear()
+      await fetchServerCart()
+    } finally {
+      syncRunningRef.current = false
+      if (itemSyncRef.current.size || bundleSyncRef.current.size) {
+        if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
+        syncTimerRef.current = setTimeout(() => {
+          flushServerSync()
+        }, SERVER_SYNC_MS)
+      }
+    }
+  }, [user, fetchServerCart])
+
+  const queueServerSync = useCallback(() => {
+    if (!user) return
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
+    syncTimerRef.current = setTimeout(() => {
+      flushServerSync()
+    }, SERVER_SYNC_MS)
+  }, [user, flushServerSync])
+
+  useEffect(() => {
+    itemSyncRef.current.clear()
+    bundleSyncRef.current.clear()
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current)
+      syncTimerRef.current = null
+    }
+
     if (!user) {
-      setLoading(false)
-      const guest = parseGuestCart(localStorage.getItem(CART_KEY))
-      setItems(guest.items)
-      setBundles(guest.bundles)
+      loadGuestCart()
       return
     }
 
-    const seq = loadCartSeqRef.current + 1
-    loadCartSeqRef.current = seq
-    if (!silent) setLoading(true)
+    setLoading(true)
+    fetchServerCart()
+      .catch(() => dispatch({ type: 'SET_CART', items: [], bundles: [] }))
+      .finally(() => setLoading(false))
+  }, [user?.id, loadGuestCart, fetchServerCart])
 
-    try {
-      const { data } = await cartAPI.get()
-      if (seq !== loadCartSeqRef.current) return
+  const adjustItemQuantity = useCallback((itemId, delta) => {
+    const item = findItem(itemId)
+    if (!item) return
 
-      const serverItems = Array.isArray(data) ? data : (data?.items || [])
-      const serverBundles = Array.isArray(data) ? [] : (data?.bundles || [])
+    const nextQty = Math.max(1, (Number(item.quantity) || 1) + delta)
 
-      setItems(applyPendingToItems(serverItems))
-      setBundles(applyPendingToBundles(serverBundles))
-    } catch {
-      if (seq !== loadCartSeqRef.current) return
-      if (!pendingItemQtyRef.current.size) setItems([])
-      if (!pendingBundleQtyRef.current.size) setBundles([])
-    } finally {
-      if (seq === loadCartSeqRef.current && !silent) setLoading(false)
+    if (!user) {
+      const nextItems = itemsRef.current
+        .map((row) => (matchesCartItem(row, itemId) ? { ...row, quantity: nextQty } : row))
+        .filter((row) => (row.quantity || 0) > 0)
+      saveGuestCart(nextItems, bundlesRef.current)
+      dispatch({ type: 'SET_ITEM_QTY', itemId, quantity: nextQty })
+      return
     }
-  }, [user, applyPendingToItems, applyPendingToBundles])
 
-  useEffect(() => {
-    pendingItemQtyRef.current.clear()
-    pendingBundleQtyRef.current.clear()
-    if (user) {
-      setItems([])
-      setBundles([])
-      setLoading(true)
+    if (item.id != null) {
+      itemSyncRef.current.set(String(item.id), nextQty)
     }
-    loadCart()
-  }, [user, loadCart])
+    dispatch({ type: 'SET_ITEM_QTY', itemId, quantity: nextQty })
+    queueServerSync()
+  }, [findItem, user, queueServerSync])
 
-  const persistGuest = (nextItems, nextBundles) => {
-    saveGuestCart(nextItems, nextBundles)
-    setItems(nextItems)
-    setBundles(nextBundles)
-  }
+  const adjustBundleQuantity = useCallback((bundleId, delta) => {
+    const bundle = findBundle(bundleId)
+    if (!bundle) return
 
-  const scheduleItemSync = useCallback((itemId, quantity) => {
-    setItemPending(itemId, quantity)
-    const timerKey = String(resolveServerItemId(itemId))
-    const timers = itemSyncTimersRef.current
-    if (timers.has(timerKey)) clearTimeout(timers.get(timerKey))
+    const nextQty = Math.max(1, (Number(bundle.quantity) || 1) + delta)
 
-    timers.set(timerKey, setTimeout(async () => {
-      timers.delete(timerKey)
-      const serverId = resolveServerItemId(itemId)
-      try {
-        await cartAPI.update(serverId, { quantity })
-        clearItemPending(itemId)
-      } catch {
-        clearItemPending(itemId)
-        await loadCart({ silent: true })
-      }
-    }, SYNC_DEBOUNCE_MS))
-  }, [clearItemPending, loadCart, resolveServerItemId, setItemPending])
+    if (!user) {
+      const nextBundles = bundlesRef.current
+        .map((row) => (
+          matchesBundle(row, bundleId)
+            ? { ...row, quantity: nextQty, total_price: (row.unit_price || 0) * nextQty }
+            : row
+        ))
+        .filter((row) => (row.quantity || 0) > 0)
+      saveGuestCart(itemsRef.current, nextBundles)
+      dispatch({ type: 'SET_BUNDLE_QTY', bundleId, quantity: nextQty })
+      return
+    }
 
-  const scheduleBundleSync = useCallback((bundleId, quantity) => {
-    setBundlePending(bundleId, quantity)
-    const timerKey = String(resolveServerBundleId(bundleId))
-    const timers = bundleSyncTimersRef.current
-    if (timers.has(timerKey)) clearTimeout(timers.get(timerKey))
-
-    timers.set(timerKey, setTimeout(async () => {
-      timers.delete(timerKey)
-      const serverId = resolveServerBundleId(bundleId)
-      try {
-        await cartAPI.updateBundle(serverId, { quantity })
-        clearBundlePending(bundleId)
-      } catch {
-        clearBundlePending(bundleId)
-        await loadCart({ silent: true })
-      }
-    }, SYNC_DEBOUNCE_MS))
-  }, [clearBundlePending, loadCart, resolveServerBundleId, setBundlePending])
+    if (bundle.id != null) {
+      bundleSyncRef.current.set(String(bundle.id), nextQty)
+    }
+    dispatch({ type: 'SET_BUNDLE_QTY', bundleId, quantity: nextQty })
+    queueServerSync()
+  }, [findBundle, user, queueServerSync])
 
   const addItem = async (variantId, quantity = 1, guestData) => {
     if (!user) {
@@ -255,15 +291,19 @@ export function CartProvider({ children }) {
         : {}
       const newItem = { variant_id: variantId, quantity, ...roundedGuest }
       const nextItems = exists
-        ? guest.items.map((i) => (String(i.variant_id) === String(variantId)
-          ? { ...i, quantity: (i.quantity || 0) + quantity }
-          : i))
+        ? guest.items.map((i) => (
+          String(i.variant_id) === String(variantId)
+            ? { ...i, quantity: (i.quantity || 0) + quantity }
+            : i
+        ))
         : [...guest.items, newItem]
-      persistGuest(nextItems, guest.bundles)
+      saveGuestCart(nextItems, guest.bundles)
+      dispatch({ type: 'SET_CART', items: nextItems, bundles: guest.bundles })
       return
     }
+
     await cartAPI.add({ variant_id: variantId, quantity })
-    await loadCart({ silent: true })
+    await fetchServerCart()
   }
 
   const addBundle = async (bundlePayload) => {
@@ -297,109 +337,74 @@ export function CartProvider({ children }) {
         total_price: unit_price * quantity,
       }
       const without = guest.bundles.filter((b) => String(b.offer_id) !== String(offer_id))
-      persistGuest(guest.items, [...without, bundle])
+      const nextBundles = [...without, bundle]
+      saveGuestCart(guest.items, nextBundles)
+      dispatch({ type: 'SET_CART', items: guest.items, bundles: nextBundles })
       return
     }
+
     await cartAPI.addBundle({
       offer_id,
       quantity,
       lines: lines.map((l) => ({ variant_id: l.variant_id, quantity: 1 })),
     })
-    await loadCart({ silent: true })
-  }
-
-  const updateItem = (itemId, quantity) => {
-    if (!user) {
-      setItems((prevItems) => {
-        const nextItems = prevItems
-          .map((i) => (matchesCartItem(i, itemId) ? { ...i, quantity } : i))
-          .filter((i) => (i.quantity || 0) > 0)
-        saveGuestCart(nextItems, bundlesRef.current)
-        return nextItems
-      })
-      return
-    }
-
-    setItemPending(itemId, quantity)
-    setItems((prev) => prev.map((i) => (matchesCartItem(i, itemId) ? { ...i, quantity } : i)))
-    scheduleItemSync(itemId, quantity)
-  }
-
-  const updateBundle = (bundleId, quantity) => {
-    if (!user) {
-      setBundles((prevBundles) => {
-        const nextBundles = prevBundles
-          .map((b) => (matchesBundle(b, bundleId)
-            ? { ...b, quantity, total_price: (b.unit_price || 0) * quantity }
-            : b))
-          .filter((b) => (b.quantity || 0) > 0)
-        saveGuestCart(itemsRef.current, nextBundles)
-        return nextBundles
-      })
-      return
-    }
-
-    setBundlePending(bundleId, quantity)
-    setBundles((prev) => prev.map((b) => (matchesBundle(b, bundleId)
-      ? { ...b, quantity, total_price: (b.unit_price || 0) * quantity }
-      : b)))
-    scheduleBundleSync(bundleId, quantity)
+    await fetchServerCart()
   }
 
   const removeItem = async (itemId) => {
-    const timerKey = String(resolveServerItemId(itemId))
-    if (itemSyncTimersRef.current.has(timerKey)) {
-      clearTimeout(itemSyncTimersRef.current.get(timerKey))
-      itemSyncTimersRef.current.delete(timerKey)
+    const item = findItem(itemId)
+    if (item?.id != null) {
+      itemSyncRef.current.delete(String(item.id))
     }
-    clearItemPending(itemId)
 
     if (!user) {
-      setItems((prevItems) => {
-        const nextItems = prevItems.filter((i) => !matchesCartItem(i, itemId))
-        saveGuestCart(nextItems, bundlesRef.current)
-        return nextItems
-      })
+      const nextItems = itemsRef.current.filter((row) => !matchesCartItem(row, itemId))
+      saveGuestCart(nextItems, bundlesRef.current)
+      dispatch({ type: 'REMOVE_ITEM', itemId })
       return
     }
 
-    const serverId = resolveServerItemId(itemId)
-    const previous = itemsRef.current
-    setItems((prev) => prev.filter((i) => !matchesCartItem(i, itemId)))
+    dispatch({ type: 'REMOVE_ITEM', itemId })
     try {
-      await cartAPI.remove(serverId)
+      await cartAPI.remove(item.id ?? itemId)
     } catch {
-      setItems(previous)
-      await loadCart({ silent: true })
+      await fetchServerCart()
     }
   }
 
   const removeBundle = async (bundleId) => {
-    const timerKey = String(resolveServerBundleId(bundleId))
-    if (bundleSyncTimersRef.current.has(timerKey)) {
-      clearTimeout(bundleSyncTimersRef.current.get(timerKey))
-      bundleSyncTimersRef.current.delete(timerKey)
+    const bundle = findBundle(bundleId)
+    if (bundle?.id != null) {
+      bundleSyncRef.current.delete(String(bundle.id))
     }
-    clearBundlePending(bundleId)
 
     if (!user) {
-      setBundles((prevBundles) => {
-        const nextBundles = prevBundles.filter((b) => !matchesBundle(b, bundleId))
-        saveGuestCart(itemsRef.current, nextBundles)
-        return nextBundles
-      })
+      const nextBundles = bundlesRef.current.filter((row) => !matchesBundle(row, bundleId))
+      saveGuestCart(itemsRef.current, nextBundles)
+      dispatch({ type: 'REMOVE_BUNDLE', bundleId })
       return
     }
 
-    const previous = bundlesRef.current
-    setBundles((prev) => prev.filter((b) => !matchesBundle(b, bundleId)))
+    dispatch({ type: 'REMOVE_BUNDLE', bundleId })
     try {
-      await cartAPI.removeBundle(resolveServerBundleId(bundleId))
+      await cartAPI.removeBundle(bundle.id ?? bundleId)
     } catch {
-      setBundles(previous)
-      await loadCart({ silent: true })
+      await fetchServerCart()
     }
   }
+
+  const loadCart = useCallback(async () => {
+    if (!user) {
+      loadGuestCart()
+      return
+    }
+    setLoading(true)
+    try {
+      await fetchServerCart()
+    } finally {
+      setLoading(false)
+    }
+  }, [user, loadGuestCart, fetchServerCart])
 
   const mergeGuestCart = async () => {
     if (!user) return
@@ -408,6 +413,7 @@ export function CartProvider({ children }) {
       await loadCart()
       return
     }
+
     setLoading(true)
     for (const i of guest.items) {
       try {
@@ -424,14 +430,16 @@ export function CartProvider({ children }) {
       } catch { /* skip */ }
     }
     localStorage.removeItem(CART_KEY)
-    pendingItemQtyRef.current.clear()
-    pendingBundleQtyRef.current.clear()
-    await loadCart()
+    itemSyncRef.current.clear()
+    bundleSyncRef.current.clear()
+    await fetchServerCart()
+    setLoading(false)
   }
 
-  const itemCount = items.reduce((s, i) => s + (Number(i.quantity) || 0), 0)
-    + bundles.reduce((s, b) => s + (Number(b.quantity) || 0), 0)
-  const totalCount = itemCount
+  const totalCount = useMemo(() => (
+    items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+    + bundles.reduce((sum, bundle) => sum + (Number(bundle.quantity) || 0), 0)
+  ), [items, bundles])
 
   return (
     <CartContext.Provider value={{
@@ -440,8 +448,8 @@ export function CartProvider({ children }) {
       loading,
       addItem,
       addBundle,
-      updateItem,
-      updateBundle,
+      adjustItemQuantity,
+      adjustBundleQuantity,
       removeItem,
       removeBundle,
       loadCart,

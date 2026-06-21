@@ -15,8 +15,8 @@ export default function Cart() {
     items,
     bundles,
     loading,
-    updateItem,
-    updateBundle,
+    adjustItemQuantity,
+    adjustBundleQuantity,
     removeItem,
     removeBundle,
     totalCount,
@@ -116,8 +116,8 @@ export default function Cart() {
                   <span className="cart-item-unit-price cart-price-value">{formatPrice(bundle.unit_price || getBundleTotal(bundle) / qty)}</span>
                   <CartQuantityStepper
                     value={qty}
-                    onDecrease={() => updateBundle(bundleId, Math.max(1, qty - 1))}
-                    onIncrease={() => updateBundle(bundleId, qty + 1)}
+                    onDecrease={() => adjustBundleQuantity(bundleId, -1)}
+                    onIncrease={() => adjustBundleQuantity(bundleId, 1)}
                   />
                 </div>
                 <div className="cart-item-footer">
@@ -149,8 +149,8 @@ export default function Cart() {
                     <span className="cart-item-unit-price cart-price-value">{formatPrice(getItemPrice(item))}</span>
                     <CartQuantityStepper
                       value={qty}
-                      onDecrease={() => updateItem(getItemId(item), Math.max(1, qty - 1))}
-                      onIncrease={() => updateItem(getItemId(item), qty + 1)}
+                      onDecrease={() => adjustItemQuantity(getItemId(item), -1)}
+                      onIncrease={() => adjustItemQuantity(getItemId(item), 1)}
                     />
                   </div>
                   <div className="cart-item-footer">
