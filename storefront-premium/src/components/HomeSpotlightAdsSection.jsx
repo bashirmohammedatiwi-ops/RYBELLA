@@ -72,29 +72,39 @@ function buildSpotlightProducts(products, featured, bestSellers, rotationBucket 
 }
 
 function getStackCards(images, frontIdx) {
-  const slotCount = Math.min(images.length, STACK_LAYOUT.length)
+  if (images.length <= 1) return []
+  const slotCount = Math.min(images.length - 1, STACK_LAYOUT.length - 1)
   const n = images.length
-  return STACK_LAYOUT.slice(0, slotCount)
-    .map((layout, depth) => ({
-      src: images[(frontIdx + depth) % n],
-      imgIdx: (frontIdx + depth) % n,
-      depth,
-      layout,
-    }))
+  return STACK_LAYOUT.slice(1, 1 + slotCount)
+    .map((layout, i) => {
+      const depth = i + 1
+      const imgIdx = (frontIdx + depth) % n
+      return {
+        src: images[imgIdx],
+        imgIdx,
+        depth,
+        layout,
+      }
+    })
     .sort((a, b) => b.depth - a.depth)
 }
 
-function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
+function ImageStack({ images, frontIdx, onChange, isActive, inView, slideVisible }) {
   const touchRef = useRef({ x: 0, y: 0 })
-  const cards = getStackCards(images, frontIdx)
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+  const backCards = getStackCards(images, frontIdx)
+  const frontLayout = STACK_LAYOUT[0]
+  const canCycle = inView && slideVisible && images.length > 1
 
   useEffect(() => {
-    if (!isActive || !inView || images.length <= 1) return
-    const t = setInterval(() => {
-      onChange((prev) => (prev + 1) % images.length)
+    if (!canCycle) return undefined
+    const count = images.length
+    const t = window.setInterval(() => {
+      onChangeRef.current((prev) => (prev + 1) % count)
     }, IMAGE_CYCLE_MS)
-    return () => clearInterval(t)
-  }, [isActive, inView, images.length, onChange])
+    return () => window.clearInterval(t)
+  }, [canCycle, images.length])
 
   const onTouchStart = (e) => {
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -118,11 +128,11 @@ function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
       <div className="pk-stack-shadow" aria-hidden="true" />
 
       <div className="pk-stack-cards">
-        {cards.map(({ src, imgIdx, depth, layout }) => (
+        {backCards.map(({ src, imgIdx, depth, layout }) => (
           <button
-            key={`${src}-${depth}`}
+            key={`back-${imgIdx}-${depth}`}
             type="button"
-            className={`pk-card pk-card--${layout.shape}${depth === 0 ? ' is-front' : ' is-back'}`}
+            className={`pk-card pk-card--${layout.shape} is-back`}
             style={{
               '--pk-x': `${layout.x}px`,
               '--pk-y': `${layout.y}px`,
@@ -139,12 +149,38 @@ function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
               <img
                 src={`${IMG_BASE}${src}`}
                 alt=""
-                loading={depth <= 1 ? 'eager' : 'lazy'}
+                loading="lazy"
                 draggable={false}
               />
             </span>
           </button>
         ))}
+
+        <button
+          key={`front-${frontIdx}`}
+          type="button"
+          className={`pk-card pk-card--${frontLayout.shape} is-front`}
+          style={{
+            '--pk-x': `${frontLayout.x}px`,
+            '--pk-y': `${frontLayout.y}px`,
+            '--pk-w': `${frontLayout.w}px`,
+            '--pk-h': `${frontLayout.h}px`,
+            '--pk-rot': `${frontLayout.rot}deg`,
+            '--pk-scale': frontLayout.scale,
+            zIndex: frontLayout.z,
+          }}
+          onClick={() => onChange((frontIdx + 1) % images.length)}
+          aria-label={`صورة ${frontIdx + 1}`}
+        >
+          <span className="pk-card-media">
+            <img
+              src={`${IMG_BASE}${images[frontIdx]}`}
+              alt=""
+              loading="eager"
+              draggable={false}
+            />
+          </span>
+        </button>
       </div>
 
       {images.length > 1 && (
@@ -168,21 +204,35 @@ function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
 }
 
 function ProductSlide({ product, isActive, inView }) {
+  const slideRef = useRef(null)
   const images = getProductImages(product)
   const [frontIdx, setFrontIdx] = useState(0)
+  const [slideVisible, setSlideVisible] = useState(false)
 
   useEffect(() => {
     setFrontIdx(0)
   }, [product.id])
 
+  useEffect(() => {
+    const el = slideRef.current
+    if (!el) return undefined
+    const obs = new IntersectionObserver(
+      ([entry]) => setSlideVisible(entry.isIntersecting && entry.intersectionRatio >= 0.45),
+      { threshold: [0, 0.45, 0.65, 0.85, 1] }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [product.id])
+
   return (
-    <article className={`pk-slide${isActive ? ' is-active' : ''}`}>
+    <article ref={slideRef} className={`pk-slide${isActive ? ' is-active' : ''}`}>
       <ImageStack
         images={images}
         frontIdx={frontIdx}
         onChange={setFrontIdx}
         isActive={isActive}
         inView={inView}
+        slideVisible={slideVisible}
       />
 
       <Link to={`/products/${product.id}`} className="pk-info">
@@ -254,13 +304,9 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
     setActiveIdx(index)
   }, [])
 
-  const onTrackScroll = useCallback(() => {
+  const syncActiveIndex = useCallback(() => {
     const track = trackRef.current
     if (!track?.children.length) return
-
-    userPausedRef.current = true
-    if (pauseRef.current) clearTimeout(pauseRef.current)
-    pauseRef.current = window.setTimeout(() => { userPausedRef.current = false }, 8000)
 
     const center = track.scrollLeft + track.clientWidth / 2
     let closest = 0
@@ -273,6 +319,13 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
     setActiveIdx(closest)
   }, [])
 
+  const onTrackScroll = useCallback(() => {
+    userPausedRef.current = true
+    if (pauseRef.current) clearTimeout(pauseRef.current)
+    pauseRef.current = window.setTimeout(() => { userPausedRef.current = false }, 8000)
+    syncActiveIndex()
+  }, [syncActiveIndex])
+
   useEffect(() => {
     const el = sectionRef.current
     if (!el) return
@@ -280,6 +333,15 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
+
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return undefined
+    syncActiveIndex()
+    const ro = new ResizeObserver(() => syncActiveIndex())
+    ro.observe(track)
+    return () => ro.disconnect()
+  }, [items.length, syncActiveIndex])
 
   useEffect(() => {
     if (!inView || items.length <= 1) return

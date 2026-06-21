@@ -10,6 +10,19 @@ import { getVariantColor, isMetallicShade } from '../utils/variantColor'
 import MobileHeader from '../components/MobileHeader'
 import './ProductDetail.css'
 
+function DescriptionContent({ text }) {
+  const blocks = String(text || '').trim().split(/\n{2,}/)
+  if (!blocks.length) return null
+
+  return (
+    <div className="pd-desc-body">
+      {blocks.map((block, i) => (
+        <p key={i} className="pd-desc-block">{block}</p>
+      ))}
+    </div>
+  )
+}
+
 export default function ProductDetail() {
   const { id } = useParams()
   const galleryRef = useRef(null)
@@ -303,8 +316,13 @@ export default function ProductDetail() {
 
         {product.description && (
           <div className="pd-desc">
-            <h3>الوصف</h3>
-            <p>{product.description}</p>
+            <div className="pd-desc-card">
+              <div className="pd-desc-head">
+                <span className="pd-desc-icon" aria-hidden="true">✦</span>
+                <h3>الوصف</h3>
+              </div>
+              <DescriptionContent text={product.description} />
+            </div>
           </div>
         )}
 
