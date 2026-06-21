@@ -24,145 +24,87 @@ function getMinPrice(product) {
   return product?.min_price ?? product?.variants?.[0]?.price
 }
 
-function collectGroupImages(products, limit = 6) {
-  const out = []
-  products.forEach((p) => {
-    getProductImages(p).forEach((src) => {
-      if (out.length < limit && !out.some((x) => x.src === src)) {
-        out.push({ src, product: p })
-      }
-    })
-  })
-  return out
+function getProductBadge(product) {
+  if (isTruthyFlag(product.is_featured)) return 'مميز'
+  if (isTruthyFlag(product.is_best_seller)) return 'الأكثر مبيعاً'
+  if (product.created_at && (Date.now() - new Date(product.created_at)) / 864e5 <= 30) return 'جديد'
+  return 'مختار لكِ'
 }
 
-function buildLookbookGroups(products, featured, bestSellers) {
+function buildSpotlightProducts(products, featured, bestSellers) {
   const seen = new Set()
   const all = [...featured, ...bestSellers, ...products].filter((p) => {
     if (!p?.id || seen.has(p.id)) return false
     seen.add(p.id)
     return getProductImages(p).length >= 1
   })
-  if (all.length < 2) return []
 
-  const groups = []
+  const score = (p) =>
+    getProductImages(p).length * 12 +
+    (isTruthyFlag(p.is_featured) ? 40 : 0) +
+    (isTruthyFlag(p.is_best_seller) ? 28 : 0)
 
-  const featuredPool = all.filter((p) => isTruthyFlag(p.is_featured))
-  if (featuredPool.length >= 2) {
-    groups.push({
-      id: 'featured',
-      label: '01 — VIP',
-      headline: 'تشكيلة النجوم',
-      hook: 'منتجاتنا الأكثر تميزاً — شاهديها من كل زاوية',
-      cta: 'تسوقي التشكيلة',
-      link: '/explore?featured=1',
-      products: featuredPool.slice(0, 5),
-      tone: 'noir',
-    })
-  }
-
-  const bestPool = all.filter((p) => isTruthyFlag(p.is_best_seller))
-  if (bestPool.length >= 2) {
-    groups.push({
-      id: 'bestseller',
-      label: '02 — TRENDING',
-      headline: 'الأكثر مبيعاً',
-      hook: 'ما تختاره آلاف العميلات — صور حقيقية من المعرض',
-      cta: 'اكتشفي الأكثر طلباً',
-      link: '/explore',
-      products: bestPool.slice(0, 5),
-      tone: 'wine',
-    })
-  }
-
-  const rich = [...all].sort((a, b) => getProductImages(b).length - getProductImages(a).length)
-  const galleryPool = rich.filter((p) => getProductImages(p).length >= 2).slice(0, 5)
-  if (galleryPool.length >= 2) {
-    groups.push({
-      id: 'gallery',
-      label: '03 — LOOKBOOK',
-      headline: 'معرض الصور',
-      hook: 'كل لقطة تكشف تفصيلاً جديداً — مجموعة متجدّدة',
-      cta: 'استكشفي المعرض',
-      link: '/explore',
-      products: galleryPool,
-      tone: 'blush',
-    })
-  }
-
-  if (all.length >= 3) {
-    const pick = [...all].sort(() => Math.random() - 0.5).slice(0, 5)
-    groups.push({
-      id: 'fresh',
-      label: '04 — NEW DROP',
-      headline: 'اختيار اللحظة',
-      hook: 'تشكيلة جديدة تتغيّر — لا تفوّتي الفرصة',
-      cta: 'تسوقي الآن',
-      link: '/explore',
-      products: pick,
-      tone: 'rose',
-    })
-  }
-
-  return groups.slice(0, 4)
+  return [...all].sort((a, b) => score(b) - score(a)).slice(0, 10)
 }
 
-function LookbookBoard({ group, isActive, focusIdx }) {
-  const tiles = collectGroupImages(group.products, 6)
-  const heroProduct = group.products[0]
+function ProductSpotlightStage({ product, imageIdx, isVisible }) {
+  const images = getProductImages(product)
+  const extras = images.slice(1, 5)
+  const activeImage = images[imageIdx % images.length] || images[0]
+  const badge = getProductBadge(product)
+  const brand = product.brand_name || product.category_name
 
   return (
-    <article className={`hl-board hl-board--${group.tone}${isActive ? ' is-active' : ''}`}>
-      <div className="hl-board-mosaic" aria-hidden={!isActive}>
-        {tiles.map((tile, i) => (
-          <div
-            key={`${tile.src}-${i}`}
-            className={`hl-tile hl-tile--${i}${i === focusIdx % Math.max(tiles.length, 1) ? ' is-focused' : ''}`}
-          >
-            <img src={`${IMG_BASE}${tile.src}`} alt="" loading="lazy" />
-            <span className="hl-tile-shine" />
-          </div>
-        ))}
-        {tiles.length < 6 &&
-          Array.from({ length: 6 - tiles.length }).map((_, i) => (
-            <div key={`ph-${i}`} className={`hl-tile hl-tile--${tiles.length + i} hl-tile--ghost`} aria-hidden="true" />
+    <article className={`sp-stage${isVisible ? ' is-visible' : ''}`} aria-hidden={!isVisible}>
+      <div className="sp-stage-aura sp-stage-aura--1" aria-hidden="true" />
+      <div className="sp-stage-aura sp-stage-aura--2" aria-hidden="true" />
+      <div className="sp-stage-ring" aria-hidden="true" />
+
+      <div className="sp-visual">
+        <div className="sp-hero-stack">
+          {images.map((src, i) => (
+            <img
+              key={src}
+              src={`${IMG_BASE}${src}`}
+              alt=""
+              className={`sp-hero-img${src === activeImage ? ' is-active' : ''}`}
+              loading="lazy"
+            />
           ))}
-      </div>
-
-      <div className="hl-board-veil" aria-hidden="true" />
-
-      <div className="hl-board-content">
-        <span className="hl-board-label">{group.label}</span>
-        <h3 className="hl-board-headline">{group.headline}</h3>
-        <p className="hl-board-hook">{group.hook}</p>
-
-        <div className="hl-board-products">
-          {group.products.slice(0, 4).map((p) => {
-            const thumb = getProductImages(p)[0]
-            return (
-              <Link key={p.id} to={`/products/${p.id}`} className="hl-board-product" title={p.name}>
-                {thumb ? <img src={`${IMG_BASE}${thumb}`} alt="" loading="lazy" /> : <span>✦</span>}
-                <span className="hl-board-product-meta">
-                  <strong>{p.name}</strong>
-                  <em>{formatPrice(getMinPrice(p))}</em>
-                </span>
-              </Link>
-            )
-          })}
         </div>
 
-        <Link to={group.link} className="hl-board-cta">
-          <span>{group.cta}</span>
+        {extras.length > 0 && (
+          <div className="sp-filmstrip" aria-label="صور إضافية">
+            {extras.map((src, i) => {
+              const imgIndex = i + 1
+              const isLit = images.indexOf(activeImage) === imgIndex
+              return (
+                <div
+                  key={src}
+                  className={`sp-filmstrip-item${isLit ? ' is-lit' : ''}`}
+                  style={{ '--sp-delay': `${i * 0.12}s` }}
+                >
+                  <img src={`${IMG_BASE}${src}`} alt="" loading="lazy" />
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="sp-flash" aria-hidden="true" />
+      </div>
+
+      <div className="sp-info">
+        <span className="sp-badge">{badge}</span>
+        {brand && <span className="sp-brand">{brand}</span>}
+        <h3 className="sp-name">{product.name}</h3>
+        <p className="sp-price">{formatPrice(getMinPrice(product))}</p>
+        <Link to={`/products/${product.id}`} className="sp-cta">
+          <span>اكتشفي المنتج</span>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </Link>
-
-        {heroProduct && (
-          <Link to={`/products/${heroProduct.id}`} className="hl-board-featured-tag">
-            {heroProduct.name}
-          </Link>
-        )}
       </div>
     </article>
   )
@@ -170,118 +112,102 @@ function LookbookBoard({ group, isActive, focusIdx }) {
 
 export default function HomeSpotlightAdsSection({ products = [], featured = [], bestSellers = [] }) {
   const sectionRef = useRef(null)
-  const trackRef = useRef(null)
-  const activeIdxRef = useRef(0)
-  const [activeIdx, setActiveIdx] = useState(0)
-  const [focusIdx, setFocusIdx] = useState(0)
   const [inView, setInView] = useState(false)
+  const [productIdx, setProductIdx] = useState(0)
+  const [imageIdx, setImageIdx] = useState(0)
+  const [tick, setTick] = useState(0)
 
-  const groups = useMemo(
-    () => buildLookbookGroups(products, featured, bestSellers),
+  const spotlightProducts = useMemo(
+    () => buildSpotlightProducts(products, featured, bestSellers),
     [products, featured, bestSellers]
   )
 
-  const scrollToIndex = useCallback((index) => {
-    const track = trackRef.current
-    if (!track) return
-    const card = track.children[index]
-    if (!card) return
-    const targetLeft = card.offsetLeft - (track.clientWidth - card.clientWidth) / 2
-    track.scrollTo({ left: targetLeft, behavior: 'smooth' })
-    activeIdxRef.current = index
-    setActiveIdx(index)
-    setFocusIdx(0)
+  const activeProduct = spotlightProducts[productIdx]
+
+  const goToProduct = useCallback((idx) => {
+    setProductIdx(idx)
+    setImageIdx(0)
+    setTick((t) => t + 1)
   }, [])
 
-  const handleScroll = useCallback(() => {
-    const track = trackRef.current
-    if (!track?.children.length) return
-    const center = track.scrollLeft + track.clientWidth / 2
-    let closest = 0
-    let minDist = Infinity
-    Array.from(track.children).forEach((child, i) => {
-      const childCenter = child.offsetLeft + child.clientWidth / 2
-      const dist = Math.abs(childCenter - center)
-      if (dist < minDist) {
-        minDist = dist
-        closest = i
-      }
-    })
-    activeIdxRef.current = closest
-    setActiveIdx(closest)
-  }, [])
+  const nextProduct = useCallback(() => {
+    if (spotlightProducts.length <= 1) return
+    goToProduct((productIdx + 1) % spotlightProducts.length)
+  }, [spotlightProducts.length, productIdx, goToProduct])
 
   useEffect(() => {
     const el = sectionRef.current
     if (!el) return
     const obs = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.15 }
+      { threshold: 0.2 }
     )
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
 
   useEffect(() => {
-    if (!inView || groups.length <= 1) return
-    const t = setInterval(() => {
-      scrollToIndex((activeIdxRef.current + 1) % groups.length)
-    }, 7500)
+    if (!inView || spotlightProducts.length <= 1) return
+    const t = setInterval(nextProduct, 8500)
     return () => clearInterval(t)
-  }, [inView, groups.length, scrollToIndex])
+  }, [inView, spotlightProducts.length, nextProduct, productIdx])
 
   useEffect(() => {
-    if (!inView) return
-    const t = setInterval(() => setFocusIdx((i) => i + 1), 3200)
+    if (!inView || !activeProduct) return
+    const images = getProductImages(activeProduct)
+    if (images.length <= 1) return
+    const t = setInterval(() => setImageIdx((i) => i + 1), 3000)
     return () => clearInterval(t)
-  }, [inView, activeIdx])
+  }, [inView, activeProduct, productIdx])
 
-  if (!groups.length) return null
+  if (!spotlightProducts.length) return null
 
   return (
-    <section ref={sectionRef} className="hl-section" aria-label="تشكيلات Rybella">
-      <div className="hl-section-glow" aria-hidden="true" />
-
-      <header className="hl-head">
-        <div className="hl-head-main">
-          <span className="hl-eyebrow">Rybella Curated</span>
-          <h2 className="hl-title">تشكيلات تُلهمك</h2>
-          <p className="hl-desc">معرض صور حيّ · مجموعات منتجات تتجدّد تلقائياً</p>
+    <section ref={sectionRef} className="sp-section" aria-label="منتج مميز">
+      <header className="sp-head">
+        <div>
+          <span className="sp-eyebrow">Spotlight</span>
+          <h2 className="sp-title">نجمة اللحظة</h2>
+          <p className="sp-desc">منتج واحد · معرض صوره يتحرّك · يتجدّد تلقائياً</p>
         </div>
-        {groups.length > 1 && (
-          <div className="hl-head-nav">
-            <span className="hl-counter">
-              {String(activeIdx + 1).padStart(2, '0')}
-              <span className="hl-counter-sep">/</span>
-              {String(groups.length).padStart(2, '0')}
-            </span>
-            <div className="hl-dots">
-              {groups.map((g, i) => (
-                <button
-                  key={g.id}
-                  type="button"
-                  className={`hl-dot${i === activeIdx ? ' is-active' : ''}`}
-                  onClick={() => scrollToIndex(i)}
-                  aria-label={`تشكيلة ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
+        {spotlightProducts.length > 1 && (
+          <span className="sp-counter">
+            {String(productIdx + 1).padStart(2, '0')}
+            <span className="sp-counter-sep">/</span>
+            {String(spotlightProducts.length).padStart(2, '0')}
+          </span>
         )}
       </header>
 
-      <div className="hl-stage">
-        <div className="hl-track" ref={trackRef} onScroll={handleScroll}>
-          {groups.map((group, i) => (
-            <LookbookBoard
-              key={group.id}
-              group={group}
-              isActive={i === activeIdx}
-              focusIdx={i === activeIdx ? focusIdx : 0}
-            />
-          ))}
-        </div>
+      <div className="sp-viewport">
+        {spotlightProducts.map((product, i) => (
+          <ProductSpotlightStage
+            key={product.id}
+            product={product}
+            imageIdx={i === productIdx ? imageIdx : 0}
+            isVisible={i === productIdx}
+          />
+        ))}
       </div>
+
+      {spotlightProducts.length > 1 && (
+        <>
+          <div className="sp-dots">
+            {spotlightProducts.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`sp-dot${i === productIdx ? ' is-active' : ''}`}
+                onClick={() => goToProduct(i)}
+                aria-label={`منتج ${i + 1}`}
+              />
+            ))}
+          </div>
+          <div className="sp-progress" aria-hidden="true">
+            <span className="sp-progress-fill" key={`${productIdx}-${tick}`} />
+          </div>
+        </>
+      )}
     </section>
   )
 }
