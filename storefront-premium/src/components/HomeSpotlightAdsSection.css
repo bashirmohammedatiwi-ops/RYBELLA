@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   HomeSpotlightAdsSection — Premium stacked gallery
+   HomeSpotlightAdsSection — Stacked gallery (no thumbnails)
    ═══════════════════════════════════════════════════════════════ */
 
 .pk-section {
@@ -94,15 +94,10 @@
     0 0 0 1px rgba(232, 93, 122, 0.14);
 }
 
-/* ─── Gallery wrapper ─── */
-.pk-gallery {
-  background: #fff;
-}
-
 /* ─── Stacked stage ─── */
 .pk-stack {
   position: relative;
-  height: clamp(320px, 78vw, 360px);
+  height: clamp(340px, 84vw, 390px);
   overflow: hidden;
 }
 
@@ -110,21 +105,21 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 85% 65% at 50% 42%, rgba(255, 228, 236, 0.45), transparent 68%),
-    linear-gradient(180deg, #fffbfc 0%, #fff5f8 100%);
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(255, 230, 238, 0.5), transparent 70%),
+    linear-gradient(180deg, #fffcfd 0%, #fff6f9 100%);
   pointer-events: none;
 }
 
 .pk-stack-shadow {
   position: absolute;
-  bottom: 18px;
+  bottom: 36px;
   left: 50%;
   transform: translateX(-50%);
-  width: 240px;
-  height: 32px;
+  width: 260px;
+  height: 36px;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(232, 93, 122, 0.22), transparent 72%);
-  filter: blur(8px);
+  background: radial-gradient(ellipse, rgba(232, 93, 122, 0.2), transparent 72%);
+  filter: blur(10px);
   pointer-events: none;
 }
 
@@ -136,7 +131,7 @@
   justify-content: center;
 }
 
-/* ─── Cards — صور كبيرة، إطار رفيع ─── */
+/* ─── Cards ─── */
 .pk-card {
   position: absolute;
   width: var(--pk-w);
@@ -152,13 +147,15 @@
     scale(var(--pk-scale, 1));
   transition:
     transform 0.75s cubic-bezier(0.34, 1.12, 0.64, 1),
-    filter 0.5s ease;
+    filter 0.5s ease,
+    opacity 0.5s ease;
   will-change: transform;
-  filter: brightness(0.92) saturate(0.95);
+  filter: brightness(0.9) saturate(0.92);
+  opacity: 0.88;
 }
 
 .pk-card--round .pk-card-media {
-  border-radius: 22px;
+  border-radius: 24px;
 }
 
 .pk-card--circle .pk-card-media {
@@ -166,41 +163,48 @@
 }
 
 .pk-card-media {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #f8f0f3;
-  border: 2.5px solid #fff;
+  background: #fff;
+  border: 2px solid #fff;
   box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.16),
-    0 6px 16px rgba(232, 93, 122, 0.14);
+    0 18px 44px rgba(0, 0, 0, 0.14),
+    0 6px 18px rgba(232, 93, 122, 0.12);
   transition: box-shadow 0.5s ease;
 }
 
 .pk-card img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center center;
+  object-fit: contain;
+  object-position: center;
   display: block;
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
-  transform: scale(1.04);
+  padding: 6px;
 }
 
 .pk-card.is-front {
-  filter: brightness(1) saturate(1.05);
+  filter: brightness(1) saturate(1.06);
+  opacity: 1;
   z-index: 20 !important;
 }
 
 .pk-card.is-front .pk-card-media {
   border-color: #fff;
   box-shadow:
-    0 24px 56px rgba(232, 93, 122, 0.3),
-    0 10px 28px rgba(0, 0, 0, 0.14),
-    0 0 0 2px rgba(232, 93, 122, 0.25);
+    0 28px 60px rgba(232, 93, 122, 0.28),
+    0 12px 32px rgba(0, 0, 0, 0.12),
+    0 0 0 2.5px rgba(232, 93, 122, 0.22);
+}
+
+.pk-card.is-front img {
+  padding: 8px;
 }
 
 .pk-stack.is-live .pk-card.is-front {
@@ -218,7 +222,7 @@
     transform:
       translate(var(--pk-x, 0), calc(var(--pk-y, 0px) - 8px))
       rotate(calc(var(--pk-rot, 0deg) + 1.5deg))
-      scale(calc(var(--pk-scale, 1) * 1.03));
+      scale(calc(var(--pk-scale, 1) * 1.02));
   }
 }
 
@@ -229,57 +233,54 @@
     scale(calc(var(--pk-scale, 1) * 0.98));
 }
 
-/* ─── Filmstrip — كل الصور واضحة ─── */
-.pk-filmstrip {
+/* ─── Stack UI — عدّاد ونقاط فقط ─── */
+.pk-stack-ui {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
-  padding: 10px 12px 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.pk-filmstrip::-webkit-scrollbar {
-  display: none;
-}
-
-.pk-film {
-  flex: 0 0 64px;
-  width: 64px;
-  height: 64px;
-  padding: 0;
-  margin: 0;
-  border: 2.5px solid transparent;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #faf5f7;
-  cursor: pointer;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-  transition:
-    transform 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.pk-film img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
+  z-index: 30;
   pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
 }
 
-.pk-film.is-active {
-  border-color: var(--primary);
-  transform: scale(1.08);
-  box-shadow: 0 6px 18px rgba(232, 93, 122, 0.3);
+.pk-stack-count {
+  padding: 4px 12px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--primary-dark, #c94a5a);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(232, 93, 122, 0.12);
+  border-radius: var(--radius-full, 999px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(232, 93, 122, 0.1);
 }
 
-.pk-film:active {
-  transform: scale(0.96);
+.pk-stack-dots {
+  display: flex;
+  gap: 5px;
+  pointer-events: auto;
+}
+
+.pk-stack-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 4px rgba(232, 93, 122, 0.25);
+  cursor: pointer;
+  transition: transform 0.3s ease, background 0.3s ease, width 0.3s ease;
+}
+
+.pk-stack-dot.is-on {
+  width: 20px;
+  border-radius: 4px;
+  background: var(--primary);
 }
 
 /* ─── Product info ─── */
@@ -288,7 +289,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 14px 14px;
+  padding: 12px 14px 14px;
   text-decoration: none;
   color: inherit;
   background: #fff;
@@ -382,12 +383,6 @@
 @media (min-width: 560px) {
   .pk-slide {
     flex-basis: min(74vw, 420px);
-  }
-
-  .pk-film {
-    flex-basis: 72px;
-    width: 72px;
-    height: 72px;
   }
 }
 
