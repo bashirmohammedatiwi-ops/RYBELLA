@@ -4,14 +4,6 @@ import { IMG_BASE } from '../services/api'
 import { formatPrice } from '../utils/format'
 import './HomeSpotlightAdsSection.css'
 
-const STACK_LAYOUT = [
-  { rot: -2, x: 0, y: -10, w: 252, h: 296, scale: 1, shape: 'round', z: 10 },
-  { rot: -12, x: -92, y: 48, w: 172, h: 172, scale: 1, shape: 'circle', z: 3 },
-  { rot: 10, x: 94, y: 40, w: 164, h: 164, scale: 1, shape: 'round', z: 5 },
-  { rot: -15, x: -66, y: -66, w: 154, h: 154, scale: 1, shape: 'circle', z: 2 },
-  { rot: 13, x: 72, y: -62, w: 146, h: 146, scale: 1, shape: 'round', z: 4 },
-]
-
 function isTruthyFlag(value) {
   return value === true || value === 1 || value === '1'
 }
@@ -48,96 +40,83 @@ function buildSpotlightProducts(products, featured, bestSellers) {
   return [...all].sort((a, b) => score(b) - score(a)).slice(0, 8)
 }
 
-function getStackCards(images, frontIdx) {
-  const slotCount = Math.min(images.length, STACK_LAYOUT.length)
-  const n = images.length
-  return STACK_LAYOUT.slice(0, slotCount)
-    .map((layout, depth) => ({
-      src: images[(frontIdx + depth) % n],
-      imgIdx: (frontIdx + depth) % n,
-      depth,
-      layout,
-    }))
-    .sort((a, b) => b.depth - a.depth)
-}
+function ImageCarousel({ images, productId, isActive, inView }) {
+  const carouselRef = useRef(null)
+  const idxRef = useRef(0)
+  const [idx, setIdx] = useState(0)
 
-function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
-  const touchRef = useRef({ x: 0, y: 0 })
-  const cards = getStackCards(images, frontIdx)
+  const scrollTo = useCallback((index) => {
+    const el = carouselRef.current
+    if (!el) return
+    const safe = Math.max(0, Math.min(index, images.length - 1))
+    const frame = el.children[safe]
+    if (!frame) return
+    frame.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
+    idxRef.current = safe
+    setIdx(safe)
+  }, [images.length])
+
+  const onScroll = useCallback(() => {
+    const el = carouselRef.current
+    if (!el?.clientWidth) return
+    const isRTL = getComputedStyle(el).direction === 'rtl'
+    const w = el.clientWidth
+    const next = isRTL
+      ? Math.round(-el.scrollLeft / w)
+      : Math.round(el.scrollLeft / w)
+    const safe = Math.max(0, Math.min(next, images.length - 1))
+    if (safe !== idxRef.current) {
+      idxRef.current = safe
+      setIdx(safe)
+    }
+  }, [images.length])
+
+  useEffect(() => {
+    idxRef.current = 0
+    setIdx(0)
+    const first = carouselRef.current?.children[0]
+    first?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'start' })
+  }, [productId])
 
   useEffect(() => {
     if (!isActive || !inView || images.length <= 1) return
     const t = setInterval(() => {
-      onChange((prev) => (prev + 1) % images.length)
-    }, 3600)
+      scrollTo((idxRef.current + 1) % images.length)
+    }, 4200)
     return () => clearInterval(t)
-  }, [isActive, inView, images.length, onChange])
-
-  const onTouchStart = (e) => {
-    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
-  }
-
-  const onTouchEnd = (e) => {
-    if (images.length <= 1) return
-    const dx = e.changedTouches[0].clientX - touchRef.current.x
-    const dy = e.changedTouches[0].clientY - touchRef.current.y
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return
-    onChange((prev) => ((prev + (dx < 0 ? 1 : -1)) % images.length + images.length) % images.length)
-  }
+  }, [isActive, inView, images.length, scrollTo])
 
   return (
-    <div
-      className={`pk-stack${isActive ? ' is-live' : ''}`}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
-      <div className="pk-stack-bg" aria-hidden="true" />
-      <div className="pk-stack-shadow" aria-hidden="true" />
-
-      <div className="pk-stack-cards">
-        {cards.map(({ src, imgIdx, depth, layout }) => (
-          <button
-            key={`${src}-${depth}`}
-            type="button"
-            className={`pk-card pk-card--${layout.shape}${depth === 0 ? ' is-front' : ''}`}
-            style={{
-              '--pk-x': `${layout.x}px`,
-              '--pk-y': `${layout.y}px`,
-              '--pk-w': `${layout.w}px`,
-              '--pk-h': `${layout.h}px`,
-              '--pk-rot': `${layout.rot}deg`,
-              '--pk-scale': layout.scale,
-              zIndex: layout.z,
-            }}
-            onClick={() => onChange(imgIdx)}
-            aria-label={`صورة ${imgIdx + 1}`}
-          >
-            <span className="pk-card-media">
-              <img
-                src={`${IMG_BASE}${src}`}
-                alt=""
-                loading={depth <= 1 ? 'eager' : 'lazy'}
-                draggable={false}
-              />
-            </span>
-          </button>
+    <div className="pk-viewer">
+      <div
+        ref={carouselRef}
+        className="pk-carousel"
+        onScroll={onScroll}
+        aria-label="صور المنتج"
+      >
+        {images.map((src, i) => (
+          <div key={src} className="pk-frame">
+            <img
+              src={`${IMG_BASE}${src}`}
+              alt=""
+              loading={i === 0 ? 'eager' : 'lazy'}
+              draggable={false}
+            />
+          </div>
         ))}
       </div>
 
       {images.length > 1 && (
-        <div className="pk-stack-ui">
-          <span className="pk-stack-count">{frontIdx + 1} / {images.length}</span>
-          <div className="pk-stack-dots">
+        <div className="pk-viewer-ui">
+          <div className="pk-segments" aria-hidden="true">
             {images.map((src, i) => (
-              <button
+              <span
                 key={src}
-                type="button"
-                className={`pk-stack-dot${i === frontIdx ? ' is-on' : ''}`}
-                onClick={() => onChange(i)}
-                aria-label={`صورة ${i + 1}`}
+                className={`pk-seg${i === idx ? ' is-on' : ''}${i < idx ? ' is-done' : ''}`}
               />
             ))}
           </div>
+          <span className="pk-counter">{idx + 1} / {images.length}</span>
         </div>
       )}
     </div>
@@ -146,37 +125,32 @@ function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
 
 function ProductSlide({ product, isActive, inView }) {
   const images = getProductImages(product)
-  const [frontIdx, setFrontIdx] = useState(0)
-
-  useEffect(() => {
-    setFrontIdx(0)
-  }, [product.id])
 
   return (
     <article className={`pk-slide${isActive ? ' is-active' : ''}`}>
-      <ImageStack
+      <ImageCarousel
         images={images}
-        frontIdx={frontIdx}
-        onChange={setFrontIdx}
+        productId={product.id}
         isActive={isActive}
         inView={inView}
       />
 
       <Link to={`/products/${product.id}`} className="pk-info">
-        <div className="pk-info-text">
-          {(product.brand_name || product.category_name) && (
-            <span className="pk-brand">{product.brand_name || product.category_name}</span>
-          )}
-          <h3 className="pk-name">{product.name}</h3>
-        </div>
-        <div className="pk-info-action">
+        <div className="pk-info-main">
+          <div className="pk-info-text">
+            {(product.brand_name || product.category_name) && (
+              <span className="pk-brand">{product.brand_name || product.category_name}</span>
+            )}
+            <h3 className="pk-name">{product.name}</h3>
+          </div>
           <span className="pk-price">{formatPrice(getMinPrice(product))}</span>
-          <span className="pk-arrow" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </span>
         </div>
+        <span className="pk-cta">
+          <span>تسوقي الآن</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </span>
       </Link>
     </article>
   )
@@ -253,7 +227,7 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
     <section ref={sectionRef} className="pk-section" aria-label="معرض صور المنتج">
       <header className="pk-head">
         <div className="pk-head-main">
-          <span className="pk-label">Gallery Pick</span>
+          <span className="pk-label">Gallery</span>
           <h2 className="pk-title">معرض <em>الصور</em></h2>
         </div>
         {items.length > 1 && (
