@@ -4,15 +4,6 @@ import { IMG_BASE } from '../services/api'
 import { formatPrice } from '../utils/format'
 import './HomeSpotlightAdsSection.css'
 
-const CLUSTER_SLOTS = [
-  { x: 50, y: 46, size: 92, rot: 0, shape: 'round', z: 10 },
-  { x: 16, y: 20, size: 62, rot: -11, shape: 'circle', z: 4 },
-  { x: 84, y: 18, size: 58, rot: 9, shape: 'round', z: 5 },
-  { x: 10, y: 72, size: 56, rot: 10, shape: 'round', z: 3 },
-  { x: 88, y: 68, size: 60, rot: -9, shape: 'circle', z: 6 },
-  { x: 50, y: 84, size: 52, rot: 6, shape: 'circle', z: 2 },
-]
-
 function isTruthyFlag(value) {
   return value === true || value === 1 || value === '1'
 }
@@ -49,43 +40,51 @@ function buildSpotlightProducts(products, featured, bestSellers) {
   return [...all].sort((a, b) => score(b) - score(a)).slice(0, 8)
 }
 
-function ImageCluster({ images, frontIdx, onChange, isActive, inView }) {
-  const slotCount = Math.min(images.length, CLUSTER_SLOTS.length)
-  const slots = CLUSTER_SLOTS.slice(0, slotCount).map((slot, si) => ({
-    ...slot,
-    src: images[(frontIdx + si) % images.length],
-    imgIdx: (frontIdx + si) % images.length,
-    isHero: si === 0,
-  }))
+function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
+  const heroSrc = images[frontIdx]
 
   useEffect(() => {
     if (!isActive || !inView || images.length <= 1) return
     const t = setInterval(() => {
       onChange((prev) => (prev + 1) % images.length)
-    }, 4000)
+    }, 3800)
     return () => clearInterval(t)
   }, [isActive, inView, images.length, onChange])
 
   return (
-    <div className={`pk-cluster${isActive ? ' is-live' : ''}`}>
-      {slots.map((slot, si) => (
-        <button
-          key={`${slot.src}-${si}`}
-          type="button"
-          className={`pk-tile pk-tile--${slot.shape}${slot.isHero ? ' is-hero' : ''}${slot.imgIdx === frontIdx ? ' is-focus' : ''}`}
-          style={{
-            '--pk-x': `${slot.x}%`,
-            '--pk-y': `${slot.y}%`,
-            '--pk-size': `${slot.size}px`,
-            '--pk-rot': `${slot.rot}deg`,
-            zIndex: slot.z,
-          }}
-          onClick={() => onChange(slot.imgIdx)}
-          aria-label={`صورة ${slot.imgIdx + 1}`}
-        >
-          <img src={`${IMG_BASE}${slot.src}`} alt="" loading={si < 3 ? 'eager' : 'lazy'} draggable={false} />
-        </button>
-      ))}
+    <div className={`pk-gallery${isActive ? ' is-live' : ''}`}>
+      <div className="pk-hero">
+        <img
+          key={heroSrc}
+          src={`${IMG_BASE}${heroSrc}`}
+          alt=""
+          className="pk-hero-img"
+          loading="eager"
+          draggable={false}
+        />
+        <div className="pk-hero-glow" aria-hidden="true" />
+      </div>
+
+      {images.length > 1 && (
+        <div className="pk-thumbs" role="tablist" aria-label="صور المنتج">
+          {images.map((src, i) => (
+            <button
+              key={src}
+              type="button"
+              role="tab"
+              aria-selected={i === frontIdx}
+              className={`pk-thumb${i === frontIdx ? ' is-active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onChange(i)
+              }}
+            >
+              <img src={`${IMG_BASE}${src}`} alt="" loading={i < 4 ? 'eager' : 'lazy'} draggable={false} />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -100,20 +99,31 @@ function ProductSlide({ product, isActive, inView }) {
 
   return (
     <article className={`pk-slide${isActive ? ' is-active' : ''}`}>
-      <ImageCluster
-        images={images}
-        frontIdx={frontIdx}
-        onChange={setFrontIdx}
-        isActive={isActive}
-        inView={inView}
-      />
+      <Link to={`/products/${product.id}`} className="pk-slide-link">
+        <ImageGallery
+          images={images}
+          frontIdx={frontIdx}
+          onChange={setFrontIdx}
+          isActive={isActive}
+          inView={inView}
+        />
 
-      <Link to={`/products/${product.id}`} className="pk-caption">
-        <span className="pk-caption-name">{product.name}</span>
-        <span className="pk-caption-price">{formatPrice(getMinPrice(product))}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-          <path d="M5 12h14M13 6l6 6-6 6" />
-        </svg>
+        <div className="pk-info">
+          <div className="pk-info-text">
+            {(product.brand_name || product.category_name) && (
+              <span className="pk-brand">{product.brand_name || product.category_name}</span>
+            )}
+            <h3 className="pk-name">{product.name}</h3>
+          </div>
+          <div className="pk-info-action">
+            <span className="pk-price">{formatPrice(getMinPrice(product))}</span>
+            <span className="pk-arrow" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </span>
+          </div>
+        </div>
       </Link>
     </article>
   )
@@ -189,9 +199,12 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
   return (
     <section ref={sectionRef} className="pk-section" aria-label="معرض صور المنتج">
       <header className="pk-head">
-        <h2 className="pk-title">معرض الصور</h2>
+        <div className="pk-head-main">
+          <span className="pk-label">Gallery</span>
+          <h2 className="pk-title">معرض <em>الصور</em></h2>
+        </div>
         {items.length > 1 && (
-          <span className="pk-head-count">{activeIdx + 1}/{items.length}</span>
+          <span className="pk-head-count">{activeIdx + 1} / {items.length}</span>
         )}
       </header>
 
