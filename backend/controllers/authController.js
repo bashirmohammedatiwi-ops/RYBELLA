@@ -1,29 +1,66 @@
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { normalizeIraqiPhone, isValidIraqiPhone } = require('../utils/phone');
+
+function phonePlaceholderEmail(phone) {
+  return `${phone}@phone.rybella.iq`;
+}
+
+function sanitizeUserResponse(user) {
+  if (!user) return user;
+  const displayEmail = user.email?.endsWith('@phone.rybella.iq') ? null : user.email;
+  return {
+    id: user.id,
+    name: user.name,
+    email: displayEmail,
+    phone: user.phone,
+    role: user.role,
+    created_at: user.created_at,
+  };
+}
 
 exports.register = async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
-    
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'الاسم والبريد الإلكتروني وكلمة المرور مطلوبة' });
+
+    if (!name || !password) {
+      return res.status(400).json({ message: 'الاسم وكلمة المرور مطلوبة' });
     }
 
-    const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    const normalizedPhone = phone ? normalizeIraqiPhone(phone) : null;
+    const trimmedEmail = email?.trim() || null;
+
+    if (normalizedPhone) {
+      if (!isValidIraqiPhone(normalizedPhone)) {
+        return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
+      }
+      const [existingPhone] = await db.query('SELECT id FROM users WHERE phone = ?', [normalizedPhone]);
+      if (existingPhone.length > 0) {
+        return res.status(400).json({ message: 'رقم الهاتف مستخدم بالفعل' });
+      }
+    }
+
+    if (!normalizedPhone && !trimmedEmail) {
+      return res.status(400).json({ message: 'رقم الهاتف مطلوب' });
+    }
+
+    const userEmail = trimmedEmail || phonePlaceholderEmail(normalizedPhone);
+
+    const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [userEmail]);
     if (existingUser.length > 0) {
-      return res.status(400).json({ message: 'البريد الإلكتروني مستخدم بالفعل' });
+      return res.status(400).json({ message: normalizedPhone ? 'رقم الهاتف مستخدم بالفعل' : 'البريد الإلكتروني مستخدم بالفعل' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await db.query(
       'INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, phone || null, 'customer']
+      [name.trim(), userEmail, hashedPassword, normalizedPhone, 'customer']
     );
 
     const jwtSecret = process.env.JWT_SECRET || 'rybella_dev_secret_change_in_production';
     const token = jwt.sign(
-      { id: result.insertId, email, role: 'customer' },
+      { id: result.insertId, email: userEmail, role: 'customer' },
       jwtSecret,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -31,13 +68,13 @@ exports.register = async (req, res) => {
     res.status(201).json({
       message: 'تم التسجيل بنجاح',
       token,
-      user: {
+      user: sanitizeUserResponse({
         id: result.insertId,
-        name,
-        email,
-        phone: phone || null,
-        role: 'customer'
-      }
+        name: name.trim(),
+        email: trimmedEmail || userEmail,
+        phone: normalizedPhone,
+        role: 'customer',
+      }),
     });
   } catch (error) {
     console.error('Register error:', error);
@@ -47,13 +84,30 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({ message: 'البريد الإلكتروني وكلمة المرور مطلوبة' });
+    const { email, phone, password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ message: 'كلمة المرور مطلوبة' });
     }
 
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    const normalizedPhone = phone ? normalizeIraqiPhone(phone) : null;
+    const trimmedEmail = email?.trim() || null;
+
+    if (!normalizedPhone && !trimmedEmail) {
+      return res.status(400).json({ message: 'رقم الهاتف وكلمة المرور مطلوبة' });
+    }
+
+    if (normalizedPhone && !isValidIraqiPhone(normalizedPhone)) {
+      return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
+    }
+
+    let users;
+    if (normalizedPhone) {
+      [users] = await db.query('SELECT * FROM users WHERE phone = ?', [normalizedPhone]);
+    } else {
+      [users] = await db.query('SELECT * FROM users WHERE email = ?', [trimmedEmail]);
+    }
+
     if (users.length === 0) {
       return res.status(401).json({ message: 'بيانات الدخول غير صحيحة' });
     }
@@ -74,13 +128,7 @@ exports.login = async (req, res) => {
     res.json({
       message: 'تم تسجيل الدخول بنجاح',
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role
-      }
+      user: sanitizeUserResponse(user),
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -98,7 +146,7 @@ exports.getProfile = async (req, res) => {
     if (users.length === 0) {
       return res.status(404).json({ message: 'المستخدم غير موجود' });
     }
-    res.json(users[0]);
+    res.json(sanitizeUserResponse(users[0]));
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
@@ -115,8 +163,12 @@ exports.updateProfile = async (req, res) => {
       params.push(name);
     }
     if (phone !== undefined) {
+      const normalizedPhone = normalizeIraqiPhone(phone);
+      if (normalizedPhone && !isValidIraqiPhone(normalizedPhone)) {
+        return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
+      }
       updates.push('phone = ?');
-      params.push(phone || null);
+      params.push(normalizedPhone || null);
     }
     if (updates.length === 0) {
       return res.status(400).json({ message: 'لا توجد بيانات للتحديث' });
@@ -127,7 +179,7 @@ exports.updateProfile = async (req, res) => {
       'SELECT id, name, email, phone, role, created_at FROM users WHERE id = ?',
       [req.user.id]
     );
-    res.json(users[0] || {});
+    res.json(sanitizeUserResponse(users[0] || {}));
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });

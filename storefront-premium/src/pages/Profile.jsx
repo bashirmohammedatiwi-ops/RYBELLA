@@ -10,10 +10,10 @@ export default function Profile() {
       <h1>حسابي</h1>
       <div className="premium-profile-card">
         <div className="premium-profile-avatar">
-          {(user.name || user.email || '?').charAt(0).toUpperCase()}
+          {(user.name || user.phone || '?').charAt(0).toUpperCase()}
         </div>
         <h2>{user.name || 'مستخدم'}</h2>
-        <p>{user.email}</p>
+        {user.phone && <p dir="ltr">{user.phone}</p>}
       </div>
       <div className="premium-profile-links">
         <Link to="/orders">طلباتي</Link>
