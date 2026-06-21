@@ -139,50 +139,32 @@ function sanitizeSyncItem(raw) {
   if (originalPrice <= 0 && price > 0) originalPrice = price
   if (price <= 0 && originalPrice > 0) price = originalPrice
 
-  // Promo with explicit discount % from Alhayaa/POS — trust % and fix final price if needed
-  if (discountPercent > 0 && originalPrice > 0) {
-    if (price <= 0 || price >= originalPrice) {
-      price = clampPrice(originalPrice * (1 - discountPercent / 100))
-    }
+  // Same as Alhayaa sanitizeItem — store values as received, no local recalculation
+  if (discountPercent === 0 && originalPrice <= price) {
+    const finalPrice = originalPrice || price
     return {
       barcode,
       productCode: raw.productCode ?? raw.product_code ?? null,
       productNum: raw.productNum ?? raw.product_num ?? null,
       name: raw.name ?? null,
-      price,
-      originalPrice,
-      discountPercent,
+      price: finalPrice,
+      originalPrice: finalPrice,
+      discountPercent: 0,
       stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
-      offerName: offerName?.trim() || null,
+      offerName: null,
     }
   }
 
-  if (originalPrice > price && price > 0) {
-    discountPercent = computeDiscountPercent(originalPrice, price)
-    return {
-      barcode,
-      productCode: raw.productCode ?? raw.product_code ?? null,
-      productNum: raw.productNum ?? raw.product_num ?? null,
-      name: raw.name ?? null,
-      price,
-      originalPrice,
-      discountPercent,
-      stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
-      offerName: offerName?.trim() || null,
-    }
-  }
-
-  const finalPrice = originalPrice || price
   return {
     barcode,
     productCode: raw.productCode ?? raw.product_code ?? null,
     productNum: raw.productNum ?? raw.product_num ?? null,
     name: raw.name ?? null,
-    price: finalPrice,
-    originalPrice: finalPrice,
-    discountPercent: 0,
+    price,
+    originalPrice: originalPrice || price,
+    discountPercent,
     stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
-    offerName: null,
+    offerName: offerName?.trim() || null,
   }
 }
 
@@ -468,32 +450,37 @@ function enrichProductPricing(product) {
   if (!variants.length) return product
 
   let minPrice = Infinity
-  let minOriginal = null
-  let maxDiscount = 0
-  let hasDiscount = false
+  let bestVariant = null
 
   for (const v of variants) {
     const price = parseFloat(v.price) || 0
     const original = parseFloat(v.original_price) || price
     const discount = parseFloat(v.discount_percent) || 0
-    const variantHasDiscount = discount > 0 && original > price
+    const variantHasDiscount = discount > 0 && original > price && price > 0
 
     v.has_discount = variantHasDiscount ? 1 : 0
 
     if (price > 0 && price < minPrice) {
       minPrice = price
-      minOriginal = variantHasDiscount ? original : null
-    }
-    if (variantHasDiscount && discount > maxDiscount) {
-      maxDiscount = discount
-      hasDiscount = true
+      bestVariant = v
     }
   }
 
-  product.min_price = minPrice === Infinity ? product.min_price : minPrice
-  product.min_original_price = minOriginal
-  product.max_discount_percent = maxDiscount
-  product.has_discount = hasDiscount ? 1 : 0
+  if (bestVariant) {
+    const original = parseFloat(bestVariant.original_price) || minPrice
+    const discount = parseFloat(bestVariant.discount_percent) || 0
+    const hasDiscount = discount > 0 && minPrice > 0
+    product.min_price = minPrice
+    product.min_original_price = hasDiscount && original > minPrice ? original : null
+    product.max_discount_percent = hasDiscount ? discount : 0
+    product.has_discount = hasDiscount ? 1 : 0
+  } else {
+    product.min_price = minPrice === Infinity ? product.min_price : minPrice
+    product.min_original_price = null
+    product.max_discount_percent = 0
+    product.has_discount = 0
+  }
+
   return product
 }
 

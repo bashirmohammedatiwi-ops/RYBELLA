@@ -8,11 +8,14 @@ export function formatAdminPrice(value) {
 export function getAdminPricing(data) {
   const price = Number(data?.price);
   const original = Number(data?.original_price);
-  const discount = Number(data?.discount_percent);
-  const hasDiscount = discount > 0 && original > price && price > 0;
+  const discount = Number(data?.discount_percent) || 0;
+  const hasDiscount = discount > 0;
+  const hasPromoPrices = hasDiscount && Number.isFinite(original) && original > price && price > 0;
   return {
     price: Number.isFinite(price) ? price : null,
-    originalPrice: hasDiscount ? original : (Number.isFinite(price) ? price : null),
+    originalPrice: hasPromoPrices
+      ? original
+      : (Number.isFinite(original) && original > 0 ? original : (Number.isFinite(price) ? price : null)),
     finalPrice: Number.isFinite(price) ? price : null,
     discountPercent: hasDiscount ? discount : 0,
     hasDiscount,

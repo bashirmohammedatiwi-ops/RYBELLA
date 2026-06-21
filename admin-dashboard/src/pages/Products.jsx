@@ -124,9 +124,10 @@ export default function Products() {
     const price = Number(product?.min_price);
     const original = Number(product?.min_original_price);
     const discount = Number(product?.max_discount_percent);
-    const hasDiscount = product?.has_discount && discount > 0 && original > price;
+    const hasDiscount = discount > 0;
+    const hasPromoPrices = hasDiscount && Number.isFinite(original) && original > price;
     return {
-      before: formatAdminPrice(hasDiscount ? original : price),
+      before: formatAdminPrice(hasPromoPrices ? original : price),
       after: formatAdminPrice(price),
       discount: hasDiscount ? `${discount}%` : '—',
     };
