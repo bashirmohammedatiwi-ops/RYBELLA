@@ -132,11 +132,23 @@ function parseOfferDiscountPercent(offerName) {
 function resolveDiscountPercent(raw, offerName, fromPayload) {
   const fromValue = raw.discountValue ?? raw.discount_value
   if (fromValue != null && Number(fromValue) > 0) {
-    return Math.max(0, Math.min(100, clampInt(fromValue, 0)))
+    return {
+      percent: Math.max(0, Math.min(100, clampInt(fromValue, 0))),
+      fromOffer: true,
+    }
   }
   const fromOffer = parseOfferDiscountPercent(offerName)
-  if (fromOffer != null && fromOffer > 0) return fromOffer
-  return fromPayload
+  if (fromOffer != null && fromOffer > 0) {
+    return { percent: fromOffer, fromOffer: true }
+  }
+  return { percent: fromPayload, fromOffer: false }
+}
+
+function priceFromOfferDiscount(originalPrice, discountPercent) {
+  const orig = clampPrice(originalPrice)
+  const discount = clampInt(discountPercent, 0)
+  if (orig <= 0 || discount <= 0) return 0
+  return clampPrice(orig * (1 - discount / 100))
 }
 
 function computeDiscountPercent(originalPrice, finalPrice) {
@@ -155,10 +167,16 @@ function sanitizeSyncItem(raw) {
   let discountPercent = clampInt(raw.discountPercent ?? raw.discount_percent, 0)
   discountPercent = Math.max(0, Math.min(100, discountPercent))
   const offerName = raw.offerName ?? raw.offer_name ?? null
-  discountPercent = resolveDiscountPercent(raw, offerName, discountPercent)
+  const resolved = resolveDiscountPercent(raw, offerName, discountPercent)
+  discountPercent = resolved.percent
 
   if (originalPrice <= 0 && price > 0) originalPrice = price
   if (price <= 0 && originalPrice > 0) price = originalPrice
+
+  // When discount comes from POS offer (%), derive final price from original + offer %
+  if (resolved.fromOffer && discountPercent > 0 && originalPrice > 0) {
+    price = priceFromOfferDiscount(originalPrice, discountPercent)
+  }
 
   // Same as Alhayaa sanitizeItem — store values as received, no local recalculation
   if (discountPercent === 0 && originalPrice <= price) {
