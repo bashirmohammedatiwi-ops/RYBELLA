@@ -4,6 +4,14 @@ import { IMG_BASE } from '../services/api'
 import { formatPrice } from '../utils/format'
 import './HomeSpotlightAdsSection.css'
 
+const STACK_LAYOUT = [
+  { rot: 0, x: 0, y: 0, scale: 1, shape: 'round' },
+  { rot: -11, x: -28, y: 14, scale: 0.88, shape: 'circle' },
+  { rot: 9, x: 30, y: 18, scale: 0.84, shape: 'round' },
+  { rot: -16, x: -18, y: 28, scale: 0.78, shape: 'circle' },
+  { rot: 14, x: 22, y: 32, scale: 0.72, shape: 'round' },
+]
+
 function isTruthyFlag(value) {
   return value === true || value === 1 || value === '1'
 }
@@ -40,28 +48,28 @@ function buildSpotlightProducts(products, featured, bestSellers) {
   return [...all].sort((a, b) => score(b) - score(a)).slice(0, 8)
 }
 
-function ShowcaseSlide({ product, isActive, inView }) {
-  const images = getProductImages(product)
-  const [imgIdx, setImgIdx] = useState(0)
-  const imgIdxRef = useRef(0)
+function getStackCards(images, frontIdx) {
+  const n = images.length
+  return images.map((src, i) => {
+    const depth = (i - frontIdx + n) % n
+    const layout = STACK_LAYOUT[depth] || STACK_LAYOUT[STACK_LAYOUT.length - 1]
+    return { src, i, depth, layout }
+  }).sort((a, b) => b.depth - a.depth)
+}
+
+function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
   const touchRef = useRef({ x: 0, y: 0 })
+  const cards = getStackCards(images, frontIdx)
 
-  const goImage = useCallback((idx) => {
-    const next = ((idx % images.length) + images.length) % images.length
-    imgIdxRef.current = next
-    setImgIdx(next)
-  }, [images.length])
-
-  useEffect(() => {
-    imgIdxRef.current = 0
-    setImgIdx(0)
-  }, [product.id])
+  const go = useCallback((delta) => {
+    onChange(((frontIdx + delta) % images.length + images.length) % images.length)
+  }, [frontIdx, images.length, onChange])
 
   useEffect(() => {
     if (!isActive || !inView || images.length <= 1) return
-    const t = setInterval(() => goImage(imgIdxRef.current + 1), 3800)
+    const t = setInterval(() => go(1), 3500)
     return () => clearInterval(t)
-  }, [isActive, inView, images.length, product.id, goImage])
+  }, [isActive, inView, images.length, go])
 
   const onTouchStart = (e) => {
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -71,73 +79,88 @@ function ShowcaseSlide({ product, isActive, inView }) {
     if (images.length <= 1) return
     const dx = e.changedTouches[0].clientX - touchRef.current.x
     const dy = e.changedTouches[0].clientY - touchRef.current.y
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return
-    goImage(imgIdxRef.current + (dx < 0 ? 1 : -1))
+    if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return
+    go(dx < 0 ? 1 : -1)
   }
 
-  const extras = images.filter((_, i) => i !== imgIdx).slice(0, 3)
-
   return (
-    <article className={`pv-slide${isActive ? ' is-active' : ''}`}>
-      <div className="pv-bg-stack" aria-hidden="true">
-        {images.map((src, i) => (
-          <img
-            key={src}
-            src={`${IMG_BASE}${src}`}
-            alt=""
-            className={`pv-bg-img${i === imgIdx ? ' is-on' : ''}`}
-            loading="lazy"
-          />
-        ))}
-        <div className="pv-bg-shade" />
-      </div>
+    <div
+      className={`pk-stack${isActive ? ' is-live' : ''}`}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="pk-stack-shadow" aria-hidden="true" />
 
-      <div
-        className="pv-touch-layer"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-        aria-hidden="true"
-      />
-
-      {extras.length > 0 && (
-        <div className="pv-floats" aria-hidden="true">
-          {extras.map((src, i) => (
-            <div key={src} className={`pv-float pv-float--${i + 1}`}>
-              <img src={`${IMG_BASE}${src}`} alt="" loading="lazy" />
-            </div>
-          ))}
+      {cards.map(({ src, i, depth, layout }) => (
+        <div
+          key={`${src}-${depth}`}
+          className={`pk-card pk-card--${layout.shape}${depth === 0 ? ' is-front' : ''}`}
+          style={{
+            '--pk-rot': `${layout.rot}deg`,
+            '--pk-x': `${layout.x}px`,
+            '--pk-y': `${layout.y}px`,
+            '--pk-scale': layout.scale,
+            zIndex: 10 - depth,
+          }}
+        >
+          <img src={`${IMG_BASE}${src}`} alt="" loading={depth === 0 ? 'eager' : 'lazy'} draggable={false} />
+          <span className="pk-card-shine" aria-hidden="true" />
         </div>
-      )}
+      ))}
 
       {images.length > 1 && (
-        <div className="pv-img-nav">
+        <div className="pk-stack-dots">
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
-              className={`pv-img-dot${i === imgIdx ? ' is-on' : ''}`}
-              onClick={() => goImage(i)}
+              className={`pk-stack-dot${i === frontIdx ? ' is-on' : ''}`}
+              onClick={() => onChange(i)}
               aria-label={`صورة ${i + 1}`}
             />
           ))}
         </div>
       )}
+    </div>
+  )
+}
 
-      <div className="pv-content">
-        <div className="pv-badges">
-          {isTruthyFlag(product.is_featured) && <span className="pv-badge">مميز</span>}
-          {isTruthyFlag(product.is_best_seller) && <span className="pv-badge pv-badge--hot">الأكثر مبيعاً</span>}
+function ProductSlide({ product, isActive, inView }) {
+  const images = getProductImages(product)
+  const [frontIdx, setFrontIdx] = useState(0)
+
+  useEffect(() => {
+    setFrontIdx(0)
+  }, [product.id])
+
+  return (
+    <article className={`pk-slide${isActive ? ' is-active' : ''}`}>
+      <ImageStack
+        images={images}
+        frontIdx={frontIdx}
+        onChange={setFrontIdx}
+        isActive={isActive}
+        inView={inView}
+      />
+
+      <div className="pk-body">
+        <div className="pk-meta">
+          {isTruthyFlag(product.is_featured) && <span className="pk-pill">مميز</span>}
+          {isTruthyFlag(product.is_best_seller) && <span className="pk-pill pk-pill--hot">الأكثر مبيعاً</span>}
+          {images.length > 1 && (
+            <span className="pk-count">{images.length} صور</span>
+          )}
         </div>
 
         {(product.brand_name || product.category_name) && (
-          <span className="pv-brand">{product.brand_name || product.category_name}</span>
+          <span className="pk-brand">{product.brand_name || product.category_name}</span>
         )}
 
-        <h3 className="pv-name">{product.name}</h3>
-        <p className="pv-price">{formatPrice(getMinPrice(product))}</p>
+        <h3 className="pk-name">{product.name}</h3>
+        <p className="pk-price">{formatPrice(getMinPrice(product))}</p>
 
-        <Link to={`/products/${product.id}`} className="pv-cta">
-          <span>احصلي عليه الآن</span>
+        <Link to={`/products/${product.id}`} className="pk-cta">
+          <span>تسوقي الآن</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
@@ -178,18 +201,15 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
     const track = trackRef.current
     if (!track?.children.length) return
 
-    if (pauseRef.current) clearTimeout(pauseRef.current)
     userPausedRef.current = true
-    pauseRef.current = window.setTimeout(() => {
-      userPausedRef.current = false
-    }, 8000)
+    if (pauseRef.current) clearTimeout(pauseRef.current)
+    pauseRef.current = window.setTimeout(() => { userPausedRef.current = false }, 8000)
 
     const center = track.scrollLeft + track.clientWidth / 2
     let closest = 0
     let min = Infinity
     Array.from(track.children).forEach((el, i) => {
-      const c = el.offsetLeft + el.clientWidth / 2
-      const d = Math.abs(c - center)
+      const d = Math.abs(el.offsetLeft + el.clientWidth / 2 - center)
       if (d < min) { min = d; closest = i }
     })
     activeIdxRef.current = closest
@@ -218,35 +238,34 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
   if (!items.length) return null
 
   return (
-    <section ref={sectionRef} className="pv-section" aria-label="منتج مميز">
-      <header className="pv-head">
-        <span className="pv-label">Spotlight</span>
-        <h2 className="pv-title">اختاري <em>بثقة</em></h2>
-        {items.length > 1 && (
-          <p className="pv-hint">← اسحبي بين المنتجات →</p>
-        )}
+    <section ref={sectionRef} className="pk-section" aria-label="منتج مميز">
+      <header className="pk-head">
+        <span className="pk-label">Gallery Pick</span>
+        <h2 className="pk-title">معرض <em>الصور</em></h2>
+        {items.length > 1 && <p className="pk-hint">← اسحبي بين المنتجات · اسحبي الصور →</p>}
       </header>
 
-      {items.length > 1 && (
-        <div className="pv-progress" aria-hidden="true">
-          {items.map((p, i) => (
-            <span key={p.id} className={`pv-progress-seg${i === activeIdx ? ' is-on' : ''}${i < activeIdx ? ' is-past' : ''}`} />
-          ))}
-        </div>
-      )}
-
-      <div className="pv-viewport">
-        <div className="pv-track" ref={trackRef} onScroll={onTrackScroll}>
-          {items.map((p, i) => (
-            <ShowcaseSlide key={p.id} product={p} isActive={i === activeIdx} inView={inView} />
-          ))}
-        </div>
+      <div className="pk-track" ref={trackRef} onScroll={onTrackScroll}>
+        {items.map((p, i) => (
+          <ProductSlide key={p.id} product={p} isActive={i === activeIdx} inView={inView} />
+        ))}
       </div>
 
       {items.length > 1 && (
-        <p className="pv-index" aria-live="polite">
-          {activeIdx + 1} / {items.length}
-        </p>
+        <div className="pk-footer">
+          <div className="pk-footer-dots">
+            {items.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`pk-footer-dot${i === activeIdx ? ' is-on' : ''}`}
+                onClick={() => scrollTo(i)}
+                aria-label={`منتج ${i + 1}`}
+              />
+            ))}
+          </div>
+          <span className="pk-footer-count">{activeIdx + 1} / {items.length}</span>
+        </div>
       )}
     </section>
   )
