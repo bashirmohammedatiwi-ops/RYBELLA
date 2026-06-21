@@ -77,11 +77,23 @@ function startInventorySyncJob() {
   const run = async () => {
     try {
       const stats = await inventorySync.refreshAllFromExternal();
-      console.log(`Inventory sync: ${stats.synced}/${stats.total} barcodes updated`);
+      if (!stats.authConfigured) {
+        console.warn('Inventory sync skipped: configure EXTERNAL_INVENTORY_API_EMAIL/PASSWORD or TOKEN for Alhayaa');
+        return;
+      }
+      console.log(`Inventory sync: ${stats.synced}/${stats.total} fetched, ${stats.linked} variants updated, ${stats.failed} failed`);
+      if (stats.lastError) console.warn('Inventory sync last error:', stats.lastError);
     } catch (e) {
       console.error('Inventory sync job error:', e.message);
     }
   };
+  inventorySync.getSyncStatus().then((s) => {
+    if (!s.authOk) {
+      console.warn('Inventory sync: Alhayaa auth not configured — prices will NOT update until EMAIL/PASSWORD or TOKEN is set');
+    } else {
+      console.log('Inventory sync: Alhayaa auth OK');
+    }
+  }).catch(() => {});
   setTimeout(run, 15000);
   setInterval(run, Math.max(1, intervalMin) * 60 * 1000);
   console.log(`Inventory auto-sync every ${intervalMin} min from ${process.env.EXTERNAL_INVENTORY_API_URL}`);

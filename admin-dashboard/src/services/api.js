@@ -234,6 +234,7 @@ export const syncAPI = {
   refreshBarcode: (barcode) => api.post(`/sync/inventory/refresh-barcode/${encodeURIComponent(barcode)}`),
   refreshProduct: (productId) => api.post(`/sync/inventory/refresh-product/${productId}`),
   refreshAll: () => api.post('/sync/inventory/refresh-all'),
+  getStatus: (barcode) => api.get('/sync/inventory/status', { params: barcode ? { barcode } : {} }),
   bulk: (items) => api.post('/sync/inventory/bulk', { items }),
 };
 

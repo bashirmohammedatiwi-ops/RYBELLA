@@ -1,6 +1,110 @@
 const db = require('../config/database')
 const { normalizeBarcode, barcodeCandidates } = require('../utils/barcode')
 
+let cachedExternalToken = null
+let cachedExternalTokenExpiresAt = 0
+let lastExternalFetchError = null
+
+function expandBarcodeMatchKeys(barcode) {
+  const keys = new Set()
+  for (const c of barcodeCandidates(barcode)) keys.add(c)
+  const stripped = String(barcode || '').replace(/^0+/, '')
+  if (stripped) keys.add(stripped)
+  if (/^\d+$/.test(stripped) && stripped.length < 13) {
+    keys.add(stripped.padStart(13, '0'))
+  }
+  return [...keys]
+}
+
+function unwrapExternalPayload(data) {
+  if (!data || typeof data !== 'object') return null
+  if (data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+    if (data.data.barcode != null || data.data.price != null) return data.data
+  }
+  if (data.snapshot && typeof data.snapshot === 'object') return data.snapshot
+  if (data.barcode != null || data.price != null) return data
+  return null
+}
+
+function getExternalBaseUrl() {
+  return (process.env.EXTERNAL_INVENTORY_API_URL || '').replace(/\/$/, '')
+}
+
+async function loginExternalApi(forceRefresh = false) {
+  const staticToken = (process.env.EXTERNAL_INVENTORY_API_TOKEN || '').trim()
+  if (staticToken && !forceRefresh) return staticToken
+
+  if (!forceRefresh && cachedExternalToken && Date.now() < cachedExternalTokenExpiresAt - 60_000) {
+    return cachedExternalToken
+  }
+
+  const email = (process.env.EXTERNAL_INVENTORY_API_EMAIL || '').trim()
+  const password = process.env.EXTERNAL_INVENTORY_API_PASSWORD || ''
+  const base = getExternalBaseUrl()
+  if (!base || !email || !password) {
+    return staticToken || null
+  }
+
+  const res = await fetch(`${base}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ email, password }),
+    signal: AbortSignal.timeout(15000),
+  })
+
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const msg = data?.error?.message || data?.message || `HTTP ${res.status}`
+    lastExternalFetchError = `login_failed: ${msg}`
+    console.error('External inventory login failed:', lastExternalFetchError)
+    return staticToken || null
+  }
+
+  const payload = unwrapExternalPayload(data) || data
+  const token = payload?.accessToken || payload?.access_token
+  if (!token) {
+    lastExternalFetchError = 'login_failed: no accessToken in response'
+    console.error('External inventory login failed:', lastExternalFetchError)
+    return staticToken || null
+  }
+
+  cachedExternalToken = token
+  cachedExternalTokenExpiresAt = Date.now() + (Number(payload.expiresIn) || 900) * 1000
+  lastExternalFetchError = null
+  return token
+}
+
+async function getExternalAuthHeaders(forceRefresh = false) {
+  const token = await loginExternalApi(forceRefresh)
+  const headers = { Accept: 'application/json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
+
+async function findVariantRowsByBarcode(barcode) {
+  const keys = expandBarcodeMatchKeys(barcode)
+  if (!keys.length) return []
+  const placeholders = keys.map(() => '?').join(',')
+  const [variants] = await db.query(
+    `SELECT id FROM product_variants
+     WHERE TRIM(barcode) IN (${placeholders}) OR barcode IN (${placeholders})`,
+    [...keys, ...keys]
+  )
+  return variants
+}
+
+async function findProductRowsByBarcode(barcode) {
+  const keys = expandBarcodeMatchKeys(barcode)
+  if (!keys.length) return []
+  const placeholders = keys.map(() => '?').join(',')
+  const [products] = await db.query(
+    `SELECT id FROM products
+     WHERE TRIM(barcode) IN (${placeholders}) OR barcode IN (${placeholders})`,
+    [...keys, ...keys]
+  )
+  return products
+}
+
 function clampInt(value, fallback = 0) {
   const n = Math.round(Number(value))
   if (!Number.isFinite(n)) return fallback
@@ -91,10 +195,7 @@ async function applyItemToCatalog(item) {
   const now = new Date().toISOString()
   let updated = 0
 
-  const [variants] = await db.query(
-    'SELECT id FROM product_variants WHERE barcode = ?',
-    [item.barcode]
-  )
+  const variants = await findVariantRowsByBarcode(item.barcode)
   for (const row of variants) {
     await db.query(
       `UPDATE product_variants SET
@@ -106,10 +207,7 @@ async function applyItemToCatalog(item) {
   }
 
   if (updated === 0) {
-    const [products] = await db.query(
-      'SELECT id FROM products WHERE barcode = ?',
-      [item.barcode]
-    )
+    const products = await findProductRowsByBarcode(item.barcode)
     for (const prod of products) {
       const [simpleVariants] = await db.query(
         `SELECT id FROM product_variants WHERE product_id = ?
@@ -171,24 +269,46 @@ async function syncBulk(rawItems = []) {
   return results
 }
 
-async function fetchExternalByBarcode(barcode) {
-  const base = (process.env.EXTERNAL_INVENTORY_API_URL || '').replace(/\/$/, '')
-  if (!base) return null
+async function fetchExternalByBarcode(barcode, retryOn401 = true) {
+  const base = getExternalBaseUrl()
+  if (!base) {
+    lastExternalFetchError = 'missing EXTERNAL_INVENTORY_API_URL'
+    return null
+  }
+
+  let headers = await getExternalAuthHeaders()
+  if (!headers.Authorization) {
+    lastExternalFetchError = 'missing auth: set EXTERNAL_INVENTORY_API_TOKEN or EMAIL/PASSWORD'
+    console.warn('External inventory fetch skipped — no auth configured')
+    return null
+  }
 
   for (const candidate of barcodeCandidates(barcode)) {
     const url = `${base}/sync/inventory/by-barcode/${encodeURIComponent(candidate)}`
-    const headers = { Accept: 'application/json' }
-    const token = process.env.EXTERNAL_INVENTORY_API_TOKEN
-    if (token) headers.Authorization = `Bearer ${token}`
-
     try {
-      const res = await fetch(url, { headers, signal: AbortSignal.timeout(12000) })
-      if (!res.ok) continue
+      let res = await fetch(url, { headers, signal: AbortSignal.timeout(12000) })
+      if (res.status === 401 && retryOn401) {
+        headers = await getExternalAuthHeaders(true)
+        if (headers.Authorization) {
+          res = await fetch(url, { headers, signal: AbortSignal.timeout(12000) })
+        }
+      }
+      if (!res.ok) {
+        lastExternalFetchError = `fetch ${candidate}: HTTP ${res.status}`
+        if (res.status === 401) {
+          lastExternalFetchError = 'unauthorized — check Alhayaa admin credentials/token'
+        }
+        continue
+      }
       const data = await res.json()
-      const payload = data?.data ?? data?.snapshot ?? data
-      if (payload?.barcode || payload?.price != null) return payload
-    } catch (_) {
-      /* try next candidate */
+      const payload = unwrapExternalPayload(data)
+      if (payload?.barcode || payload?.price != null) {
+        lastExternalFetchError = null
+        return payload
+      }
+      lastExternalFetchError = `fetch ${candidate}: empty payload`
+    } catch (e) {
+      lastExternalFetchError = `fetch ${candidate}: ${e.message}`
     }
   }
   return null
@@ -226,20 +346,47 @@ async function getAllCatalogBarcodes() {
 
 async function refreshAllFromExternal() {
   const barcodes = await getAllCatalogBarcodes()
-  const stats = { total: barcodes.length, synced: 0, linked: 0, failed: 0 }
+  const stats = {
+    total: barcodes.length,
+    synced: 0,
+    linked: 0,
+    failed: 0,
+    notLinked: 0,
+    authConfigured: !!(await loginExternalApi()),
+    lastError: lastExternalFetchError,
+    failures: [],
+  }
+
+  if (!getExternalBaseUrl()) {
+    stats.lastError = 'EXTERNAL_INVENTORY_API_URL not set'
+    return stats
+  }
+  if (!stats.authConfigured) {
+    stats.lastError = 'missing auth — add EXTERNAL_INVENTORY_API_EMAIL/PASSWORD or TOKEN'
+    return stats
+  }
+
   for (const barcode of barcodes) {
     try {
       const r = await syncBarcodeFromExternal(barcode)
       if (r.ok) {
         stats.synced += 1
         stats.linked += r.linked || 0
+        if (!r.linked) stats.notLinked += 1
       } else {
         stats.failed += 1
+        if (stats.failures.length < 10) {
+          stats.failures.push({ barcode, reason: r.reason || 'unknown' })
+        }
       }
-    } catch (_) {
+    } catch (e) {
       stats.failed += 1
+      if (stats.failures.length < 10) {
+        stats.failures.push({ barcode, reason: e.message })
+      }
     }
   }
+  stats.lastError = lastExternalFetchError
   return stats
 }
 
@@ -324,6 +471,36 @@ function enrichProductPricing(product) {
   return product
 }
 
+async function getSyncStatus(testBarcode) {
+  const base = getExternalBaseUrl()
+  const hasToken = !!(process.env.EXTERNAL_INVENTORY_API_TOKEN || '').trim()
+  const hasLogin = !!(
+    (process.env.EXTERNAL_INVENTORY_API_EMAIL || '').trim() &&
+    process.env.EXTERNAL_INVENTORY_API_PASSWORD
+  )
+  const authOk = !!(await loginExternalApi())
+  const barcodes = await getAllCatalogBarcodes()
+
+  const status = {
+    configured: !!base,
+    baseUrl: base || null,
+    authMethod: hasToken ? 'token' : hasLogin ? 'email_password' : 'none',
+    authOk,
+    lastError: lastExternalFetchError,
+    catalogBarcodes: barcodes.length,
+  }
+
+  if (testBarcode) {
+    const external = await fetchExternalByBarcode(testBarcode)
+    status.testBarcode = normalizeBarcode(testBarcode)
+    status.testFetchOk = !!external
+    status.testItem = external ? sanitizeSyncItem(external) : null
+    status.lastError = lastExternalFetchError
+  }
+
+  return status
+}
+
 module.exports = {
   sanitizeSyncItem,
   syncItem,
@@ -334,4 +511,5 @@ module.exports = {
   getByBarcode,
   enrichProductPricing,
   computeDiscountPercent,
+  getSyncStatus,
 }

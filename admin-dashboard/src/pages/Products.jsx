@@ -131,14 +131,21 @@ export default function Products() {
   };
 
   const handleSyncAll = async () => {
-    if (!window.confirm('مزامنة أسعار ومخزون جميع المنتجات من نظام المبيعات؟ قد يستغرق ذلك بعض الوقت.')) return;
+    if (!window.confirm('مزامنة أسعار ومخزون جميع المنتجات من نظام Alhayaa؟ قد يستغرق ذلك بعض الوقت.')) return;
     try {
       setSyncingAll(true);
       const { data } = await syncAPI.refreshAll();
       await loadProducts();
-      alert(`تمت المزامنة: ${data.synced ?? 0} باركود، ${data.linked ?? 0} تحديث، ${data.failed ?? 0} فشل`);
+      const msg = [
+        `تم جلب: ${data.synced ?? 0} / ${data.total ?? 0} باركود`,
+        `تحديث منتجات: ${data.linked ?? 0}`,
+        data.notLinked ? `بدون ربط (باركود غير مطابق): ${data.notLinked}` : null,
+        data.failed ? `فشل: ${data.failed}` : null,
+        data.lastError ? `آخر خطأ: ${data.lastError}` : null,
+      ].filter(Boolean).join('\n');
+      alert(msg);
     } catch (err) {
-      alert(err.response?.data?.message || 'فشلت المزامنة');
+      alert(err.response?.data?.message || err.response?.data?.lastError || 'فشلت المزامنة — تأكد من EXTERNAL_INVENTORY_API_EMAIL/PASSWORD في السيرفر');
     } finally {
       setSyncingAll(false);
     }

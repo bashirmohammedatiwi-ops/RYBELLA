@@ -10,5 +10,6 @@ router.get('/inventory/by-barcode/:barcode', auth, adminAuth, inventorySyncContr
 router.post('/inventory/refresh-all', auth, adminAuth, inventorySyncController.refreshAll)
 router.post('/inventory/refresh-product/:productId', auth, adminAuth, inventorySyncController.refreshProduct)
 router.post('/inventory/refresh-barcode/:barcode', auth, adminAuth, inventorySyncController.refreshBarcode)
+router.get('/inventory/status', auth, adminAuth, inventorySyncController.getStatus)
 
 module.exports = router

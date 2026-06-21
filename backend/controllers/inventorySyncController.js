@@ -43,6 +43,13 @@ exports.getByBarcode = async (req, res) => {
 exports.refreshAll = async (req, res) => {
   try {
     const stats = await inventorySync.refreshAllFromExternal()
+    if (!stats.authConfigured && stats.total > 0) {
+      return res.status(503).json({
+        success: false,
+        message: 'لم تُضبط بيانات الدخول لسيرفر Alhayaa — أضف EXTERNAL_INVENTORY_API_EMAIL و PASSWORD أو TOKEN',
+        ...stats,
+      })
+    }
     res.json({ success: true, ...stats })
   } catch (error) {
     console.error('Refresh all error:', error)
@@ -63,10 +70,25 @@ exports.refreshProduct = async (req, res) => {
 exports.refreshBarcode = async (req, res) => {
   try {
     const result = await inventorySync.syncBarcodeFromExternal(req.params.barcode)
-    if (!result.ok) return res.status(404).json({ message: 'لم تُجلب بيانات لهذا الباركود', ...result })
+    if (!result.ok) {
+      const msg = result.reason === 'not_found'
+        ? 'لم تُجلب بيانات لهذا الباركود من سيرفر Alhayaa'
+        : 'فشل جلب بيانات الباركود'
+      return res.status(404).json({ message: msg, ...result })
+    }
     res.json(result)
   } catch (error) {
     console.error('Refresh barcode error:', error)
     res.status(500).json({ message: 'فشل جلب بيانات الباركود' })
+  }
+}
+
+exports.getStatus = async (req, res) => {
+  try {
+    const status = await inventorySync.getSyncStatus(req.query.barcode)
+    res.json(status)
+  } catch (error) {
+    console.error('Sync status error:', error)
+    res.status(500).json({ message: 'فشل فحص حالة المزامنة' })
   }
 }
