@@ -119,6 +119,16 @@ function clampPrice(value) {
   return Math.round(n)
 }
 
+const FINAL_PRICE_ROUND_STEP = 250
+
+/** Round sale/final price to nearest 250 IQD (minimum 250 when price > 0). */
+function roundFinalPrice(value) {
+  const n = clampPrice(value)
+  if (n <= 0) return 0
+  const rounded = Math.round(n / FINAL_PRICE_ROUND_STEP) * FINAL_PRICE_ROUND_STEP
+  return rounded > 0 ? rounded : FINAL_PRICE_ROUND_STEP
+}
+
 function computeDiscountPercent(originalPrice, finalPrice) {
   const orig = clampPrice(originalPrice)
   const fin = clampPrice(finalPrice)
@@ -130,7 +140,8 @@ function sanitizeSyncItem(raw) {
   const barcode = normalizeBarcode(raw.barcode)
   if (!barcode) return null
 
-  const originalPrice = clampPrice(raw.originalPrice ?? raw.original_price ?? raw.price)
+  const originalPriceRaw = clampPrice(raw.originalPrice ?? raw.original_price ?? raw.price)
+  let originalPrice = originalPriceRaw
   let price = clampPrice(raw.price ?? raw.finalPrice ?? raw.final_price ?? originalPrice)
   if (price <= 0 && originalPrice > 0) price = originalPrice
 
@@ -147,6 +158,16 @@ function sanitizeSyncItem(raw) {
   } else {
     discountPercent = 0
     price = originalPrice || price
+  }
+
+  price = roundFinalPrice(price)
+  if (discountPercent === 0) {
+    originalPrice = price
+  } else if (price >= originalPrice) {
+    discountPercent = 0
+    originalPrice = price
+  } else {
+    discountPercent = computeDiscountPercent(originalPrice, price)
   }
 
   return {
@@ -513,5 +534,6 @@ module.exports = {
   getByBarcode,
   enrichProductPricing,
   computeDiscountPercent,
+  roundFinalPrice,
   getSyncStatus,
 }
