@@ -4,12 +4,13 @@ import { IMG_BASE } from '../services/api'
 import { formatPrice } from '../utils/format'
 import './HomeSpotlightAdsSection.css'
 
-const STACK_LAYOUT = [
-  { rot: 0, x: 0, y: 0, scale: 1, shape: 'round' },
-  { rot: -11, x: -28, y: 14, scale: 0.88, shape: 'circle' },
-  { rot: 9, x: 30, y: 18, scale: 0.84, shape: 'round' },
-  { rot: -16, x: -18, y: 28, scale: 0.78, shape: 'circle' },
-  { rot: 14, x: 22, y: 32, scale: 0.72, shape: 'round' },
+const CLUSTER_SLOTS = [
+  { x: 50, y: 46, size: 92, rot: 0, shape: 'round', z: 10 },
+  { x: 16, y: 20, size: 62, rot: -11, shape: 'circle', z: 4 },
+  { x: 84, y: 18, size: 58, rot: 9, shape: 'round', z: 5 },
+  { x: 10, y: 72, size: 56, rot: 10, shape: 'round', z: 3 },
+  { x: 88, y: 68, size: 60, rot: -9, shape: 'circle', z: 6 },
+  { x: 50, y: 84, size: 52, rot: 6, shape: 'circle', z: 2 },
 ]
 
 function isTruthyFlag(value) {
@@ -48,79 +49,43 @@ function buildSpotlightProducts(products, featured, bestSellers) {
   return [...all].sort((a, b) => score(b) - score(a)).slice(0, 8)
 }
 
-function getStackCards(images, frontIdx) {
-  const n = images.length
-  return images.map((src, i) => {
-    const depth = (i - frontIdx + n) % n
-    const layout = STACK_LAYOUT[depth] || STACK_LAYOUT[STACK_LAYOUT.length - 1]
-    return { src, i, depth, layout }
-  }).sort((a, b) => b.depth - a.depth)
-}
-
-function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
-  const touchRef = useRef({ x: 0, y: 0 })
-  const cards = getStackCards(images, frontIdx)
-
-  const go = useCallback((delta) => {
-    onChange(((frontIdx + delta) % images.length + images.length) % images.length)
-  }, [frontIdx, images.length, onChange])
+function ImageCluster({ images, frontIdx, onChange, isActive, inView }) {
+  const slotCount = Math.min(images.length, CLUSTER_SLOTS.length)
+  const slots = CLUSTER_SLOTS.slice(0, slotCount).map((slot, si) => ({
+    ...slot,
+    src: images[(frontIdx + si) % images.length],
+    imgIdx: (frontIdx + si) % images.length,
+    isHero: si === 0,
+  }))
 
   useEffect(() => {
     if (!isActive || !inView || images.length <= 1) return
-    const t = setInterval(() => go(1), 3500)
+    const t = setInterval(() => {
+      onChange((prev) => (prev + 1) % images.length)
+    }, 4000)
     return () => clearInterval(t)
-  }, [isActive, inView, images.length, go])
-
-  const onTouchStart = (e) => {
-    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
-  }
-
-  const onTouchEnd = (e) => {
-    if (images.length <= 1) return
-    const dx = e.changedTouches[0].clientX - touchRef.current.x
-    const dy = e.changedTouches[0].clientY - touchRef.current.y
-    if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return
-    go(dx < 0 ? 1 : -1)
-  }
+  }, [isActive, inView, images.length, onChange])
 
   return (
-    <div
-      className={`pk-stack${isActive ? ' is-live' : ''}`}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
-      <div className="pk-stack-shadow" aria-hidden="true" />
-
-      {cards.map(({ src, i, depth, layout }) => (
-        <div
-          key={`${src}-${depth}`}
-          className={`pk-card pk-card--${layout.shape}${depth === 0 ? ' is-front' : ''}`}
+    <div className={`pk-cluster${isActive ? ' is-live' : ''}`}>
+      {slots.map((slot, si) => (
+        <button
+          key={`${slot.src}-${si}`}
+          type="button"
+          className={`pk-tile pk-tile--${slot.shape}${slot.isHero ? ' is-hero' : ''}${slot.imgIdx === frontIdx ? ' is-focus' : ''}`}
           style={{
-            '--pk-rot': `${layout.rot}deg`,
-            '--pk-x': `${layout.x}px`,
-            '--pk-y': `${layout.y}px`,
-            '--pk-scale': layout.scale,
-            zIndex: 10 - depth,
+            '--pk-x': `${slot.x}%`,
+            '--pk-y': `${slot.y}%`,
+            '--pk-size': `${slot.size}px`,
+            '--pk-rot': `${slot.rot}deg`,
+            zIndex: slot.z,
           }}
+          onClick={() => onChange(slot.imgIdx)}
+          aria-label={`صورة ${slot.imgIdx + 1}`}
         >
-          <img src={`${IMG_BASE}${src}`} alt="" loading={depth === 0 ? 'eager' : 'lazy'} draggable={false} />
-          <span className="pk-card-shine" aria-hidden="true" />
-        </div>
+          <img src={`${IMG_BASE}${slot.src}`} alt="" loading={si < 3 ? 'eager' : 'lazy'} draggable={false} />
+        </button>
       ))}
-
-      {images.length > 1 && (
-        <div className="pk-stack-dots">
-          {images.map((src, i) => (
-            <button
-              key={src}
-              type="button"
-              className={`pk-stack-dot${i === frontIdx ? ' is-on' : ''}`}
-              onClick={() => onChange(i)}
-              aria-label={`صورة ${i + 1}`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -135,7 +100,7 @@ function ProductSlide({ product, isActive, inView }) {
 
   return (
     <article className={`pk-slide${isActive ? ' is-active' : ''}`}>
-      <ImageStack
+      <ImageCluster
         images={images}
         frontIdx={frontIdx}
         onChange={setFrontIdx}
@@ -143,29 +108,13 @@ function ProductSlide({ product, isActive, inView }) {
         inView={inView}
       />
 
-      <div className="pk-body">
-        <div className="pk-meta">
-          {isTruthyFlag(product.is_featured) && <span className="pk-pill">مميز</span>}
-          {isTruthyFlag(product.is_best_seller) && <span className="pk-pill pk-pill--hot">الأكثر مبيعاً</span>}
-          {images.length > 1 && (
-            <span className="pk-count">{images.length} صور</span>
-          )}
-        </div>
-
-        {(product.brand_name || product.category_name) && (
-          <span className="pk-brand">{product.brand_name || product.category_name}</span>
-        )}
-
-        <h3 className="pk-name">{product.name}</h3>
-        <p className="pk-price">{formatPrice(getMinPrice(product))}</p>
-
-        <Link to={`/products/${product.id}`} className="pk-cta">
-          <span>تسوقي الآن</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </Link>
-      </div>
+      <Link to={`/products/${product.id}`} className="pk-caption">
+        <span className="pk-caption-name">{product.name}</span>
+        <span className="pk-caption-price">{formatPrice(getMinPrice(product))}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </Link>
     </article>
   )
 }
@@ -219,7 +168,7 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
   useEffect(() => {
     const el = sectionRef.current
     if (!el) return
-    const obs = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.2 })
+    const obs = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.15 })
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
@@ -238,11 +187,12 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
   if (!items.length) return null
 
   return (
-    <section ref={sectionRef} className="pk-section" aria-label="منتج مميز">
+    <section ref={sectionRef} className="pk-section" aria-label="معرض صور المنتج">
       <header className="pk-head">
-        <span className="pk-label">Gallery Pick</span>
-        <h2 className="pk-title">معرض <em>الصور</em></h2>
-        {items.length > 1 && <p className="pk-hint">← اسحبي بين المنتجات · اسحبي الصور →</p>}
+        <h2 className="pk-title">معرض الصور</h2>
+        {items.length > 1 && (
+          <span className="pk-head-count">{activeIdx + 1}/{items.length}</span>
+        )}
       </header>
 
       <div className="pk-track" ref={trackRef} onScroll={onTrackScroll}>
@@ -252,19 +202,16 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
       </div>
 
       {items.length > 1 && (
-        <div className="pk-footer">
-          <div className="pk-footer-dots">
-            {items.map((p, i) => (
-              <button
-                key={p.id}
-                type="button"
-                className={`pk-footer-dot${i === activeIdx ? ' is-on' : ''}`}
-                onClick={() => scrollTo(i)}
-                aria-label={`منتج ${i + 1}`}
-              />
-            ))}
-          </div>
-          <span className="pk-footer-count">{activeIdx + 1} / {items.length}</span>
+        <div className="pk-dots">
+          {items.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`pk-dot${i === activeIdx ? ' is-on' : ''}`}
+              onClick={() => scrollTo(i)}
+              aria-label={`منتج ${i + 1}`}
+            />
+          ))}
         </div>
       )}
     </section>
