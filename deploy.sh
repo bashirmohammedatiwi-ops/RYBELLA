@@ -72,6 +72,18 @@ if ! grep -q '^API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
   echo "API_URL=http://187.124.23.65:4000" >> "$ENV_FILE"
 fi
 
+if ! grep -q '^EXTERNAL_INVENTORY_API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
+  cat >> "$ENV_FILE" <<'EOF'
+
+# External inventory sync (Alhayaa)
+EXTERNAL_INVENTORY_API_URL=http://187.127.88.146/api/v1
+EXTERNAL_INVENTORY_API_EMAIL=admin@alhayaa.com
+EXTERNAL_INVENTORY_API_PASSWORD=Admin@12345
+INVENTORY_SYNC_INTERVAL_MIN=5
+EOF
+  echo "Added Alhayaa inventory sync defaults to $ENV_FILE — verify email/password."
+fi
+
 migrate_docker_volumes_if_needed() {
   # عند تغيير مجلد التشغيل (deployment/ → جذر المشروع) يُنشئ Docker volumes جديدة فارغة.
   # ننسخ البيانات من الأسماء القديمة إن وُجدت.
