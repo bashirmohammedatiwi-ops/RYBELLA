@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { webSettingsAPI } from '../services/api'
 import { formatPrice } from '../utils/format'
+import './FreeShippingBar.css'
 
 export default function FreeShippingBar({ subtotal }) {
   const [threshold, setThreshold] = useState(null)
@@ -12,16 +13,21 @@ export default function FreeShippingBar({ subtotal }) {
     }).catch(() => {})
   }, [])
 
-  if (!threshold || subtotal >= threshold) return null
+  if (!threshold) {
+    return <div className="free-shipping-bar free-shipping-bar--placeholder" aria-hidden="true" />
+  }
 
-  const remaining = threshold - subtotal
-  const pct = Math.min(100, (subtotal / threshold) * 100)
+  const reached = subtotal >= threshold
+  const remaining = Math.max(0, threshold - subtotal)
+  const pct = reached ? 100 : Math.min(100, (subtotal / threshold) * 100)
 
   return (
-    <div className="free-shipping-bar">
-      <div className="free-shipping-bar-fill" style={{ width: pct + '%' }} />
+    <div className={`free-shipping-bar${reached ? ' is-complete' : ''}`}>
+      <div className="free-shipping-bar-fill" style={{ width: `${pct}%` }} />
       <span className="free-shipping-bar-text">
-        اضيفي {formatPrice(remaining)} لتحصلي على توصيل مجاني
+        {reached
+          ? '🎉 مبروك! حصلتِ على توصيل مجاني'
+          : `اضيفي ${formatPrice(remaining)} لتحصلي على توصيل مجاني`}
       </span>
     </div>
   )

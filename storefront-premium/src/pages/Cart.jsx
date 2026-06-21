@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { IMG_BASE } from '../services/api'
 import FreeShippingBar from '../components/FreeShippingBar'
+import CartQuantityStepper from '../components/CartQuantityStepper'
 import MobileHeader from '../components/MobileHeader'
 import { formatPrice, formatNumber, formatPercent } from '../utils/format'
 import { roundDisplayPrice } from '../utils/pricing'
@@ -85,12 +86,12 @@ export default function Cart() {
         )}
         <FreeShippingBar subtotal={total} />
         <div className="cart-list">
-          {bundles.map((bundle, idx) => {
+          {bundles.map((bundle) => {
             const qty = bundle.quantity || 1
             const bundleId = getBundleId(bundle)
             const img = bundle.offer_image || bundle.lines?.[0]?.image
             return (
-              <div key={`bundle-${bundleId}`} className="cart-bundle-card" style={{ animationDelay: `${idx * 0.05}s` }}>
+              <div key={`bundle-${bundleId}`} className="cart-bundle-card">
                 <div className="cart-bundle-head">
                   <div className="cart-bundle-thumb">
                     {img ? <img src={`${IMG_BASE}${img}`} alt="" /> : <span>باكج</span>}
@@ -112,15 +113,15 @@ export default function Cart() {
                   ))}
                 </ul>
                 <div className="cart-item-row">
-                  <span className="cart-item-unit-price">{formatPrice(bundle.unit_price || getBundleTotal(bundle) / qty)}</span>
-                  <div className="cart-item-qty">
-                    <button type="button" onClick={() => updateBundle(bundleId, Math.max(1, qty - 1))}>−</button>
-                    <span>{formatNumber(qty)}</span>
-                    <button type="button" onClick={() => updateBundle(bundleId, qty + 1)}>+</button>
-                  </div>
+                  <span className="cart-item-unit-price cart-price-value">{formatPrice(bundle.unit_price || getBundleTotal(bundle) / qty)}</span>
+                  <CartQuantityStepper
+                    value={qty}
+                    onDecrease={() => updateBundle(bundleId, Math.max(1, qty - 1))}
+                    onIncrease={() => updateBundle(bundleId, qty + 1)}
+                  />
                 </div>
                 <div className="cart-item-footer">
-                  <span className="cart-item-total">{formatPrice(getBundleTotal(bundle))}</span>
+                  <span className="cart-item-total cart-price-value">{formatPrice(getBundleTotal(bundle))}</span>
                   <button type="button" className="cart-item-remove" onClick={() => removeBundle(bundleId)}>
                     حذف الباكج
                   </button>
@@ -129,15 +130,15 @@ export default function Cart() {
             )
           })}
 
-          {items.map((item, idx) => {
+          {items.map((item) => {
             const img = getItemImage(item)
             const itemTotal = getItemPrice(item) * (item.quantity || 0)
             const qty = item.quantity || 1
             return (
-              <div key={getItemId(item)} className="cart-item" style={{ animationDelay: `${(bundles.length + idx) * 0.05}s` }}>
+              <div key={getItemId(item)} className="cart-item">
                 <Link to={`/products/${item.product_id || item.productId || ''}`} className="cart-item-image">
                   {img ? <img src={`${IMG_BASE}${img}`} alt="" /> : <span className="cart-item-placeholder">صورة</span>}
-                  {qty > 1 && <span className="cart-item-qty-badge">×{formatNumber(qty)}</span>}
+                  <span className={`cart-item-qty-badge${qty > 1 ? ' is-visible' : ''}`}>×{formatNumber(qty)}</span>
                 </Link>
                 <div className="cart-item-body">
                   <Link to={`/products/${item.product_id || item.productId || ''}`} className="cart-item-name">
@@ -145,15 +146,15 @@ export default function Cart() {
                   </Link>
                   {item.shade_name && <span className="cart-item-shade">{item.shade_name}</span>}
                   <div className="cart-item-row">
-                    <span className="cart-item-unit-price">{formatPrice(getItemPrice(item))}</span>
-                    <div className="cart-item-qty">
-                      <button type="button" onClick={() => updateItem(getItemId(item), Math.max(1, qty - 1))}>−</button>
-                      <span>{formatNumber(qty)}</span>
-                      <button type="button" onClick={() => updateItem(getItemId(item), qty + 1)}>+</button>
-                    </div>
+                    <span className="cart-item-unit-price cart-price-value">{formatPrice(getItemPrice(item))}</span>
+                    <CartQuantityStepper
+                      value={qty}
+                      onDecrease={() => updateItem(getItemId(item), Math.max(1, qty - 1))}
+                      onIncrease={() => updateItem(getItemId(item), qty + 1)}
+                    />
                   </div>
                   <div className="cart-item-footer">
-                    <span className="cart-item-total">{formatPrice(itemTotal)}</span>
+                    <span className="cart-item-total cart-price-value">{formatPrice(itemTotal)}</span>
                     <button type="button" className="cart-item-remove" onClick={() => removeItem(getItemId(item))} aria-label="حذف">
                       حذف
                     </button>
@@ -166,7 +167,7 @@ export default function Cart() {
         <div className="cart-summary">
           <div className="cart-summary-row">
             <span>المجموع ({formatNumber(totalCount)} عنصر)</span>
-            <strong>{formatPrice(total)}</strong>
+            <strong className="cart-price-value">{formatPrice(total)}</strong>
           </div>
           <Link to="/checkout" className="cart-checkout-btn">إتمام الطلب</Link>
           <Link to="/explore" className="cart-continue-link">استمري في التسوق</Link>
@@ -174,7 +175,7 @@ export default function Cart() {
       </div>
       <div className="cart-sticky-bar">
         <div className="cart-sticky-info">
-          <span className="cart-sticky-total">{formatPrice(total)}</span>
+          <span className="cart-sticky-total cart-price-value">{formatPrice(total)}</span>
           <span className="cart-sticky-count">{formatNumber(totalCount)} عنصر</span>
         </div>
         <Link to="/checkout" className="cart-sticky-btn">إتمام الطلب</Link>

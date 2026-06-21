@@ -1,23 +1,36 @@
 .free-shipping-bar {
   position: relative;
-  height: 36px;
+  height: 40px;
   background: var(--primary-soft);
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.free-shipping-bar--placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.free-shipping-bar.is-complete {
+  background: rgba(76, 175, 80, 0.12);
 }
 
 .free-shipping-bar-fill {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  inset-block: 0;
+  inset-inline-start: 0;
   background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  border-radius: var(--radius-sm);
-  transition: width 0.4s ease;
+  border-radius: inherit;
+  transition: width 0.35s ease, background 0.35s ease;
+  will-change: width;
+}
+
+.free-shipping-bar.is-complete .free-shipping-bar-fill {
+  background: linear-gradient(90deg, #66bb6a, #81c784);
 }
 
 .free-shipping-bar-text {
@@ -26,4 +39,11 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--primary-dark);
+  padding: 0 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.free-shipping-bar.is-complete .free-shipping-bar-text {
+  color: #2e7d32;
 }
