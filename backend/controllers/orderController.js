@@ -1,10 +1,6 @@
 const db = require('../config/database');
 const { getFreeShippingThreshold, computeDeliveryFee } = require('../utils/delivery');
 const { ORDER_STATUSES, isValidOrderStatus } = require('../utils/orderStatus');
-
-const db = require('../config/database');
-const { getFreeShippingThreshold, computeDeliveryFee } = require('../utils/delivery');
-const { isValidOrderStatus } = require('../utils/orderStatus');
 const { validateBundleLines } = require('../services/bundleService');
 
 async function attachOrderBundles(order) {
