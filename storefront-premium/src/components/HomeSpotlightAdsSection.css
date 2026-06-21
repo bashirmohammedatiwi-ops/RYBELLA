@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   HomeSpotlightAdsSection — Hero gallery (large & bold)
+   HomeSpotlightAdsSection — Stacked gallery (large & stunning)
    ═══════════════════════════════════════════════════════════════ */
 
 .pk-section {
@@ -73,135 +73,242 @@
 .pk-slide {
   flex: 0 0 min(90vw, 360px);
   scroll-snap-align: center;
-  border-radius: 24px;
+  border-radius: 28px;
   overflow: hidden;
   background: #fff;
-  border: 1px solid rgba(232, 93, 122, 0.1);
-  box-shadow: 0 10px 32px rgba(232, 93, 122, 0.08);
-  transform: scale(0.94);
+  border: 1px solid rgba(232, 93, 122, 0.12);
+  box-shadow: 0 12px 36px rgba(232, 93, 122, 0.1);
+  transform: scale(0.93);
   opacity: 0.55;
   transition:
-    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.5s ease,
-    box-shadow 0.5s ease;
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.55s ease,
+    box-shadow 0.55s ease;
 }
 
 .pk-slide.is-active {
   transform: scale(1);
   opacity: 1;
   box-shadow:
-    0 20px 48px rgba(232, 93, 122, 0.18),
-    0 0 0 1px rgba(232, 93, 122, 0.12);
+    0 24px 56px rgba(232, 93, 122, 0.2),
+    0 0 0 1px rgba(232, 93, 122, 0.14);
 }
 
-.pk-slide-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-
-/* ─── Hero image — كبيرة وواضحة ─── */
-.pk-gallery {
+/* ─── Stacked image stage ─── */
+.pk-stack {
   position: relative;
-}
-
-.pk-hero {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 290px;
   overflow: hidden;
-  background: #faf5f7;
 }
 
-.pk-hero-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-  animation: pk-hero-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes pk-hero-in {
-  from {
-    opacity: 0;
-    transform: scale(1.06);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.pk-hero-glow {
+.pk-stack-bg {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.04) 100%),
-    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(232, 93, 122, 0.12), transparent 70%);
+    radial-gradient(ellipse 90% 70% at 50% 45%, rgba(255, 220, 232, 0.55), transparent 70%),
+    linear-gradient(165deg, #fff8fa 0%, #ffe8f0 40%, #fff5f9 100%);
   pointer-events: none;
 }
 
-.pk-gallery.is-live .pk-hero-img {
-  animation: pk-hero-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both,
-    pk-hero-breathe 6s ease-in-out 0.55s infinite;
+.pk-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.55;
+  animation: pk-blob-drift 8s ease-in-out infinite;
 }
 
-@keyframes pk-hero-breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+.pk-blob--1 {
+  top: -20%;
+  right: -10%;
+  width: 160px;
+  height: 160px;
+  background: rgba(232, 93, 122, 0.35);
 }
 
-/* ─── Thumbnail strip — صور إضافية واضحة ─── */
-.pk-thumbs {
+.pk-blob--2 {
+  bottom: -15%;
+  left: -8%;
+  width: 140px;
+  height: 140px;
+  background: rgba(255, 158, 192, 0.4);
+  animation-delay: -3s;
+}
+
+.pk-blob--3 {
+  top: 40%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 200, 220, 0.5);
+  animation-delay: -5s;
+}
+
+@keyframes pk-blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8px, -10px) scale(1.08); }
+}
+
+.pk-stack-shadow {
+  position: absolute;
+  bottom: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(232, 93, 122, 0.28), transparent 72%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+.pk-stack-cards {
+  position: absolute;
+  inset: 0;
   display: flex;
-  gap: 8px;
-  padding: 10px 12px 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+  align-items: center;
+  justify-content: center;
 }
 
-.pk-thumbs::-webkit-scrollbar {
-  display: none;
-}
-
-.pk-thumb {
-  flex: 0 0 68px;
-  width: 68px;
-  height: 68px;
-  padding: 0;
+/* ─── Polaroid cards — كبيرة، متراكبة، بزوايا ─── */
+.pk-card {
+  position: absolute;
+  width: var(--pk-w);
+  height: var(--pk-h);
+  padding: 5px;
   margin: 0;
-  border: 2.5px solid transparent;
-  border-radius: 16px;
-  overflow: hidden;
+  border: 3px solid #fff;
   background: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.14),
+    0 4px 14px rgba(232, 93, 122, 0.12);
+  transform:
+    translate(var(--pk-x, 0), var(--pk-y, 0))
+    rotate(var(--pk-rot, 0deg))
+    scale(var(--pk-scale, 1));
   transition:
-    transform 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
+    transform 0.7s cubic-bezier(0.34, 1.18, 0.64, 1),
+    box-shadow 0.6s ease,
+    opacity 0.5s ease;
+  will-change: transform;
 }
 
-.pk-thumb img {
+.pk-card--round {
+  border-radius: 26px;
+}
+
+.pk-card--circle {
+  border-radius: 50%;
+}
+
+.pk-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: inherit;
   display: block;
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
 }
 
-.pk-thumb.is-active {
-  border-color: var(--primary);
-  transform: scale(1.06);
-  box-shadow: 0 6px 18px rgba(232, 93, 122, 0.28);
+.pk-card--round img {
+  border-radius: 20px;
 }
 
-.pk-thumb:active {
-  transform: scale(0.96);
+.pk-card-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 48%);
+  pointer-events: none;
+}
+
+.pk-card.is-front {
+  border-color: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 22px 52px rgba(232, 93, 122, 0.32),
+    0 10px 28px rgba(0, 0, 0, 0.14);
+}
+
+.pk-stack.is-live .pk-card.is-front {
+  animation: pk-front-float 4.5s ease-in-out infinite;
+}
+
+@keyframes pk-front-float {
+  0%, 100% {
+    transform:
+      translate(var(--pk-x, 0), var(--pk-y, 0))
+      rotate(var(--pk-rot, 0deg))
+      scale(var(--pk-scale, 1));
+  }
+  50% {
+    transform:
+      translate(var(--pk-x, 0), calc(var(--pk-y, 0px) - 10px))
+      rotate(calc(var(--pk-rot, 0deg) + 2.5deg))
+      scale(calc(var(--pk-scale, 1) * 1.04));
+  }
+}
+
+.pk-card.is-focus {
+  outline: none;
+}
+
+.pk-card:active {
+  transform:
+    translate(var(--pk-x, 0), var(--pk-y, 0))
+    rotate(var(--pk-rot, 0deg))
+    scale(calc(var(--pk-scale, 1) * 0.97));
+}
+
+/* ─── Stack navigation ─── */
+.pk-stack-nav {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.pk-stack-badge {
+  padding: 3px 10px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--primary-dark, #c94a5a);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(232, 93, 122, 0.15);
+  border-radius: var(--radius-full, 999px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(232, 93, 122, 0.12);
+}
+
+.pk-stack-dots {
+  display: flex;
+  gap: 5px;
+  pointer-events: auto;
+}
+
+.pk-stack-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(232, 93, 122, 0.28);
+  cursor: pointer;
+  transition: transform 0.3s ease, background 0.3s ease, width 0.3s ease;
+}
+
+.pk-stack-dot.is-on {
+  width: 20px;
+  border-radius: 4px;
+  background: var(--primary);
 }
 
 /* ─── Product info ─── */
@@ -211,7 +318,10 @@
   justify-content: space-between;
   gap: 10px;
   padding: 12px 14px 14px;
+  text-decoration: none;
+  color: inherit;
   background: linear-gradient(180deg, #fff 0%, #fff9fb 100%);
+  border-top: 1px solid rgba(232, 93, 122, 0.08);
 }
 
 .pk-info-text {
@@ -268,11 +378,11 @@
   transition: transform 0.25s ease;
 }
 
-.pk-slide-link:active .pk-arrow {
+.pk-info:active .pk-arrow {
   transform: scale(0.92);
 }
 
-/* ─── Dots ─── */
+/* ─── Product dots ─── */
 .pk-dots {
   display: flex;
   justify-content: center;
@@ -303,18 +413,16 @@
     flex-basis: min(72vw, 380px);
   }
 
-  .pk-thumb {
-    flex-basis: 76px;
-    width: 76px;
-    height: 76px;
+  .pk-stack {
+    height: 310px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pk-slide,
-  .pk-hero-img,
-  .pk-thumb,
-  .pk-gallery.is-live .pk-hero-img {
+  .pk-card,
+  .pk-blob,
+  .pk-stack.is-live .pk-card.is-front {
     animation: none !important;
     transition: none !important;
   }

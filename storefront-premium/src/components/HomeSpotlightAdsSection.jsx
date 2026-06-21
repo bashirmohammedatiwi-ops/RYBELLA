@@ -4,6 +4,14 @@ import { IMG_BASE } from '../services/api'
 import { formatPrice } from '../utils/format'
 import './HomeSpotlightAdsSection.css'
 
+const STACK_LAYOUT = [
+  { rot: 0, x: 0, y: 0, w: 196, h: 196, scale: 1, shape: 'round', z: 10 },
+  { rot: -13, x: -62, y: 28, w: 138, h: 138, scale: 0.95, shape: 'circle', z: 3 },
+  { rot: 11, x: 64, y: 22, w: 132, h: 132, scale: 0.93, shape: 'round', z: 5 },
+  { rot: -17, x: -48, y: -38, w: 124, h: 124, scale: 0.9, shape: 'circle', z: 2 },
+  { rot: 15, x: 52, y: -34, w: 118, h: 118, scale: 0.88, shape: 'round', z: 4 },
+]
+
 function isTruthyFlag(value) {
   return value === true || value === 1 || value === '1'
 }
@@ -40,49 +48,100 @@ function buildSpotlightProducts(products, featured, bestSellers) {
   return [...all].sort((a, b) => score(b) - score(a)).slice(0, 8)
 }
 
-function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
-  const heroSrc = images[frontIdx]
+function getStackCards(images, frontIdx) {
+  const slotCount = Math.min(images.length, STACK_LAYOUT.length)
+  const n = images.length
+  return STACK_LAYOUT.slice(0, slotCount)
+    .map((layout, depth) => ({
+      src: images[(frontIdx + depth) % n],
+      imgIdx: (frontIdx + depth) % n,
+      depth,
+      layout,
+    }))
+    .sort((a, b) => b.depth - a.depth)
+}
+
+function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
+  const touchRef = useRef({ x: 0, y: 0 })
+  const cards = getStackCards(images, frontIdx)
 
   useEffect(() => {
     if (!isActive || !inView || images.length <= 1) return
     const t = setInterval(() => {
       onChange((prev) => (prev + 1) % images.length)
-    }, 3800)
+    }, 3600)
     return () => clearInterval(t)
   }, [isActive, inView, images.length, onChange])
 
+  const onTouchStart = (e) => {
+    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+
+  const onTouchEnd = (e) => {
+    if (images.length <= 1) return
+    const dx = e.changedTouches[0].clientX - touchRef.current.x
+    const dy = e.changedTouches[0].clientY - touchRef.current.y
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return
+    onChange((prev) => ((prev + (dx < 0 ? 1 : -1)) % images.length + images.length) % images.length)
+  }
+
   return (
-    <div className={`pk-gallery${isActive ? ' is-live' : ''}`}>
-      <div className="pk-hero">
-        <img
-          key={heroSrc}
-          src={`${IMG_BASE}${heroSrc}`}
-          alt=""
-          className="pk-hero-img"
-          loading="eager"
-          draggable={false}
-        />
-        <div className="pk-hero-glow" aria-hidden="true" />
+    <div
+      className={`pk-stack${isActive ? ' is-live' : ''}`}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="pk-stack-bg" aria-hidden="true">
+        <span className="pk-blob pk-blob--1" />
+        <span className="pk-blob pk-blob--2" />
+        <span className="pk-blob pk-blob--3" />
+      </div>
+
+      <div className="pk-stack-shadow" aria-hidden="true" />
+
+      <div className="pk-stack-cards">
+        {cards.map(({ src, imgIdx, depth, layout }) => (
+          <button
+            key={`${src}-${depth}`}
+            type="button"
+            className={`pk-card pk-card--${layout.shape}${depth === 0 ? ' is-front' : ''}${imgIdx === frontIdx ? ' is-focus' : ''}`}
+            style={{
+              '--pk-x': `${layout.x}px`,
+              '--pk-y': `${layout.y}px`,
+              '--pk-w': `${layout.w}px`,
+              '--pk-h': `${layout.h}px`,
+              '--pk-rot': `${layout.rot}deg`,
+              '--pk-scale': layout.scale,
+              zIndex: layout.z,
+            }}
+            onClick={() => onChange(imgIdx)}
+            aria-label={`صورة ${imgIdx + 1}`}
+          >
+            <img
+              src={`${IMG_BASE}${src}`}
+              alt=""
+              loading={depth <= 1 ? 'eager' : 'lazy'}
+              draggable={false}
+            />
+            <span className="pk-card-shine" aria-hidden="true" />
+          </button>
+        ))}
       </div>
 
       {images.length > 1 && (
-        <div className="pk-thumbs" role="tablist" aria-label="صور المنتج">
-          {images.map((src, i) => (
-            <button
-              key={src}
-              type="button"
-              role="tab"
-              aria-selected={i === frontIdx}
-              className={`pk-thumb${i === frontIdx ? ' is-active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onChange(i)
-              }}
-            >
-              <img src={`${IMG_BASE}${src}`} alt="" loading={i < 4 ? 'eager' : 'lazy'} draggable={false} />
-            </button>
-          ))}
+        <div className="pk-stack-nav">
+          <span className="pk-stack-badge">{frontIdx + 1} / {images.length}</span>
+          <div className="pk-stack-dots">
+            {images.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                className={`pk-stack-dot${i === frontIdx ? ' is-on' : ''}`}
+                onClick={() => onChange(i)}
+                aria-label={`صورة ${i + 1}`}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -99,30 +158,28 @@ function ProductSlide({ product, isActive, inView }) {
 
   return (
     <article className={`pk-slide${isActive ? ' is-active' : ''}`}>
-      <Link to={`/products/${product.id}`} className="pk-slide-link">
-        <ImageGallery
-          images={images}
-          frontIdx={frontIdx}
-          onChange={setFrontIdx}
-          isActive={isActive}
-          inView={inView}
-        />
+      <ImageStack
+        images={images}
+        frontIdx={frontIdx}
+        onChange={setFrontIdx}
+        isActive={isActive}
+        inView={inView}
+      />
 
-        <div className="pk-info">
-          <div className="pk-info-text">
-            {(product.brand_name || product.category_name) && (
-              <span className="pk-brand">{product.brand_name || product.category_name}</span>
-            )}
-            <h3 className="pk-name">{product.name}</h3>
-          </div>
-          <div className="pk-info-action">
-            <span className="pk-price">{formatPrice(getMinPrice(product))}</span>
-            <span className="pk-arrow" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </span>
-          </div>
+      <Link to={`/products/${product.id}`} className="pk-info">
+        <div className="pk-info-text">
+          {(product.brand_name || product.category_name) && (
+            <span className="pk-brand">{product.brand_name || product.category_name}</span>
+          )}
+          <h3 className="pk-name">{product.name}</h3>
+        </div>
+        <div className="pk-info-action">
+          <span className="pk-price">{formatPrice(getMinPrice(product))}</span>
+          <span className="pk-arrow" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
         </div>
       </Link>
     </article>
@@ -200,7 +257,7 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
     <section ref={sectionRef} className="pk-section" aria-label="معرض صور المنتج">
       <header className="pk-head">
         <div className="pk-head-main">
-          <span className="pk-label">Gallery</span>
+          <span className="pk-label">Gallery Pick</span>
           <h2 className="pk-title">معرض <em>الصور</em></h2>
         </div>
         {items.length > 1 && (
