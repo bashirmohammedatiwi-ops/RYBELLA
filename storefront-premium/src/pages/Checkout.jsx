@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { deliveryZonesAPI, couponsAPI, ordersAPI, webSettingsAPI } from '../services/api'
 import { formatPrice, formatNumber } from '../utils/format'
+import { roundDisplayPrice } from '../utils/pricing'
 import { computeDeliveryFee, parseFreeShippingThreshold, qualifiesForFreeShipping } from '../utils/delivery'
 import { isValidIraqiPhone, normalizeIraqiPhone, IRAQI_PHONE_HINT } from '../utils/phone'
 import MobileHeader from '../components/MobileHeader'
@@ -48,10 +49,11 @@ export default function Checkout() {
     setPhone(normalizeIraqiPhone(e.target.value).slice(0, 11))
   }
 
+  const getItemPrice = (item) => roundDisplayPrice(item.price) ?? item.price ?? 0
   const getBundleTotal = (b) => b.total_price ?? (b.unit_price || 0) * (b.quantity || 1)
 
   const calcSubtotal = (cartItems, cartBundles) => {
-    const itemsSum = (cartItems || []).reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0)
+    const itemsSum = (cartItems || []).reduce((s, i) => s + getItemPrice(i) * (i.quantity || 0), 0)
     const bundlesSum = (cartBundles || []).reduce((s, b) => s + getBundleTotal(b), 0)
     return itemsSum + bundlesSum
   }
@@ -163,7 +165,6 @@ export default function Checkout() {
   const finalTotal = subtotal - discount + deliveryFee
 
   const getItemName = (i) => i.product_name || 'منتج'
-  const getItemPrice = (i) => i.price ?? 0
 
   return (
     <div className="checkout-page">

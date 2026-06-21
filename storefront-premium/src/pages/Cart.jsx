@@ -5,6 +5,7 @@ import { IMG_BASE } from '../services/api'
 import FreeShippingBar from '../components/FreeShippingBar'
 import MobileHeader from '../components/MobileHeader'
 import { formatPrice, formatNumber, formatPercent } from '../utils/format'
+import { roundDisplayPrice } from '../utils/pricing'
 import './Cart.css'
 
 export default function Cart() {
@@ -24,15 +25,16 @@ export default function Cart() {
   const getBundleId = (bundle) => bundle.id ?? bundle.bundle_key ?? bundle.offer_id
   const getItemImage = (item) => item.variant_image || item.product_image || item.image
   const getItemName = (item) => item.product_name || 'منتج'
-  const getItemPrice = (item) => item.price ?? 0
+  const getItemPrice = (item) => roundDisplayPrice(item.price) ?? item.price ?? 0
   const getBundleTotal = (b) => b.total_price ?? (b.unit_price || 0) * (b.quantity || 1)
 
   const itemsTotal = items.reduce((sum, i) => sum + getItemPrice(i) * (i.quantity || 0), 0)
   const bundlesTotal = bundles.reduce((sum, b) => sum + getBundleTotal(b), 0)
   const total = itemsTotal + bundlesTotal
-  const isEmpty = items.length === 0 && bundles.length === 0
+  const isInitialLoading = loading && user && items.length === 0 && bundles.length === 0
+  const isEmpty = !isInitialLoading && items.length === 0 && bundles.length === 0
 
-  if (loading && user) {
+  if (isInitialLoading) {
     return (
       <div className="cart-page cart-loading">
         <MobileHeader title="السلة" showBack showCart={false} />

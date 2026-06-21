@@ -1,5 +1,11 @@
 const db = require('../config/database');
 const { validateBundleLines, formatCartBundleRow } = require('../services/bundleService');
+const { roundSalePrice } = require('../utils/pricing');
+
+const mapCartItem = (item) => ({
+  ...item,
+  price: roundSalePrice(item.price),
+});
 
 const getOrCreateCart = async (userId) => {
   let [carts] = await db.query('SELECT id FROM cart WHERE user_id = ?', [userId]);
@@ -28,7 +34,7 @@ exports.getCart = async (req, res) => {
       bundles.push(await formatCartBundleRow(row))
     }
 
-    res.json({ items, bundles });
+    res.json({ items: items.map(mapCartItem), bundles });
   } catch (error) {
     console.error('Get cart error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });

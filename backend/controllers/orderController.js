@@ -2,6 +2,7 @@ const db = require('../config/database');
 const { getFreeShippingThreshold, computeDeliveryFee } = require('../utils/delivery');
 const { ORDER_STATUSES, isValidOrderStatus } = require('../utils/orderStatus');
 const { validateBundleLines } = require('../services/bundleService');
+const { roundSalePrice } = require('../utils/pricing');
 
 async function attachOrderBundles(order) {
   const [bundles] = await db.query('SELECT * FROM order_bundles WHERE order_id = ?', [order.id]);
@@ -107,8 +108,14 @@ exports.create = async (req, res) => {
       if (variant[0].stock < item.quantity) {
         return res.status(400).json({ message: `الكمية غير متوفرة للمنتج: ${item.variant_id}` });
       }
-      total_price += variant[0].price * item.quantity;
-      orderItems.push({ variant_id: item.variant_id, quantity: item.quantity, price: variant[0].price, product_id: variant[0].product_id });
+      const unitPrice = roundSalePrice(variant[0].price);
+      total_price += unitPrice * item.quantity;
+      orderItems.push({
+        variant_id: item.variant_id,
+        quantity: item.quantity,
+        price: unitPrice,
+        product_id: variant[0].product_id,
+      });
     }
 
     for (const bundle of bundleOrders) {
@@ -139,12 +146,12 @@ exports.create = async (req, res) => {
         [coupon_code]
       );
       if (coupon.length > 0) {
-        discount = total_price * (coupon[0].discount_percent / 100);
+        discount = roundSalePrice(total_price * (coupon[0].discount_percent / 100));
       }
     }
 
     const delivery_fee = computeDeliveryFee(total_price, zoneFee, freeShippingThreshold);
-    const final_price = total_price + delivery_fee - discount;
+    const final_price = roundSalePrice(total_price + delivery_fee - discount);
 
     const [orderResult] = await db.query(
       `INSERT INTO orders (user_id, total_price, delivery_fee, discount, final_price, status, payment_method, address, city, phone, coupon_code)

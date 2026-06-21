@@ -211,7 +211,11 @@
   border-radius: 20px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease;
+  transition: box-shadow 0.2s ease;
+}
+
+.cart-list > .cart-item,
+.cart-list > .cart-bundle-card {
   animation: cart-item-in 0.4s ease both;
 }
 
@@ -342,6 +346,12 @@
 .cart-item-qty button:hover {
   background: var(--primary-soft);
   color: var(--primary);
+}
+
+.cart-item-total,
+.cart-sticky-total,
+.cart-summary-row strong {
+  transition: opacity 0.15s ease;
 }
 
 .cart-item-qty span {

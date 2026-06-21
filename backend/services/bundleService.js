@@ -1,4 +1,5 @@
 const db = require('../config/database')
+const { roundSalePrice } = require('../utils/pricing')
 
 function parseProductIds(raw) {
   try {
@@ -10,14 +11,22 @@ function parseProductIds(raw) {
 }
 
 function calcBundleTotals(lines, discountPercent, quantity = 1) {
-  const subtotal = lines.reduce((s, line) => s + (Number(line.price) || 0) * (Number(line.quantity) || 1), 0)
+  const normalizedLines = (lines || []).map((line) => ({
+    ...line,
+    price: roundSalePrice(line.price),
+  }))
+  const subtotal = normalizedLines.reduce(
+    (s, line) => s + (Number(line.price) || 0) * (Number(line.quantity) || 1),
+    0
+  )
   const discount = subtotal * ((Number(discountPercent) || 0) / 100)
-  const unitTotal = subtotal - discount
+  const unitTotal = roundSalePrice(subtotal - discount)
   return {
     subtotal,
     unitTotal,
     total: unitTotal * quantity,
     discount,
+    lines: normalizedLines,
   }
 }
 
@@ -60,7 +69,7 @@ async function validateBundleLines(offerId, lines) {
       product_id: v.product_id,
       product_name: v.product_name,
       shade_name: v.shade_name,
-      price: Number(v.price),
+      price: roundSalePrice(v.price),
       quantity,
       image: v.image || v.product_image,
     })
@@ -76,7 +85,7 @@ async function validateBundleLines(offerId, lines) {
   }
 
   const pricing = calcBundleTotals(normalized, offer.discount_percent, 1)
-  return { ok: true, offer, lines: normalized, pricing }
+  return { ok: true, offer, lines: pricing.lines, pricing }
 }
 
 async function formatCartBundleRow(bundleRow) {
@@ -97,7 +106,7 @@ async function formatCartBundleRow(bundleRow) {
     product_id: r.product_id,
     product_name: r.product_name,
     shade_name: r.shade_name,
-    price: Number(r.price),
+    price: roundSalePrice(r.price),
     quantity: 1,
     image: r.variant_image || r.product_image,
   }))
@@ -112,7 +121,7 @@ async function formatCartBundleRow(bundleRow) {
     discount_percent: Number(offer.discount_percent) || 0,
     discount_label: offer.discount_label,
     quantity: bundleRow.quantity,
-    lines,
+    lines: pricing.lines,
     subtotal: pricing.subtotal,
     unit_price: pricing.unitTotal,
     total_price: pricing.total,

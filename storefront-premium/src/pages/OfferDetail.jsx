@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { offersAPI, IMG_BASE } from '../services/api'
 import { useCart } from '../context/CartContext'
 import { formatPrice, formatPercent } from '../utils/format'
+import { calcBundlePricing, roundDisplayPrice } from '../utils/pricing'
 import MobileHeader from '../components/MobileHeader'
 import './OfferDetail.css'
 
@@ -27,19 +28,21 @@ export default function OfferDetail() {
 
   const handleAddBundle = async () => {
     if (!offer?.products?.length) return
-    const lines = []
+    const rawLines = []
     for (const p of offer.products) {
       const v = getFirstVariant(p)
       if (!v) return
-      lines.push({
+      rawLines.push({
         variant_id: v.id,
         product_id: p.id,
         product_name: p.name,
         shade_name: v.shade_name,
         price: Number(v.price),
+        quantity: 1,
         image: v.image || p.main_image || p.images?.[0],
       })
     }
+    const pricing = calcBundlePricing(rawLines, offer.discount_percent || 0, 1)
     await addBundle({
       offer_id: offer.id,
       offer_title: offer.title,
@@ -47,9 +50,9 @@ export default function OfferDetail() {
       discount_percent: offer.discount_percent || 0,
       discount_label: offer.discount_label,
       quantity: 1,
-      lines,
-      unit_price: totalAfterDiscount,
-      subtotal: totalOriginal,
+      lines: pricing.lines,
+      unit_price: pricing.unitTotal,
+      subtotal: pricing.subtotal,
     })
     setAddedToCart(true)
     window.setTimeout(() => setAddedToCart(false), 2200)
@@ -66,10 +69,12 @@ export default function OfferDetail() {
   for (const p of products) {
     const v = getFirstVariant(p)
     if (!v) { allInStock = false; continue }
-    totalOriginal += Number(v.price)
-    totalAfterDiscount += Number(v.price) * (1 - discount)
+    const roundedPrice = roundDisplayPrice(v.price) ?? Number(v.price)
+    totalOriginal += roundedPrice
+    totalAfterDiscount += roundedPrice * (1 - discount)
     if ((v.stock ?? 0) <= 0) allInStock = false
   }
+  totalAfterDiscount = roundDisplayPrice(totalAfterDiscount) ?? totalAfterDiscount
 
   return (
     <div className="offer-detail">
@@ -90,8 +95,8 @@ export default function OfferDetail() {
         <div className="offer-products-list">
           {products.map((p) => {
             const v = getFirstVariant(p)
-            const price = v ? Number(v.price) : 0
-            const discountedPrice = price * (1 - discount)
+            const price = v ? (roundDisplayPrice(v.price) ?? Number(v.price)) : 0
+            const discountedPrice = roundDisplayPrice(price * (1 - discount)) ?? price * (1 - discount)
             const img = v?.image || p.main_image || p.images?.[0]
             return (
               <Link key={p.id} to={`/products/${p.id}`} className="offer-product-card">

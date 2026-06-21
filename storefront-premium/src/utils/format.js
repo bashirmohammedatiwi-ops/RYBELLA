@@ -1,3 +1,5 @@
+import { roundDisplayPrice } from './pricing'
+
 const numberFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 const percentFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
@@ -7,10 +9,11 @@ export function formatNumber(value) {
   return numberFmt.format(n)
 }
 
-export function formatPrice(value, { suffix = ' د.ع' } = {}) {
-  const formatted = formatNumber(value)
-  if (formatted === '—') return formatted
-  return `${formatted}${suffix}`
+export function formatPrice(value, { suffix = ' د.ع', round = true } = {}) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '—'
+  const amount = round ? (roundDisplayPrice(n) ?? n) : n
+  return `${numberFmt.format(amount)}${suffix}`
 }
 
 export function formatPercent(value) {

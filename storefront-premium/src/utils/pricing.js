@@ -1,4 +1,4 @@
-/** Display-only rounding for web storefront (not stored in DB / not used in admin). */
+/** Sale price rounding (nearest 250 IQD) for storefront + cart + orders. */
 export const DISPLAY_PRICE_ROUND_STEP = 250
 
 export function roundDisplayPrice(value) {
@@ -6,6 +6,26 @@ export function roundDisplayPrice(value) {
   if (!Number.isFinite(n) || n <= 0) return null
   const rounded = Math.round(n / DISPLAY_PRICE_ROUND_STEP) * DISPLAY_PRICE_ROUND_STEP
   return rounded > 0 ? rounded : DISPLAY_PRICE_ROUND_STEP
+}
+
+export function calcBundlePricing(lines, discountPercent = 0, quantity = 1) {
+  const normalized = (lines || []).map((line) => ({
+    ...line,
+    price: roundDisplayPrice(line.price) ?? (Number(line.price) || 0),
+  }))
+  const subtotal = normalized.reduce(
+    (sum, line) => sum + (Number(line.price) || 0) * (Number(line.quantity) || 1),
+    0
+  )
+  const discount = subtotal * ((Number(discountPercent) || 0) / 100)
+  const unitTotal = roundDisplayPrice(subtotal - discount) ?? Math.max(0, subtotal - discount)
+  return {
+    lines: normalized,
+    subtotal,
+    discount,
+    unitTotal,
+    total: unitTotal * quantity,
+  }
 }
 
 function buildPricing(rawPrice, originalPrice, discountPercent) {

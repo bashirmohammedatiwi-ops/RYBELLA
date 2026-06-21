@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useAuth } from './AuthContext'
 import { cartAPI } from '../services/api'
+import { roundDisplayPrice } from '../utils/pricing'
 
 const CART_KEY = 'rybella_guest_cart'
 const CartContext = createContext(null)
@@ -36,7 +37,7 @@ export function CartProvider({ children }) {
   const [bundles, setBundles] = useState([])
   const [loading, setLoading] = useState(false)
 
-  const loadCart = useCallback(async () => {
+  const loadCart = useCallback(async ({ silent = false } = {}) => {
     if (!user) {
       setLoading(false)
       const guest = parseGuestCart(localStorage.getItem(CART_KEY))
@@ -44,7 +45,7 @@ export function CartProvider({ children }) {
       setBundles(guest.bundles)
       return
     }
-    setLoading(true)
+    if (!silent) setLoading(true)
     try {
       const { data } = await cartAPI.get()
       if (Array.isArray(data)) {
@@ -58,7 +59,7 @@ export function CartProvider({ children }) {
       setItems([])
       setBundles([])
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [user])
 
@@ -86,7 +87,15 @@ export function CartProvider({ children }) {
     if (!user) {
       const guest = parseGuestCart(localStorage.getItem(CART_KEY))
       const exists = guest.items.find((i) => String(i.variant_id) === String(variantId))
-      const newItem = { variant_id: variantId, quantity, ...(guestData || {}) }
+      const roundedGuest = guestData
+        ? {
+          ...guestData,
+          price: guestData.price != null
+            ? (roundDisplayPrice(guestData.price) ?? guestData.price)
+            : guestData.price,
+        }
+        : {}
+      const newItem = { variant_id: variantId, quantity, ...roundedGuest }
       const nextItems = exists
         ? guest.items.map((i) => (String(i.variant_id) === String(variantId)
           ? { ...i, quantity: (i.quantity || 0) + quantity }
@@ -159,7 +168,7 @@ export function CartProvider({ children }) {
       await cartAPI.update(serverId, { quantity })
     } catch {
       setItems(previous)
-      await loadCart()
+      await loadCart({ silent: true })
     }
   }
 
@@ -181,10 +190,9 @@ export function CartProvider({ children }) {
       : b)))
     try {
       await cartAPI.updateBundle(bundleId, { quantity })
-      await loadCart()
     } catch {
       setBundles(previous)
-      await loadCart()
+      await loadCart({ silent: true })
     }
   }
 
@@ -202,7 +210,7 @@ export function CartProvider({ children }) {
       await cartAPI.remove(serverId)
     } catch {
       setItems(previous)
-      await loadCart()
+      await loadCart({ silent: true })
     }
   }
 
@@ -219,7 +227,7 @@ export function CartProvider({ children }) {
       await cartAPI.removeBundle(bundleId)
     } catch {
       setBundles(previous)
-      await loadCart()
+      await loadCart({ silent: true })
     }
   }
 

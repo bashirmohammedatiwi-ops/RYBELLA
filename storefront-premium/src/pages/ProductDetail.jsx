@@ -5,7 +5,7 @@ import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { formatPrice, formatPercent } from '../utils/format'
-import { getSelectedVariantPricing } from '../utils/pricing'
+import { getSelectedVariantPricing, roundDisplayPrice } from '../utils/pricing'
 import { getVariantColor, isMetallicShade } from '../utils/variantColor'
 import MobileHeader from '../components/MobileHeader'
 import './ProductDetail.css'
@@ -113,7 +113,7 @@ export default function ProductDetail() {
       product_id: product.id,
       product_name: product.name,
       shade_name: selectedVariant.shade_name,
-      price: selectedVariant.price,
+      price: roundDisplayPrice(selectedVariant.price) ?? selectedVariant.price,
       image: selectedVariant.image || product.main_image || product.images?.[0],
     } : null
     addItem(selectedVariant.id, qty, guestData)
