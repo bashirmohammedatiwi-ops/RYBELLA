@@ -1,9 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from './AuthContext'
 import { cartAPI } from '../services/api'
 import { roundDisplayPrice } from '../utils/pricing'
 
 const CART_KEY = 'rybella_guest_cart'
+const SYNC_DEBOUNCE_MS = 400
 const CartContext = createContext(null)
 
 function parseGuestCart(raw) {
@@ -37,7 +38,35 @@ export function CartProvider({ children }) {
   const [bundles, setBundles] = useState([])
   const [loading, setLoading] = useState(false)
 
-  const loadCart = useCallback(async ({ silent = false } = {}) => {
+  const itemsRef = useRef(items)
+  const bundlesRef = useRef(bundles)
+  const localRevisionRef = useRef(0)
+  const itemSyncTimersRef = useRef(new Map())
+  const bundleSyncTimersRef = useRef(new Map())
+
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
+
+  useEffect(() => {
+    bundlesRef.current = bundles
+  }, [bundles])
+
+  useEffect(() => () => {
+    itemSyncTimersRef.current.forEach((timer) => clearTimeout(timer))
+    bundleSyncTimersRef.current.forEach((timer) => clearTimeout(timer))
+  }, [])
+
+  const bumpLocalRevision = () => {
+    localRevisionRef.current += 1
+  }
+
+  const resolveServerItemId = useCallback((itemId) => {
+    const match = itemsRef.current.find((i) => matchesCartItem(i, itemId))
+    return match?.id ?? itemId
+  }, [])
+
+  const loadCart = useCallback(async ({ silent = false, force = false } = {}) => {
     if (!user) {
       setLoading(false)
       const guest = parseGuestCart(localStorage.getItem(CART_KEY))
@@ -45,9 +74,14 @@ export function CartProvider({ children }) {
       setBundles(guest.bundles)
       return
     }
+
+    const revisionAtStart = localRevisionRef.current
     if (!silent) setLoading(true)
+
     try {
       const { data } = await cartAPI.get()
+      if (!force && revisionAtStart !== localRevisionRef.current) return
+
       if (Array.isArray(data)) {
         setItems(data)
         setBundles([])
@@ -56,6 +90,7 @@ export function CartProvider({ children }) {
         setBundles(data?.bundles || [])
       }
     } catch {
+      if (!force && revisionAtStart !== localRevisionRef.current) return
       setItems([])
       setBundles([])
     } finally {
@@ -65,6 +100,7 @@ export function CartProvider({ children }) {
 
   useEffect(() => {
     if (user) {
+      localRevisionRef.current = 0
       setItems([])
       setBundles([])
       setLoading(true)
@@ -74,14 +110,41 @@ export function CartProvider({ children }) {
 
   const persistGuest = (nextItems, nextBundles) => {
     saveGuestCart(nextItems, nextBundles)
+    bumpLocalRevision()
     setItems(nextItems)
     setBundles(nextBundles)
   }
 
-  const resolveServerItemId = useCallback((itemId, list = items) => {
-    const match = list.find((i) => matchesCartItem(i, itemId))
-    return match?.id ?? itemId
-  }, [items])
+  const scheduleItemSync = useCallback((itemId, quantity) => {
+    const key = String(itemId)
+    const timers = itemSyncTimersRef.current
+    if (timers.has(key)) clearTimeout(timers.get(key))
+
+    timers.set(key, setTimeout(async () => {
+      timers.delete(key)
+      const serverId = resolveServerItemId(itemId)
+      try {
+        await cartAPI.update(serverId, { quantity })
+      } catch {
+        await loadCart({ silent: true, force: true })
+      }
+    }, SYNC_DEBOUNCE_MS))
+  }, [loadCart, resolveServerItemId])
+
+  const scheduleBundleSync = useCallback((bundleId, quantity) => {
+    const key = String(bundleId)
+    const timers = bundleSyncTimersRef.current
+    if (timers.has(key)) clearTimeout(timers.get(key))
+
+    timers.set(key, setTimeout(async () => {
+      timers.delete(key)
+      try {
+        await cartAPI.updateBundle(bundleId, { quantity })
+      } catch {
+        await loadCart({ silent: true, force: true })
+      }
+    }, SYNC_DEBOUNCE_MS))
+  }, [loadCart])
 
   const addItem = async (variantId, quantity = 1, guestData) => {
     if (!user) {
@@ -104,8 +167,9 @@ export function CartProvider({ children }) {
       persistGuest(nextItems, guest.bundles)
       return
     }
+    bumpLocalRevision()
     await cartAPI.add({ variant_id: variantId, quantity })
-    await loadCart()
+    await loadCart({ force: true })
   }
 
   const addBundle = async (bundlePayload) => {
@@ -142,92 +206,109 @@ export function CartProvider({ children }) {
       persistGuest(guest.items, [...without, bundle])
       return
     }
-
+    bumpLocalRevision()
     await cartAPI.addBundle({
       offer_id,
       quantity,
       lines: lines.map((l) => ({ variant_id: l.variant_id, quantity: 1 })),
     })
-    await loadCart()
+    await loadCart({ force: true })
   }
 
-  const updateItem = async (itemId, quantity) => {
+  const updateItem = (itemId, quantity) => {
+    bumpLocalRevision()
+
     if (!user) {
-      const guest = parseGuestCart(localStorage.getItem(CART_KEY))
-      const nextItems = guest.items
-        .map((i) => (matchesCartItem(i, itemId) ? { ...i, quantity } : i))
-        .filter((i) => (i.quantity || 0) > 0)
-      persistGuest(nextItems, guest.bundles)
+      setItems((prevItems) => {
+        const nextItems = prevItems
+          .map((i) => (matchesCartItem(i, itemId) ? { ...i, quantity } : i))
+          .filter((i) => (i.quantity || 0) > 0)
+        saveGuestCart(nextItems, bundlesRef.current)
+        return nextItems
+      })
       return
     }
 
-    const serverId = resolveServerItemId(itemId)
-    const previous = items
     setItems((prev) => prev.map((i) => (matchesCartItem(i, itemId) ? { ...i, quantity } : i)))
-    try {
-      await cartAPI.update(serverId, { quantity })
-    } catch {
-      setItems(previous)
-      await loadCart({ silent: true })
-    }
+    scheduleItemSync(itemId, quantity)
   }
 
-  const updateBundle = async (bundleId, quantity) => {
+  const updateBundle = (bundleId, quantity) => {
+    bumpLocalRevision()
+
     if (!user) {
-      const guest = parseGuestCart(localStorage.getItem(CART_KEY))
-      const nextBundles = guest.bundles
-        .map((b) => (matchesBundle(b, bundleId)
-          ? { ...b, quantity, total_price: (b.unit_price || 0) * quantity }
-          : b))
-        .filter((b) => (b.quantity || 0) > 0)
-      persistGuest(guest.items, nextBundles)
+      setBundles((prevBundles) => {
+        const nextBundles = prevBundles
+          .map((b) => (matchesBundle(b, bundleId)
+            ? { ...b, quantity, total_price: (b.unit_price || 0) * quantity }
+            : b))
+          .filter((b) => (b.quantity || 0) > 0)
+        saveGuestCart(itemsRef.current, nextBundles)
+        return nextBundles
+      })
       return
     }
 
-    const previous = bundles
     setBundles((prev) => prev.map((b) => (matchesBundle(b, bundleId)
       ? { ...b, quantity, total_price: (b.unit_price || 0) * quantity }
       : b)))
-    try {
-      await cartAPI.updateBundle(bundleId, { quantity })
-    } catch {
-      setBundles(previous)
-      await loadCart({ silent: true })
-    }
+    scheduleBundleSync(bundleId, quantity)
   }
 
   const removeItem = async (itemId) => {
+    const key = String(itemId)
+    if (itemSyncTimersRef.current.has(key)) {
+      clearTimeout(itemSyncTimersRef.current.get(key))
+      itemSyncTimersRef.current.delete(key)
+    }
+
+    bumpLocalRevision()
+
     if (!user) {
-      const guest = parseGuestCart(localStorage.getItem(CART_KEY))
-      persistGuest(guest.items.filter((i) => !matchesCartItem(i, itemId)), guest.bundles)
+      setItems((prevItems) => {
+        const nextItems = prevItems.filter((i) => !matchesCartItem(i, itemId))
+        saveGuestCart(nextItems, bundlesRef.current)
+        return nextItems
+      })
       return
     }
 
     const serverId = resolveServerItemId(itemId)
-    const previous = items
+    const previous = itemsRef.current
     setItems((prev) => prev.filter((i) => !matchesCartItem(i, itemId)))
     try {
       await cartAPI.remove(serverId)
     } catch {
       setItems(previous)
-      await loadCart({ silent: true })
+      await loadCart({ silent: true, force: true })
     }
   }
 
   const removeBundle = async (bundleId) => {
+    const key = String(bundleId)
+    if (bundleSyncTimersRef.current.has(key)) {
+      clearTimeout(bundleSyncTimersRef.current.get(key))
+      bundleSyncTimersRef.current.delete(key)
+    }
+
+    bumpLocalRevision()
+
     if (!user) {
-      const guest = parseGuestCart(localStorage.getItem(CART_KEY))
-      persistGuest(guest.items, guest.bundles.filter((b) => !matchesBundle(b, bundleId)))
+      setBundles((prevBundles) => {
+        const nextBundles = prevBundles.filter((b) => !matchesBundle(b, bundleId))
+        saveGuestCart(itemsRef.current, nextBundles)
+        return nextBundles
+      })
       return
     }
 
-    const previous = bundles
+    const previous = bundlesRef.current
     setBundles((prev) => prev.filter((b) => !matchesBundle(b, bundleId)))
     try {
       await cartAPI.removeBundle(bundleId)
     } catch {
       setBundles(previous)
-      await loadCart({ silent: true })
+      await loadCart({ silent: true, force: true })
     }
   }
 
@@ -235,7 +316,7 @@ export function CartProvider({ children }) {
     if (!user) return
     const guest = parseGuestCart(localStorage.getItem(CART_KEY))
     if (!guest.items.length && !guest.bundles.length) {
-      await loadCart()
+      await loadCart({ force: true })
       return
     }
     setLoading(true)
@@ -254,7 +335,8 @@ export function CartProvider({ children }) {
       } catch { /* skip */ }
     }
     localStorage.removeItem(CART_KEY)
-    await loadCart()
+    localRevisionRef.current = 0
+    await loadCart({ force: true })
   }
 
   const itemCount = items.reduce((s, i) => s + (Number(i.quantity) || 0), 0)
