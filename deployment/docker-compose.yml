@@ -21,6 +21,9 @@ services:
       - API_URL=${API_URL:-http://localhost:4000}
       - UPLOAD_PATH=./uploads
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-5242880}
+      - EXTERNAL_INVENTORY_API_URL=${EXTERNAL_INVENTORY_API_URL:-}
+      - EXTERNAL_INVENTORY_API_TOKEN=${EXTERNAL_INVENTORY_API_TOKEN:-}
+      - INVENTORY_SYNC_INTERVAL_MIN=${INVENTORY_SYNC_INTERVAL_MIN:-5}
     volumes:
       - backend_data:/app/data
       - backend_uploads:/app/uploads
