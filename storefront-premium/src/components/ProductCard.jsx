@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { IMG_BASE } from '../services/api'
-import { formatNumber, formatCount } from '../utils/format'
+import { formatNumber, formatCount, formatPercent } from '../utils/format'
+import { getProductCardPricing } from '../utils/pricing'
 import { getProductColorSwatches } from '../utils/variantColor'
 import './ProductCard.css'
 
@@ -15,7 +16,9 @@ function isTruthyFlag(value) {
 }
 
 export default function ProductCard({ product, wishlistIds = [], onWishlistToggle }) {
-  const minPrice = product.min_price ?? product.variants?.[0]?.price
+  const pricing = getProductCardPricing(product)
+  const priceValue = pricing.price != null ? formatNumber(pricing.price) : null
+  const originalValue = pricing.originalPrice != null ? formatNumber(pricing.originalPrice) : null
   const img = product.main_image || product.images?.[0] || product.variants?.[0]?.image
   const inStock = product.variants?.some((v) => v.stock > 0) ?? product.in_stock > 0 ?? true
   const variants = product.variants || []
@@ -23,8 +26,6 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
   const showColorSwatches = variants.length > 1 && totalColors > 0
   const shadeCount = variants.filter((v) => v.shade_name).length
   const brandLabel = product.brand_name || product.category_name
-
-  const priceValue = minPrice != null ? formatNumber(minPrice) : null
 
   return (
     <div className="premium-product-card-wrap">
@@ -60,6 +61,11 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
             {!isTruthyFlag(product.is_featured) && !isTruthyFlag(product.is_best_seller) && isNewProduct(product) && (
               <span className="premium-product-badge premium-product-badge--new">جديد</span>
             )}
+            {pricing.hasDiscount && (
+              <span className="premium-product-badge premium-product-badge--sale">
+                -{formatPercent(pricing.discountPercent)}
+              </span>
+            )}
           </div>
 
           {onWishlistToggle && (
@@ -92,10 +98,15 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
           <div className="premium-product-footer">
             <span className="premium-product-price">
               {priceValue != null ? (
-                <>
-                  <span className="premium-product-price-value">{priceValue}</span>
-                  <span className="premium-product-price-currency"> د.ع</span>
-                </>
+                <span className="premium-product-price-row">
+                  {originalValue && (
+                    <span className="premium-product-price-old">{originalValue} د.ع</span>
+                  )}
+                  <span className="premium-product-price-current">
+                    <span className="premium-product-price-value">{priceValue}</span>
+                    <span className="premium-product-price-currency"> د.ع</span>
+                  </span>
+                </span>
               ) : '—'}
             </span>
             {showColorSwatches && (

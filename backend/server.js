@@ -27,6 +27,7 @@ const bannerRoutes = require('./routes/banners');
 const storyRoutes = require('./routes/stories');
 const offerRoutes = require('./routes/offers');
 const webSettingsRoutes = require('./routes/webSettings');
+const inventorySyncRoutes = require('./routes/inventorySync');
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 5000;
@@ -59,11 +60,32 @@ app.use('/api/banners', bannerRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/web-settings', webSettingsRoutes);
+app.use('/api/sync', inventorySyncRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Rybella Iraq API is running' });
 });
+
+function startInventorySyncJob() {
+  const intervalMin = parseInt(process.env.INVENTORY_SYNC_INTERVAL_MIN || '5', 10);
+  if (!process.env.EXTERNAL_INVENTORY_API_URL) {
+    console.log('Inventory auto-sync: EXTERNAL_INVENTORY_API_URL not set — bulk POS sync only');
+    return;
+  }
+  const inventorySync = require('./services/inventorySyncService');
+  const run = async () => {
+    try {
+      const stats = await inventorySync.refreshAllFromExternal();
+      console.log(`Inventory sync: ${stats.synced}/${stats.total} barcodes updated`);
+    } catch (e) {
+      console.error('Inventory sync job error:', e.message);
+    }
+  };
+  setTimeout(run, 15000);
+  setInterval(run, Math.max(1, intervalMin) * 60 * 1000);
+  console.log(`Inventory auto-sync every ${intervalMin} min from ${process.env.EXTERNAL_INVENTORY_API_URL}`);
+}
 
 // Database check endpoint (for debugging)
 app.get('/api/health/db', async (req, res) => {
@@ -96,6 +118,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Rybella Iraq API running on http://localhost:${PORT}`);
   console.log(`Health: http://localhost:${PORT}/api/health`);
   require('./config/database').query('SELECT 1').catch((e) => console.error('DB init:', e.message));
+  startInventorySyncJob();
 }).on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error('\nالمنفذ 5000 مشغول. أغلق نافذة Backend السابقة أو نفّذ:');

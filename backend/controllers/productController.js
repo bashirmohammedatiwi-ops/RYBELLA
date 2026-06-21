@@ -1,4 +1,7 @@
 const db = require('../config/database');
+const { enrichProductPricing } = require('../services/inventorySyncService');
+
+const VARIANT_PUBLIC_FIELDS = 'id, shade_name, color_code, price, original_price, discount_percent, stock, image, expiration_date';
 
 exports.getAll = async (req, res) => {
   try {
@@ -90,10 +93,11 @@ exports.getAll = async (req, res) => {
 
     for (const product of filteredProducts) {
       const [variants] = await db.query(
-        'SELECT id, shade_name, color_code, price, stock, image, expiration_date FROM product_variants WHERE product_id = ?',
+        `SELECT ${VARIANT_PUBLIC_FIELDS} FROM product_variants WHERE product_id = ?`,
         [product.id]
       );
       product.variants = variants;
+      enrichProductPricing(product);
       const [images] = await db.query('SELECT image_url FROM product_images WHERE product_id = ?', [product.id]);
       product.images = images.map(i => i.image_url);
       if (product.tags && typeof product.tags === 'string') {
@@ -150,8 +154,9 @@ exports.getById = async (req, res) => {
     }
 
     const product = products[0];
-    const [variants] = await db.query('SELECT * FROM product_variants WHERE product_id = ?', [product.id]);
+    const [variants] = await db.query(`SELECT ${VARIANT_PUBLIC_FIELDS}, barcode, sku, batch_number, last_synced_at FROM product_variants WHERE product_id = ?`, [product.id]);
     product.variants = variants;
+    enrichProductPricing(product);
     if (product.tags && typeof product.tags === 'string') {
       product.tags = product.tags.split(',').map((t) => t.trim()).filter(Boolean);
     }

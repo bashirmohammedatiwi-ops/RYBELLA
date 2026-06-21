@@ -229,4 +229,12 @@ export const notificationsAPI = {
   create: (data) => api.post('/notifications', data),
 };
 
+export const syncAPI = {
+  getByBarcode: (barcode) => api.get(`/sync/inventory/by-barcode/${encodeURIComponent(barcode)}`),
+  refreshBarcode: (barcode) => api.post(`/sync/inventory/refresh-barcode/${encodeURIComponent(barcode)}`),
+  refreshProduct: (productId) => api.post(`/sync/inventory/refresh-product/${productId}`),
+  refreshAll: () => api.post('/sync/inventory/refresh-all'),
+  bulk: (items) => api.post('/sync/inventory/bulk', { items }),
+};
+
 export default api;

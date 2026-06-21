@@ -389,6 +389,39 @@ const initDb = async () => {
     )`);
     saveDb();
   } catch (e) {}
+  // Migration: inventory sync + variant pricing fields
+  try {
+    const variantInfo = db.exec("PRAGMA table_info(product_variants)");
+    const variantCols = (variantInfo[0]?.values || []).map((r) => r[1]);
+    const addVariantCol = (name, def) => {
+      if (!variantCols.includes(name)) {
+        db.run(`ALTER TABLE product_variants ADD COLUMN ${name} ${def}`);
+        saveDb();
+      }
+    };
+    addVariantCol('original_price', 'REAL DEFAULT 0');
+    addVariantCol('discount_percent', 'REAL DEFAULT 0');
+    addVariantCol('last_synced_at', 'TEXT');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS inventory_sync_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      barcode TEXT NOT NULL UNIQUE,
+      product_code TEXT,
+      product_num TEXT,
+      name TEXT,
+      price REAL NOT NULL DEFAULT 0,
+      original_price REAL NOT NULL DEFAULT 0,
+      discount_percent REAL DEFAULT 0,
+      stock INTEGER DEFAULT 0,
+      offer_name TEXT,
+      synced_at TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_inventory_snapshots_barcode ON inventory_sync_snapshots(barcode)');
+    saveDb();
+  } catch (e) {
+    console.error('Inventory sync migration:', e.message);
+  }
 };
 
 // Async query - returns [rows] for SELECT, [{ insertId }] for INSERT (mysql2 compatible)

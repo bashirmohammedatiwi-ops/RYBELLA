@@ -20,6 +20,7 @@ import {
   TextField,
   TablePagination,
   Typography,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -34,9 +35,10 @@ import {
   FilterList as FilterIcon,
   Palette as VariantsIcon,
   Search as SearchIcon,
+  Sync as SyncIcon,
   ZoomIn as ZoomIcon,
 } from '@mui/icons-material';
-import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, getImgBase } from '../services/api';
+import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, syncAPI, getImgBase } from '../services/api';
 import SortableTableRow, { DragHandleCell } from '../components/SortableTableRow';
 import ImageDisplay from '../components/ImageDisplay';
 
@@ -58,6 +60,7 @@ export default function Products() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
   const [imageDialog, setImageDialog] = useState({ open: false, product: null });
   const [draggedIndex, setDraggedIndex] = useState(-1);
+  const [syncingAll, setSyncingAll] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -116,9 +119,29 @@ export default function Products() {
     }
   };
 
-  const formatPrice = (price) => {
+  const formatPrice = (price, product) => {
     if (!price) return '-';
-    return new Intl.NumberFormat('ar-IQ').format(price) + ' د.ع';
+    const formatted = new Intl.NumberFormat('ar-IQ').format(price) + ' د.ع';
+    const original = Number(product?.min_original_price);
+    const discount = Number(product?.max_discount_percent);
+    if (product?.has_discount && original > price && discount > 0) {
+      return `${formatted} (قبل: ${new Intl.NumberFormat('ar-IQ').format(original)} · -${discount}%)`;
+    }
+    return formatted;
+  };
+
+  const handleSyncAll = async () => {
+    if (!window.confirm('مزامنة أسعار ومخزون جميع المنتجات من نظام المبيعات؟ قد يستغرق ذلك بعض الوقت.')) return;
+    try {
+      setSyncingAll(true);
+      const { data } = await syncAPI.refreshAll();
+      await loadProducts();
+      alert(`تمت المزامنة: ${data.synced ?? 0} باركود، ${data.linked ?? 0} تحديث، ${data.failed ?? 0} فشل`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'فشلت المزامنة');
+    } finally {
+      setSyncingAll(false);
+    }
   };
 
   const getProductImages = (p) => {
@@ -201,6 +224,9 @@ export default function Products() {
           المنتجات
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" size="small" startIcon={syncingAll ? <CircularProgress size={16} /> : <SyncIcon />} onClick={handleSyncAll} disabled={syncingAll}>
+            مزامنة الأسعار
+          </Button>
           <Button variant="outlined" size="small" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
             تصدير CSV
           </Button>
@@ -367,7 +393,7 @@ export default function Products() {
                       <TableCell>{product.brand_name}</TableCell>
                       <TableCell>{product.category_name}</TableCell>
                       <TableCell>{product.subcategory_name || '-'}</TableCell>
-                      <TableCell>{formatPrice(product.min_price)}</TableCell>
+                      <TableCell>{formatPrice(product.min_price, product)}</TableCell>
                       <TableCell>
                         <Chip
                           label={`${product.variants?.length || 0} ظل`}

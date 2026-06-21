@@ -15,10 +15,6 @@ import {
   DialogTitle,
   DialogContent,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Chip,
   Typography,
   CircularProgress,
@@ -28,16 +24,30 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { productsAPI, variantsAPI } from '../services/api';
-
-import { getImgBase } from '../services/api';
+import SyncIcon from '@mui/icons-material/Sync';
+import { productsAPI, variantsAPI, syncAPI, getImgBase } from '../services/api';
 import ImageDisplay from '../components/ImageDisplay';
+
+function formatPrice(n) {
+  return Number(n || 0).toLocaleString('ar-IQ');
+}
+
+function formatPricing(v) {
+  const price = Number(v.price || 0);
+  const original = Number(v.original_price || 0);
+  const discount = Number(v.discount_percent || 0);
+  if (discount > 0 && original > price) {
+    return `${formatPrice(price)} د.ع (قبل: ${formatPrice(original)} · خصم ${discount}%)`;
+  }
+  return `${formatPrice(price)} د.ع`;
+}
 
 export default function ProductVariants() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState(null);
   const [form, setForm] = useState({
@@ -45,8 +55,6 @@ export default function ProductVariants() {
     color_code: '#000000',
     barcode: '',
     sku: '',
-    price: '',
-    stock: '',
     expiration_date: '',
   });
   const [imageFile, setImageFile] = useState(null);
@@ -67,6 +75,19 @@ export default function ProductVariants() {
     }
   };
 
+  const handleSyncProduct = async () => {
+    try {
+      setSyncing(true);
+      await syncAPI.refreshProduct(id);
+      await loadProduct();
+      setMessage({ type: 'success', text: 'تمت مزامنة الأسعار والمخزون من نظام المبيعات' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'فشلت المزامنة' });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleOpenDialog = (variant = null) => {
     if (variant) {
       setEditingVariant(variant);
@@ -75,8 +96,6 @@ export default function ProductVariants() {
         color_code: variant.color_code || '#000000',
         barcode: variant.barcode || '',
         sku: variant.sku || '',
-        price: variant.price,
-        stock: variant.stock,
         expiration_date: variant.expiration_date ? variant.expiration_date.split('T')[0] : '',
       });
     } else {
@@ -86,8 +105,6 @@ export default function ProductVariants() {
         color_code: '#000000',
         barcode: '',
         sku: '',
-        price: '',
-        stock: '',
         expiration_date: '',
       });
     }
@@ -102,20 +119,28 @@ export default function ProductVariants() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.barcode?.trim()) {
+      setMessage({ type: 'error', text: 'الباركود مطلوب' });
+      return;
+    }
     try {
+      const payload = {
+        shade_name: form.shade_name,
+        color_code: form.color_code,
+        barcode: form.barcode.trim(),
+        sku: form.sku || undefined,
+        expiration_date: form.expiration_date || null,
+      };
       const formData = new FormData();
-      Object.keys(form).forEach((key) => {
-        if (form[key] !== '') formData.append(key, form[key]);
-      });
       if (imageFile) formData.append('image', imageFile);
 
       if (editingVariant) {
-        await variantsAPI.update(editingVariant.id, form, imageFile ? formData : null);
-        setMessage({ type: 'success', text: 'تم تحديث العنصر بنجاح' });
+        await variantsAPI.update(editingVariant.id, payload, imageFile ? formData : null);
       } else {
-        await variantsAPI.create(id, form, formData);
-        setMessage({ type: 'success', text: 'تم إضافة العنصر بنجاح' });
+        await variantsAPI.create(id, payload, formData);
       }
+      await syncAPI.refreshProduct(id);
+      setMessage({ type: 'success', text: 'تم الحفظ ومزامنة السعر والمخزون تلقائياً' });
       handleCloseDialog();
       loadProduct();
     } catch (err) {
@@ -139,11 +164,14 @@ export default function ProductVariants() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
         <IconButton onClick={() => navigate('/products')}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h5">العناصر الإضافية للمنتج: {product.name}</Typography>
+        <Typography variant="h5" sx={{ flex: 1 }}>العناصر الإضافية للمنتج: {product.name}</Typography>
+        <Button variant="outlined" startIcon={syncing ? <CircularProgress size={18} /> : <SyncIcon />} onClick={handleSyncProduct} disabled={syncing}>
+          مزامنة الآن
+        </Button>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
           إضافة عنصر إضافي
         </Button>
@@ -155,6 +183,10 @@ export default function ProductVariants() {
         </Alert>
       )}
 
+      <Alert severity="info" sx={{ mb: 2 }}>
+        السعر والمخزون ونسبة التخفيض تُجلب تلقائياً من نظام المبيعات حسب الباركود — لا يمكن تعديلها يدوياً.
+      </Alert>
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -163,8 +195,9 @@ export default function ProductVariants() {
               <TableCell>اسم العنصر / اللون</TableCell>
               <TableCell>اللون</TableCell>
               <TableCell>الباركود</TableCell>
-              <TableCell>السعر (د.ع)</TableCell>
+              <TableCell>السعر</TableCell>
               <TableCell>المخزون</TableCell>
+              <TableCell>آخر مزامنة</TableCell>
               <TableCell>تاريخ الانتهاء</TableCell>
               <TableCell align="left">إجراءات</TableCell>
             </TableRow>
@@ -183,10 +216,11 @@ export default function ProductVariants() {
                   </Box>
                 </TableCell>
                 <TableCell>{v.barcode || '-'}</TableCell>
-                <TableCell>{Number(v.price).toLocaleString('ar-IQ')}</TableCell>
+                <TableCell>{formatPricing(v)}</TableCell>
                 <TableCell>
                   <Chip label={v.stock} color={v.stock <= 5 ? 'error' : 'default'} size="small" />
                 </TableCell>
+                <TableCell>{v.last_synced_at ? new Date(v.last_synced_at).toLocaleString('ar-IQ') : '-'}</TableCell>
                 <TableCell>{v.expiration_date ? new Date(v.expiration_date).toLocaleDateString('ar-IQ') : '-'}</TableCell>
                 <TableCell align="left">
                   <IconButton size="small" onClick={() => handleOpenDialog(v)}>
@@ -209,10 +243,13 @@ export default function ProductVariants() {
             <TextField label="اسم العنصر / اللون" value={form.shade_name} onChange={(e) => setForm({ ...form, shade_name: e.target.value })} required fullWidth />
             <TextField label="كود اللون" type="color" value={form.color_code} onChange={(e) => setForm({ ...form, color_code: e.target.value })} sx={{ width: 80, height: 40 }} />
             <TextField label="كود اللون (hex)" value={form.color_code} onChange={(e) => setForm({ ...form, color_code: e.target.value })} fullWidth />
-            <TextField label="الباركود *" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} required fullWidth helperText="مطلوب لكل منتج حتى ذو اللون الواحد" />
+            <TextField label="الباركود *" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} required fullWidth helperText="يُستخدم لجلب السعر والمخزون ونسبة التخفيض تلقائياً" />
             <TextField label="SKU" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} fullWidth />
-            <TextField label="السعر" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required fullWidth />
-            <TextField label="المخزون" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} fullWidth />
+            {editingVariant && (
+              <Typography variant="body2" color="text.secondary">
+                {formatPricing(editingVariant)}
+              </Typography>
+            )}
             <TextField label="تاريخ الانتهاء" type="date" value={form.expiration_date} onChange={(e) => setForm({ ...form, expiration_date: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
             <Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>صورة العنصر</Typography>

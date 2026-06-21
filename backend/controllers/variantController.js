@@ -7,18 +7,20 @@ exports.create = async (req, res) => {
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     const shadeLabel = shade_name || color_code || 'عنصر إضافي';
-    if (!price) {
-      return res.status(400).json({ message: 'السعر مطلوب' });
-    }
     if (!barcode || !barcode.trim()) {
       return res.status(400).json({ message: 'الباركود مطلوب لكل منتج/ظل' });
     }
 
     const [result] = await db.query(
-      `INSERT INTO product_variants (product_id, shade_name, color_code, barcode, sku, price, stock, image, expiration_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [product_id, shadeLabel, color_code || null, barcode || null, sku || null, price, stock || 0, image, expiration_date || null]
+      `INSERT INTO product_variants (product_id, shade_name, color_code, barcode, sku, price, original_price, discount_percent, stock, image, expiration_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [product_id, shadeLabel, color_code || null, barcode.trim(), sku || null, price || 0, 0, 0, stock || 0, image, expiration_date || null]
     );
+
+    try {
+      const inventorySync = require('../services/inventorySyncService');
+      await inventorySync.syncBarcodeFromExternal(barcode.trim());
+    } catch (_) {}
 
     res.status(201).json({ message: 'تم إنشاء الظل بنجاح', id: result.insertId });
   } catch (error) {
@@ -32,8 +34,8 @@ exports.update = async (req, res) => {
     const { shade_name, color_code, barcode, sku, price, stock, expiration_date } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : undefined;
 
-    let query = `UPDATE product_variants SET shade_name = ?, color_code = ?, barcode = ?, sku = ?, price = ?, stock = ?, expiration_date = ?`;
-    const params = [shade_name, color_code || null, barcode || null, sku || null, price, stock || 0, expiration_date || null];
+    let query = `UPDATE product_variants SET shade_name = ?, color_code = ?, barcode = ?, sku = ?, expiration_date = ?`;
+    const params = [shade_name, color_code || null, barcode || null, sku || null, expiration_date || null];
 
     if (image) {
       query += ', image = ?';
@@ -43,6 +45,14 @@ exports.update = async (req, res) => {
     params.push(req.params.id);
 
     await db.query(query, params);
+
+    if (barcode?.trim()) {
+      try {
+        const inventorySync = require('../services/inventorySyncService');
+        await inventorySync.syncBarcodeFromExternal(barcode.trim());
+      } catch (_) {}
+    }
+
     res.json({ message: 'تم تحديث الظل بنجاح' });
   } catch (error) {
     console.error('Update variant error:', error);

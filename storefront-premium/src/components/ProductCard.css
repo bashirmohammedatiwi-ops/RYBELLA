@@ -259,8 +259,33 @@
 
 .premium-product-price {
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.2;
   flex-shrink: 0;
+}
+
+.premium-product-price-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.premium-product-price-old {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.premium-product-price-current {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.premium-product-badge--sale {
+  background: linear-gradient(135deg, #e85d7a, #c94a5a);
+  color: #fff;
 }
 
 .premium-product-price-value {

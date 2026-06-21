@@ -19,9 +19,18 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack as BackIcon, Save as SaveIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, variantsAPI, getImgBase } from '../services/api';
+import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, variantsAPI, syncAPI, getImgBase } from '../services/api';
 
-const emptyElement = () => ({ barcode: '', color_code: '#000000', shade_name: '', price: '', stock: '', expiration_date: '', imageFile: null });
+const emptyElement = () => ({ barcode: '', color_code: '#000000', shade_name: '', price: '', stock: '', original_price: '', discount_percent: '', expiration_date: '', imageFile: null });
+
+function formatSyncedLabel(el) {
+  const parts = [];
+  if (el.price !== '' && el.price != null) parts.push(`السعر: ${el.price}`);
+  if (el.original_price && Number(el.original_price) > Number(el.price)) parts.push(`قبل: ${el.original_price}`);
+  if (el.discount_percent > 0) parts.push(`خصم ${el.discount_percent}%`);
+  if (el.stock !== '' && el.stock != null) parts.push(`المخزون: ${el.stock}`);
+  return parts.length ? parts.join(' · ') : 'يُجلب تلقائياً بعد حفظ الباركود';
+}
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -41,6 +50,8 @@ export default function ProductForm() {
     barcode: '',
     price: '',
     stock: '',
+    original_price: '',
+    discount_percent: '',
     status: 'published',
     is_featured: false,
     is_best_seller: false,
@@ -100,6 +111,8 @@ export default function ProductForm() {
         barcode: data.barcode || '',
         price: hasSingleSimpleVariant && vars[0] ? String(vars[0].price) : '',
         stock: hasSingleSimpleVariant && vars[0] ? String(vars[0].stock || 0) : '',
+        original_price: hasSingleSimpleVariant && vars[0] ? String(vars[0].original_price || '') : '',
+        discount_percent: hasSingleSimpleVariant && vars[0] ? String(vars[0].discount_percent || 0) : '',
         status: data.status || 'published',
         is_featured: !!data.is_featured,
         is_best_seller: !!data.is_best_seller,
@@ -118,6 +131,8 @@ export default function ProductForm() {
         shade_name: v.shade_name || '',
         price: String(v.price),
         stock: String(v.stock || 0),
+        original_price: String(v.original_price || ''),
+        discount_percent: String(v.discount_percent || 0),
         expiration_date: v.expiration_date ? v.expiration_date.slice(0, 10) : '',
         imageFile: null,
         existingImage: v.image,
@@ -128,6 +143,22 @@ export default function ProductForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const syncBarcodeFields = async (barcode, apply) => {
+    if (!barcode?.trim()) return;
+    try {
+      const { data } = await syncAPI.refreshBarcode(barcode.trim());
+      const item = data?.item;
+      if (item && apply) {
+        apply({
+          price: item.price,
+          stock: item.stock,
+          original_price: item.originalPrice,
+          discount_percent: item.discountPercent,
+        });
+      }
+    } catch (_) {}
   };
 
   const addElement = () => setElements([...elements, { ...emptyElement(), imageFile: null }]);
@@ -151,10 +182,6 @@ export default function ProductForm() {
         alert('أدخل باركود المنتج أو أضف عناصر إضافية مع باركود لكل عنصر');
         return;
       }
-      if (!form.price || Number(form.price) <= 0) {
-        alert('السعر مطلوب ويجب أن يكون أكبر من صفر للمنتجات بدون عناصر إضافية');
-        return;
-      }
     }
     if (hasElements) {
       const noBarcode = elements.find((el) => !el.barcode?.trim());
@@ -162,12 +189,14 @@ export default function ProductForm() {
         alert('الباركود مطلوب لكل عنصر إضافي');
         return;
       }
-      const noPrice = elements.find((el) => !el.price || Number(el.price) <= 0);
-      if (noPrice) {
-        alert('السعر مطلوب ويجب أن يكون أكبر من صفر لكل عنصر إضافي');
-        return;
-      }
     }
+
+    const variantPayload = (el) => ({
+      shade_name: el.shade_name || el.color_code,
+      color_code: el.color_code,
+      barcode: el.barcode,
+      expiration_date: el.expiration_date || null,
+    });
 
     try {
       setLoading(true);
@@ -192,37 +221,38 @@ export default function ProductForm() {
       if (isEdit) {
         await productsAPI.update(id, formData);
         if (hasElements) {
-          const variantData = (el) => ({ shade_name: el.shade_name || el.color_code, color_code: el.color_code, barcode: el.barcode, price: el.price, stock: el.stock || 0, expiration_date: el.expiration_date || null });
           for (let i = 0; i < elements.length; i++) {
             const el = elements[i];
             const fd = new FormData();
             if (el.imageFile) fd.append('image', el.imageFile);
-            if (el.id) await variantsAPI.update(el.id, variantData(el), el.imageFile ? fd : null);
-            else await variantsAPI.create(id, variantData(el), fd);
+            if (el.id) await variantsAPI.update(el.id, variantPayload(el), el.imageFile ? fd : null);
+            else await variantsAPI.create(id, variantPayload(el), fd);
           }
         } else {
           const { data: productData } = await productsAPI.getById(id);
           for (const v of productData.variants || []) {
             await variantsAPI.delete(v.id);
           }
-          await variantsAPI.create(id, { shade_name: 'وحدة واحدة', barcode: form.barcode.trim(), price: form.price, stock: form.stock || 0 });
+          await variantsAPI.create(id, { shade_name: 'وحدة واحدة', barcode: form.barcode.trim() });
         }
-        alert('تم تحديث المنتج بنجاح');
+        await syncAPI.refreshProduct(id);
+        alert('تم تحديث المنتج ومزامنة الأسعار من نظام المبيعات');
       } else {
         const { data } = await productsAPI.create(formData);
         const productId = data.id;
         if (hasElements) {
-          const variantData = (el) => ({ shade_name: el.shade_name || el.color_code, color_code: el.color_code, barcode: el.barcode, price: el.price, stock: el.stock || 0, expiration_date: el.expiration_date || null });
           for (const el of elements) {
             const fd = new FormData();
             if (el.imageFile) fd.append('image', el.imageFile);
-            await variantsAPI.create(String(productId), variantData(el), fd);
+            await variantsAPI.create(String(productId), variantPayload(el), fd);
           }
-          alert('تم إنشاء المنتج بنجاح');
+          await syncAPI.refreshProduct(productId);
+          alert('تم إنشاء المنتج ومزامنة الأسعار');
           navigate(`/products/${productId}/variants`);
         } else {
-          await variantsAPI.create(String(productId), { shade_name: 'وحدة واحدة', barcode: form.barcode.trim(), price: form.price, stock: form.stock || 0 });
-          alert('تم إنشاء المنتج بنجاح');
+          await variantsAPI.create(String(productId), { shade_name: 'وحدة واحدة', barcode: form.barcode.trim() });
+          await syncAPI.refreshProduct(productId);
+          alert('تم إنشاء المنتج ومزامنة الأسعار');
           navigate('/products');
         }
       }
@@ -284,35 +314,19 @@ export default function ProductForm() {
 
             {elements.length === 0 && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography variant="subtitle2" fontWeight={600}>سعر ومخزون المنتج (بدون عناصر إضافية)</Typography>
+                <Typography variant="subtitle2" fontWeight={600}>الباركود والأسعار (من نظام المبيعات)</Typography>
                 <TextField
                   label="باركود المنتج"
                   value={form.barcode}
                   onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                  onBlur={() => syncBarcodeFields(form.barcode, (synced) => setForm((f) => ({ ...f, ...synced })))}
                   fullWidth
                   required
-                  helperText="للمنتجات التي لا تحتوي على ألوان أو تشكيلات متعددة"
+                  helperText="السعر والمخزون ونسبة التخفيض تُجلب تلقائياً من السيرفر عند حفظ الباركود"
                 />
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <TextField
-                    label="سعر المنتج (د.ع)"
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    required
-                    inputProps={{ min: 0, step: 0.01 }}
-                    sx={{ minWidth: 160 }}
-                  />
-                  <TextField
-                    label="المخزون"
-                    type="number"
-                    value={form.stock}
-                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                    inputProps={{ min: 0 }}
-                    sx={{ minWidth: 140 }}
-                    helperText="اختياري"
-                  />
-                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  {formatSyncedLabel(form)}
+                </Typography>
               </Box>
             )}
 
@@ -420,7 +434,7 @@ export default function ProductForm() {
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle1" fontWeight={600}>عناصر إضافية</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              لكل عنصر: باركود، صورة، لون، سعر، مخزون (اختياري للمنتجات ذات التشكيلة الواحدة)
+              لكل عنصر: باركود، صورة، لون — السعر والمخزون يُجلبان تلقائياً من نظام المبيعات
             </Typography>
             <Button variant="outlined" startIcon={<AddIcon />} onClick={addElement} sx={{ alignSelf: 'flex-start' }}>
               إضافة عنصر إضافي
@@ -445,11 +459,12 @@ export default function ProductForm() {
                     </Box>
                   )}
                   <TextField label="اسم الظل" value={el.shade_name} onChange={(e) => updateElement(i, 'shade_name', e.target.value)} size="small" sx={{ minWidth: 140 }} placeholder="مثل: أحمر قاني" />
-                  <TextField label="الباركود *" value={el.barcode} onChange={(e) => updateElement(i, 'barcode', e.target.value)} required size="small" sx={{ minWidth: 140 }} />
+                  <TextField label="الباركود *" value={el.barcode} onChange={(e) => updateElement(i, 'barcode', e.target.value)} onBlur={() => syncBarcodeFields(el.barcode, (synced) => { const next = [...elements]; next[i] = { ...next[i], ...synced }; setElements(next); })} required size="small" sx={{ minWidth: 140 }} />
                   <TextField label="اللون" type="color" value={el.color_code} onChange={(e) => updateElement(i, 'color_code', e.target.value)} size="small" sx={{ width: 60, height: 40 }} />
                   <TextField label="كود اللون" value={el.color_code} onChange={(e) => updateElement(i, 'color_code', e.target.value)} size="small" sx={{ width: 120 }} />
-                  <TextField label="السعر" type="number" value={el.price} onChange={(e) => updateElement(i, 'price', e.target.value)} required size="small" sx={{ width: 100 }} />
-                  <TextField label="المخزون" type="number" value={el.stock} onChange={(e) => updateElement(i, 'stock', e.target.value)} size="small" sx={{ width: 80 }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center', minWidth: 180 }}>
+                    {formatSyncedLabel(el)}
+                  </Typography>
                   <TextField label="تاريخ الصلاحية" type="date" value={el.expiration_date} onChange={(e) => updateElement(i, 'expiration_date', e.target.value)} InputLabelProps={{ shrink: true }} size="small" sx={{ width: 160 }} />
                   <Button size="small" variant="outlined" component="label" sx={{ alignSelf: 'flex-end' }}>
                     {el.imageFile ? el.imageFile.name : el.existingImage ? 'تغيير الصورة' : 'إضافة صورة'}

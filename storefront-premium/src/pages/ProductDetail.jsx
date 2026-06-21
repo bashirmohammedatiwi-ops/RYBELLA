@@ -4,7 +4,8 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatPercent } from '../utils/format'
+import { getSelectedVariantPricing } from '../utils/pricing'
 import { getVariantColor, isMetallicShade } from '../utils/variantColor'
 import MobileHeader from '../components/MobileHeader'
 import './ProductDetail.css'
@@ -188,6 +189,8 @@ export default function ProductDetail() {
     }
   }
 
+  const selectedPricing = getSelectedVariantPricing(selectedVariant, product)
+
   return (
     <div className="pd-page">
       <MobileHeader title={product.name} showBack showCart />
@@ -242,9 +245,19 @@ export default function ProductDetail() {
             )}
           </div>
           <h1 className="pd-title">{product.name}</h1>
-          <p className="pd-price">
-            {formatPrice(selectedVariant?.price ?? product.min_price ?? product.price)}
-          </p>
+          <div className="pd-price-block">
+            {selectedPricing.hasDiscount && (
+              <span className="pd-discount-badge">-{formatPercent(selectedPricing.discountPercent)}</span>
+            )}
+            <p className="pd-price">
+              {selectedPricing.originalPrice != null && (
+                <span className="pd-price-old">{formatPrice(selectedPricing.originalPrice)}</span>
+              )}
+              <span className="pd-price-current">
+                {formatPrice(selectedPricing.price ?? product.min_price ?? product.price)}
+              </span>
+            </p>
+          </div>
         </div>
 
         {hasVariants && (
