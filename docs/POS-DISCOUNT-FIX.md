@@ -44,4 +44,10 @@ POS يحسب `discountPercent` من **السعر الفعلي** (SellPr5) ولي
 
 ## Rybella
 
-Rybella يخزّن القيم **كما تأتي من Alhayaa** بدون إعادة حساب.
+Rybella يخزّن القيم **كما تأتي من Alhayaa**، مع أولوية لنسبة العرض:
+
+1. `discountValue` من POS (إن وُجد)
+2. النسبة المستخرجة من `offerName` (مثل `"20 %"`)
+3. `discountPercent` القادم من Alhayaa
+
+مثال الباركود `8059693580117`: Alhayaa يرسل 33% (محسوبة من 15000→10000) لكن `offerName` = `"20 %"` → Rybella يخزّن **20%**.

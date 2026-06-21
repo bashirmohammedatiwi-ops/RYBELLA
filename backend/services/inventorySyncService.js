@@ -119,6 +119,26 @@ function clampPrice(value) {
   return Math.round(n)
 }
 
+function parseOfferDiscountPercent(offerName) {
+  if (offerName == null || offerName === '') return null
+  const cleaned = String(offerName).replace(/[\u200e\u200f\u202a-\u202e]/g, ' ').trim()
+  const m = cleaned.match(/(\d+(?:[.,]\d+)?)\s*%/)
+  if (!m) return null
+  const n = parseFloat(m[1].replace(',', '.'))
+  if (!Number.isFinite(n) || n <= 0 || n > 100) return null
+  return Math.round(n)
+}
+
+function resolveDiscountPercent(raw, offerName, fromPayload) {
+  const fromValue = raw.discountValue ?? raw.discount_value
+  if (fromValue != null && Number(fromValue) > 0) {
+    return Math.max(0, Math.min(100, clampInt(fromValue, 0)))
+  }
+  const fromOffer = parseOfferDiscountPercent(offerName)
+  if (fromOffer != null && fromOffer > 0) return fromOffer
+  return fromPayload
+}
+
 function computeDiscountPercent(originalPrice, finalPrice) {
   const orig = clampPrice(originalPrice)
   const fin = clampPrice(finalPrice)
@@ -135,6 +155,7 @@ function sanitizeSyncItem(raw) {
   let discountPercent = clampInt(raw.discountPercent ?? raw.discount_percent, 0)
   discountPercent = Math.max(0, Math.min(100, discountPercent))
   const offerName = raw.offerName ?? raw.offer_name ?? null
+  discountPercent = resolveDiscountPercent(raw, offerName, discountPercent)
 
   if (originalPrice <= 0 && price > 0) originalPrice = price
   if (price <= 0 && originalPrice > 0) price = originalPrice
