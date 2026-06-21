@@ -7,6 +7,7 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
 import HomeCategoriesSection from '../components/HomeCategoriesSection'
 import HomeOffersSection from '../components/HomeOffersSection'
+import HomeSpotlightAdsSection from '../components/HomeSpotlightAdsSection'
 import StoriesBar from '../components/StoriesBar'
 import { formatCount, formatPercent } from '../utils/format'
 import './Home.css'
@@ -253,6 +254,12 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      <HomeSpotlightAdsSection
+        products={popular}
+        featured={featured}
+        bestSellers={bestSellers}
+      />
 
       {/* 5. العروض الحصرية */}
       {showOffers && <HomeOffersSection offers={offers} />}
