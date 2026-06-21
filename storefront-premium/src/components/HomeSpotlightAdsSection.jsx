@@ -5,11 +5,11 @@ import { formatPrice } from '../utils/format'
 import './HomeSpotlightAdsSection.css'
 
 const STACK_LAYOUT = [
-  { rot: 0, x: 0, y: 0, w: 196, h: 196, scale: 1, shape: 'round', z: 10 },
-  { rot: -13, x: -62, y: 28, w: 138, h: 138, scale: 0.95, shape: 'circle', z: 3 },
-  { rot: 11, x: 64, y: 22, w: 132, h: 132, scale: 0.93, shape: 'round', z: 5 },
-  { rot: -17, x: -48, y: -38, w: 124, h: 124, scale: 0.9, shape: 'circle', z: 2 },
-  { rot: 15, x: 52, y: -34, w: 118, h: 118, scale: 0.88, shape: 'round', z: 4 },
+  { rot: -2, x: 0, y: -14, w: 236, h: 278, scale: 1, shape: 'round', z: 10 },
+  { rot: -13, x: -88, y: 42, w: 162, h: 162, scale: 1, shape: 'circle', z: 3 },
+  { rot: 11, x: 90, y: 36, w: 156, h: 156, scale: 1, shape: 'round', z: 5 },
+  { rot: -16, x: -62, y: -62, w: 148, h: 148, scale: 1, shape: 'circle', z: 2 },
+  { rot: 14, x: 68, y: -58, w: 140, h: 140, scale: 1, shape: 'round', z: 4 },
 ]
 
 function isTruthyFlag(value) {
@@ -86,62 +86,62 @@ function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
   }
 
   return (
-    <div
-      className={`pk-stack${isActive ? ' is-live' : ''}`}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
-      <div className="pk-stack-bg" aria-hidden="true">
-        <span className="pk-blob pk-blob--1" />
-        <span className="pk-blob pk-blob--2" />
-        <span className="pk-blob pk-blob--3" />
-      </div>
+    <div className="pk-gallery">
+      <div
+        className={`pk-stack${isActive ? ' is-live' : ''}`}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="pk-stack-bg" aria-hidden="true" />
 
-      <div className="pk-stack-shadow" aria-hidden="true" />
+        <div className="pk-stack-shadow" aria-hidden="true" />
 
-      <div className="pk-stack-cards">
-        {cards.map(({ src, imgIdx, depth, layout }) => (
-          <button
-            key={`${src}-${depth}`}
-            type="button"
-            className={`pk-card pk-card--${layout.shape}${depth === 0 ? ' is-front' : ''}${imgIdx === frontIdx ? ' is-focus' : ''}`}
-            style={{
-              '--pk-x': `${layout.x}px`,
-              '--pk-y': `${layout.y}px`,
-              '--pk-w': `${layout.w}px`,
-              '--pk-h': `${layout.h}px`,
-              '--pk-rot': `${layout.rot}deg`,
-              '--pk-scale': layout.scale,
-              zIndex: layout.z,
-            }}
-            onClick={() => onChange(imgIdx)}
-            aria-label={`صورة ${imgIdx + 1}`}
-          >
-            <img
-              src={`${IMG_BASE}${src}`}
-              alt=""
-              loading={depth <= 1 ? 'eager' : 'lazy'}
-              draggable={false}
-            />
-            <span className="pk-card-shine" aria-hidden="true" />
-          </button>
-        ))}
+        <div className="pk-stack-cards">
+          {cards.map(({ src, imgIdx, depth, layout }) => (
+            <button
+              key={`${src}-${depth}`}
+              type="button"
+              className={`pk-card pk-card--${layout.shape}${depth === 0 ? ' is-front' : ''}`}
+              style={{
+                '--pk-x': `${layout.x}px`,
+                '--pk-y': `${layout.y}px`,
+                '--pk-w': `${layout.w}px`,
+                '--pk-h': `${layout.h}px`,
+                '--pk-rot': `${layout.rot}deg`,
+                '--pk-scale': layout.scale,
+                zIndex: layout.z,
+              }}
+              onClick={() => onChange(imgIdx)}
+              aria-label={`صورة ${imgIdx + 1}`}
+            >
+              <span className="pk-card-media">
+                <img
+                  key={`${src}-${frontIdx}`}
+                  src={`${IMG_BASE}${src}`}
+                  alt=""
+                  loading={depth <= 1 ? 'eager' : 'lazy'}
+                  draggable={false}
+                />
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {images.length > 1 && (
-        <div className="pk-stack-nav">
-          <span className="pk-stack-badge">{frontIdx + 1} / {images.length}</span>
-          <div className="pk-stack-dots">
-            {images.map((src, i) => (
-              <button
-                key={src}
-                type="button"
-                className={`pk-stack-dot${i === frontIdx ? ' is-on' : ''}`}
-                onClick={() => onChange(i)}
-                aria-label={`صورة ${i + 1}`}
-              />
-            ))}
-          </div>
+        <div className="pk-filmstrip" role="tablist" aria-label="صور المنتج">
+          {images.map((src, i) => (
+            <button
+              key={src}
+              type="button"
+              role="tab"
+              aria-selected={i === frontIdx}
+              className={`pk-film${i === frontIdx ? ' is-active' : ''}`}
+              onClick={() => onChange(i)}
+            >
+              <img src={`${IMG_BASE}${src}`} alt="" loading={i < 5 ? 'eager' : 'lazy'} draggable={false} />
+            </button>
+          ))}
         </div>
       )}
     </div>
