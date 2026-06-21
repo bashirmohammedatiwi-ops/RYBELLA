@@ -140,33 +140,70 @@ function sanitizeSyncItem(raw) {
   const barcode = normalizeBarcode(raw.barcode)
   if (!barcode) return null
 
-  const originalPriceRaw = clampPrice(raw.originalPrice ?? raw.original_price ?? raw.price)
-  let originalPrice = originalPriceRaw
+  let originalPrice = clampPrice(raw.originalPrice ?? raw.original_price ?? raw.price)
   let price = clampPrice(raw.price ?? raw.finalPrice ?? raw.final_price ?? originalPrice)
   if (price <= 0 && originalPrice > 0) price = originalPrice
+  if (originalPrice <= 0 && price > 0) originalPrice = price
 
-  let discountPercent = clampInt(raw.discountPercent ?? raw.discount_percent, -1)
-  if (discountPercent < 0) {
-    discountPercent = computeDiscountPercent(originalPrice, price)
-  }
-  discountPercent = Math.max(0, Math.min(100, discountPercent))
+  const offerName = raw.offerName ?? raw.offer_name ?? null
+  const sourceDiscountRaw = raw.discountPercent ?? raw.discount_percent
+  const hasSourceDiscount = sourceDiscountRaw != null && sourceDiscountRaw !== ''
+    && Number.isFinite(Number(sourceDiscountRaw))
+  let sourceDiscount = hasSourceDiscount
+    ? Math.max(0, Math.min(100, clampInt(sourceDiscountRaw, 0)))
+    : -1
 
-  if (discountPercent > 0 && originalPrice > price && price > 0) {
-    // keep as-is
-  } else if (originalPrice > price && price > 0) {
-    discountPercent = computeDiscountPercent(originalPrice, price)
-  } else {
-    discountPercent = 0
-    price = originalPrice || price
+  const hasPromo = sourceDiscount > 0 || !!(offerName && String(offerName).trim())
+    || (originalPrice > price && price > 0)
+
+  if (!hasPromo) {
+    const rounded = roundFinalPrice(originalPrice || price)
+    return {
+      barcode,
+      productCode: raw.productCode ?? raw.product_code ?? null,
+      productNum: raw.productNum ?? raw.product_num ?? null,
+      name: raw.name ?? null,
+      price: rounded,
+      originalPrice: rounded,
+      discountPercent: 0,
+      stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
+      offerName: null,
+    }
   }
+
+  // Keep original price from POS/Alhayaa (before rounding final price)
+  originalPrice = clampPrice(raw.originalPrice ?? raw.original_price ?? originalPrice)
+  if (originalPrice <= 0) originalPrice = price
+
+  // Trust discount % from Alhayaa when provided (same as POS offer label)
+  let discountPercent = sourceDiscount >= 0
+    ? sourceDiscount
+    : computeDiscountPercent(originalPrice, price)
 
   price = roundFinalPrice(price)
-  if (discountPercent === 0) {
-    originalPrice = price
-  } else if (price >= originalPrice) {
-    discountPercent = 0
-    originalPrice = price
-  } else {
+
+  // If rounding broke the promo, derive rounded final price from original + source %
+  if (sourceDiscount > 0 && price >= originalPrice) {
+    price = roundFinalPrice(originalPrice * (1 - sourceDiscount / 100))
+  }
+
+  if (price >= originalPrice) {
+    const rounded = roundFinalPrice(originalPrice)
+    return {
+      barcode,
+      productCode: raw.productCode ?? raw.product_code ?? null,
+      productNum: raw.productNum ?? raw.product_num ?? null,
+      name: raw.name ?? null,
+      price: rounded,
+      originalPrice: rounded,
+      discountPercent: 0,
+      stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
+      offerName: null,
+    }
+  }
+
+  // Only compute discount when source did not send it
+  if (sourceDiscount < 0) {
     discountPercent = computeDiscountPercent(originalPrice, price)
   }
 
@@ -176,10 +213,10 @@ function sanitizeSyncItem(raw) {
     productNum: raw.productNum ?? raw.product_num ?? null,
     name: raw.name ?? null,
     price,
-    originalPrice: originalPrice || price,
+    originalPrice,
     discountPercent,
     stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
-    offerName: raw.offerName ?? raw.offer_name ?? null,
+    offerName: offerName || null,
   }
 }
 
