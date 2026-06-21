@@ -13,6 +13,8 @@ const STACK_LAYOUT = [
 ]
 
 const ROTATION_MS = 15 * 60 * 1000
+const IMAGE_CYCLE_MS = 3000
+const MIN_ADDITIONAL_IMAGES = 2
 
 function getRotationBucket() {
   return Math.floor(Date.now() / ROTATION_MS)
@@ -22,15 +24,22 @@ function isTruthyFlag(value) {
   return value === true || value === 1 || value === '1'
 }
 
+function getAdditionalImages(product) {
+  if (!Array.isArray(product?.images)) return []
+  return product.images.filter(Boolean)
+}
+
+function hasSpotlightGallery(product) {
+  return getAdditionalImages(product).length >= MIN_ADDITIONAL_IMAGES
+}
+
 function getProductImages(product) {
   const imgs = []
   const main = product?.main_image || product?.variants?.[0]?.image
   if (main) imgs.push(main)
-  if (Array.isArray(product?.images)) {
-    product.images.forEach((img) => {
-      if (img && !imgs.includes(img)) imgs.push(img)
-    })
-  }
+  getAdditionalImages(product).forEach((img) => {
+    if (!imgs.includes(img)) imgs.push(img)
+  })
   return imgs
 }
 
@@ -43,7 +52,7 @@ function buildSpotlightProducts(products, featured, bestSellers, rotationBucket 
   const all = [...featured, ...bestSellers, ...products].filter((p) => {
     if (!p?.id || seen.has(p.id)) return false
     seen.add(p.id)
-    return getProductImages(p).length >= 1
+    return hasSpotlightGallery(p)
   })
 
   const score = (p) =>
@@ -83,7 +92,7 @@ function ImageStack({ images, frontIdx, onChange, isActive, inView }) {
     if (!isActive || !inView || images.length <= 1) return
     const t = setInterval(() => {
       onChange((prev) => (prev + 1) % images.length)
-    }, 3600)
+    }, IMAGE_CYCLE_MS)
     return () => clearInterval(t)
   }, [isActive, inView, images.length, onChange])
 
