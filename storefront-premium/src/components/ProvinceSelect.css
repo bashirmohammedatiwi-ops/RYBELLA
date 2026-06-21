@@ -1,0 +1,205 @@
+.province-select {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.province-select-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(135deg, #fff 0%, #fff9fa 100%);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: right;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  font-family: var(--font-body);
+}
+
+.province-select.has-value .province-select-trigger,
+.province-select.is-open .province-select-trigger {
+  border-color: var(--primary);
+  box-shadow: 0 4px 20px rgba(232, 93, 122, 0.12);
+}
+
+.province-select-trigger:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.province-select-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.province-select-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
+  border-radius: 14px;
+  color: var(--primary);
+}
+
+.province-select-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.province-select-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.province-select-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 0.02em;
+}
+
+.province-select-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.province-select-value.is-placeholder {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.province-select-fee {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-full);
+}
+
+.province-select-chevron {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.province-select-chevron svg {
+  width: 100%;
+  height: 100%;
+}
+
+.province-select-chevron.is-open {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.province-select-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  animation: province-dropdown-in 0.2s ease;
+}
+
+@keyframes province-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.province-select-dropdown-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(90deg, var(--primary-soft), transparent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.province-select-list {
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.35rem;
+}
+
+.province-select-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: right;
+  font-family: var(--font-body);
+  transition: background 0.15s;
+}
+
+.province-select-option:hover {
+  background: var(--primary-soft);
+}
+
+.province-select-option.is-selected {
+  background: var(--primary-soft);
+}
+
+.province-select-option-name {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.province-select-option-fee {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.province-select-option.is-selected .province-select-option-fee {
+  color: var(--primary-dark);
+}
+
+.province-select-check {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.province-select-check svg {
+  width: 100%;
+  height: 100%;
+}

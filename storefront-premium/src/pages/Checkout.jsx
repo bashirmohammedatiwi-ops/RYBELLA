@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
-import { deliveryZonesAPI, couponsAPI, ordersAPI, IMG_BASE } from '../services/api'
+import { deliveryZonesAPI, couponsAPI, ordersAPI } from '../services/api'
 import { formatPrice, formatNumber } from '../utils/format'
+import { isValidIraqiPhone, normalizeIraqiPhone, IRAQI_PHONE_HINT } from '../utils/phone'
+import MobileHeader from '../components/MobileHeader'
+import ProvinceSelect from '../components/ProvinceSelect'
 import './Checkout.css'
 
 export default function Checkout() {
+  const { user } = useAuth()
   const { items, loadCart } = useCart()
   const navigate = useNavigate()
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [address, setAddress] = useState('')
   const [city, setCity] = useState('')
+  const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [couponCode, setCouponCode] = useState('')
@@ -23,6 +28,20 @@ export default function Checkout() {
   useEffect(() => {
     deliveryZonesAPI.getAll().then((r) => setZones(r?.data || [])).catch(() => []).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (user?.phone) setPhone(user.phone)
+  }, [user?.phone])
+
+  const handleProvinceChange = (provinceName, fee) => {
+    setCity(provinceName)
+    setDeliveryFee(fee)
+    setError('')
+  }
+
+  const handlePhoneChange = (e) => {
+    setPhone(normalizeIraqiPhone(e.target.value).slice(0, 11))
+  }
 
   const handleApplyCoupon = async () => {
     const list = Array.isArray(items) ? items : []
@@ -38,15 +57,18 @@ export default function Checkout() {
     }
   }
 
-  const handleCityChange = (c) => {
-    setCity(c)
-    const zone = zones.find((z) => z.city === c)
-    setDeliveryFee(zone ? Number(zone.delivery_fee) : 0)
-  }
-
   const handlePlaceOrder = async () => {
-    if (!address.trim() || !city.trim() || !phone.trim()) {
-      setError('يرجى إدخال العنوان والمدينة ورقم الهاتف')
+    if (!city.trim()) {
+      setError('يرجى اختيار المحافظة')
+      return
+    }
+    if (!address.trim()) {
+      setError('يرجى إدخال العنوان الكامل')
+      return
+    }
+    const normalizedPhone = normalizeIraqiPhone(phone)
+    if (!isValidIraqiPhone(normalizedPhone)) {
+      setError(IRAQI_PHONE_HINT)
       return
     }
     const list = Array.isArray(items) ? items : []
@@ -65,7 +87,7 @@ export default function Checkout() {
         items: orderItems,
         address: address.trim(),
         city: city.trim(),
-        phone: phone.trim(),
+        phone: normalizedPhone,
         notes: notes.trim() || null,
         payment_method: 'cash',
         coupon_code: couponApplied ? couponCode.trim() : null,
@@ -79,14 +101,35 @@ export default function Checkout() {
     }
   }
 
-  if (loading) return <div className="premium-checkout premium-loading">جاري التحميل...</div>
+  if (loading) {
+    return (
+      <div className="checkout-page checkout-loading">
+        <MobileHeader title="إتمام الطلب" showBack showCart={false} />
+        <div className="checkout-loading-content">
+          <div className="checkout-spinner" />
+          <span>جاري التحميل...</span>
+        </div>
+      </div>
+    )
+  }
 
   const list = Array.isArray(items) ? items : []
   if (list.length === 0) {
     return (
-      <div className="premium-checkout premium-checkout-empty">
-        <h2>سلة التسوق فارغة</h2>
-        <Link to="/cart">العودة للسلة</Link>
+      <div className="checkout-page checkout-empty">
+        <MobileHeader title="إتمام الطلب" showBack showCart={false} />
+        <div className="checkout-empty-content">
+          <div className="checkout-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+            </svg>
+          </div>
+          <h2>سلة التسوق فارغة</h2>
+          <p>أضيفي منتجات للسلة قبل إتمام الطلب</p>
+          <Link to="/cart" className="checkout-empty-btn">العودة للسلة</Link>
+        </div>
       </div>
     )
   }
@@ -99,55 +142,158 @@ export default function Checkout() {
   const getItemPrice = (i) => i.price ?? 0
 
   return (
-    <div className="premium-checkout">
-      <h1>إتمام الطلب</h1>
-      {error && <div className="premium-checkout-error">{error}</div>}
-      <div className="premium-checkout-grid">
-        <div className="premium-checkout-form">
-          <section className="premium-checkout-section">
-            <h2>عنوان التوصيل</h2>
-            <input placeholder="العنوان الكامل" value={address} onChange={(e) => setAddress(e.target.value)} />
-            <input
-              placeholder="المدينة"
+    <div className="checkout-page">
+      <MobileHeader title="إتمام الطلب" showBack showCart={false} />
+
+      <div className="checkout-hero">
+        <h1 className="checkout-title">إتمام الطلب</h1>
+        <p className="checkout-subtitle">خطوة أخيرة لتصلك منتجاتك بأمان</p>
+      </div>
+
+      {error && <div className="checkout-error">{error}</div>}
+
+      <div className="checkout-layout">
+        <div className="checkout-main">
+          <section className="checkout-card">
+            <div className="checkout-card-head">
+              <span className="checkout-step">1</span>
+              <div>
+                <h2>معلومات التوصيل</h2>
+                <p>اختر المحافظة ثم أدخل عنوانك</p>
+              </div>
+            </div>
+
+            <ProvinceSelect
+              zones={zones}
               value={city}
-              onChange={(e) => handleCityChange(e.target.value)}
-              list="cities"
+              onChange={handleProvinceChange}
+              disabled={!zones.length}
             />
-            <datalist id="cities">
-              {zones.map((z) => <option key={z.id} value={z.city} />)}
-            </datalist>
-            <input placeholder="رقم الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            <textarea placeholder="ملاحظات (اختياري)" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+
+            {!zones.length && (
+              <p className="checkout-hint checkout-hint-warn">لا توجد محافظات متاحة للتوصيل حالياً</p>
+            )}
+
+            <div className="checkout-field">
+              <label htmlFor="checkout-address">العنوان الكامل</label>
+              <input
+                id="checkout-address"
+                placeholder="الحي، الشارع، أقرب نقطة دالة..."
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+
+            <div className="checkout-field">
+              <label htmlFor="checkout-phone">رقم الهاتف</label>
+              <input
+                id="checkout-phone"
+                type="tel"
+                placeholder="07xxxxxxxxx"
+                value={phone}
+                onChange={handlePhoneChange}
+                inputMode="numeric"
+                maxLength={11}
+                dir="ltr"
+                className="checkout-phone-input"
+              />
+            </div>
+
+            <div className="checkout-field">
+              <label htmlFor="checkout-notes">ملاحظات <span className="checkout-optional">(اختياري)</span></label>
+              <textarea
+                id="checkout-notes"
+                placeholder="تعليمات إضافية للتوصيل..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
           </section>
-          <section className="premium-checkout-section">
-            <h2>كود الخصم</h2>
-            <div className="premium-coupon-row">
-              <input placeholder="أدخلي الكود" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} />
+
+          <section className="checkout-card checkout-card-coupon">
+            <div className="checkout-card-head">
+              <span className="checkout-step checkout-step-muted">2</span>
+              <div>
+                <h2>كود الخصم</h2>
+                <p>لديك كوبون؟ أدخليه هنا</p>
+              </div>
+            </div>
+            <div className="checkout-coupon-row">
+              <input
+                placeholder="أدخلي الكود"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+              />
               <button type="button" onClick={handleApplyCoupon}>تطبيق</button>
             </div>
-            {couponApplied && <p className="premium-coupon-success">تم تطبيق الخصم</p>}
+            {couponApplied && (
+              <p className="checkout-coupon-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                تم تطبيق الخصم بنجاح
+              </p>
+            )}
           </section>
         </div>
-        <div className="premium-checkout-summary">
-          <h2>ملخص الطلب</h2>
-          <div className="premium-checkout-items">
-            {list.map((i) => (
-              <div key={i.id ?? i.variant_id} className="premium-checkout-item">
-                <span>{getItemName(i)} × {formatNumber(i.quantity || 1)}</span>
-                <span>{formatPrice(getItemPrice(i) * (i.quantity || 1))}</span>
+
+        <aside className="checkout-summary">
+          <div className="checkout-summary-inner">
+            <h2>ملخص الطلب</h2>
+
+            {city && (
+              <div className="checkout-delivery-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="18" height="18">
+                  <path d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z" />
+                  <circle cx="12" cy="10" r="2.5" />
+                </svg>
+                <span>التوصيل إلى <strong>{city}</strong></span>
               </div>
-            ))}
+            )}
+
+            <div className="checkout-items">
+              {list.map((i) => (
+                <div key={i.id ?? i.variant_id} className="checkout-item">
+                  <span className="checkout-item-name">{getItemName(i)} × {formatNumber(i.quantity || 1)}</span>
+                  <span className="checkout-item-price">{formatPrice(getItemPrice(i) * (i.quantity || 1))}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="checkout-totals">
+              <div className="checkout-total-row">
+                <span>المجموع الفرعي</span>
+                <span>{formatPrice(subtotal)}</span>
+              </div>
+              {discount > 0 && (
+                <div className="checkout-total-row checkout-total-discount">
+                  <span>الخصم</span>
+                  <span>-{formatPrice(discount)}</span>
+                </div>
+              )}
+              <div className="checkout-total-row">
+                <span>رسوم التوصيل</span>
+                <span>{city ? formatPrice(deliveryFee) : '—'}</span>
+              </div>
+              <div className="checkout-total-final">
+                <span>المجموع الكلي</span>
+                <strong>{formatPrice(finalTotal)}</strong>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="checkout-submit"
+              onClick={handlePlaceOrder}
+              disabled={submitting || !zones.length}
+            >
+              {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
+            </button>
+
+            <p className="checkout-payment-note">الدفع عند الاستلام</p>
           </div>
-          <div className="premium-checkout-totals">
-            <div><span>المجموع الفرعي</span><span>{formatPrice(subtotal)}</span></div>
-            {discount > 0 && <div><span>الخصم</span><span>-{formatPrice(discount)}</span></div>}
-            {deliveryFee > 0 && <div><span>التوصيل</span><span>{formatPrice(deliveryFee)}</span></div>}
-            <div className="premium-checkout-final"><span>المجموع</span><strong>{formatPrice(finalTotal)}</strong></div>
-          </div>
-          <button className="premium-checkout-submit" onClick={handlePlaceOrder} disabled={submitting}>
-            {submitting ? 'جاري الطلب...' : 'تأكيد الطلب'}
-          </button>
-        </div>
+        </aside>
       </div>
     </div>
   )
