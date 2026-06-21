@@ -119,16 +119,6 @@ function clampPrice(value) {
   return Math.round(n)
 }
 
-const FINAL_PRICE_ROUND_STEP = 250
-
-/** Round sale/final price to nearest 250 IQD (minimum 250 when price > 0). */
-function roundFinalPrice(value) {
-  const n = clampPrice(value)
-  if (n <= 0) return 0
-  const rounded = Math.round(n / FINAL_PRICE_ROUND_STEP) * FINAL_PRICE_ROUND_STEP
-  return rounded > 0 ? rounded : FINAL_PRICE_ROUND_STEP
-}
-
 function computeDiscountPercent(originalPrice, finalPrice) {
   const orig = clampPrice(originalPrice)
   const fin = clampPrice(finalPrice)
@@ -157,52 +147,42 @@ function sanitizeSyncItem(raw) {
     || (originalPrice > price && price > 0)
 
   if (!hasPromo) {
-    const rounded = roundFinalPrice(originalPrice || price)
+    const finalPrice = originalPrice || price
     return {
       barcode,
       productCode: raw.productCode ?? raw.product_code ?? null,
       productNum: raw.productNum ?? raw.product_num ?? null,
       name: raw.name ?? null,
-      price: rounded,
-      originalPrice: rounded,
+      price: finalPrice,
+      originalPrice: finalPrice,
       discountPercent: 0,
       stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
       offerName: null,
     }
   }
 
-  // Keep original price from POS/Alhayaa (before rounding final price)
   originalPrice = clampPrice(raw.originalPrice ?? raw.original_price ?? originalPrice)
   if (originalPrice <= 0) originalPrice = price
 
-  // Trust discount % from Alhayaa when provided (same as POS offer label)
   let discountPercent = sourceDiscount >= 0
     ? sourceDiscount
     : computeDiscountPercent(originalPrice, price)
 
-  price = roundFinalPrice(price)
-
-  // If rounding broke the promo, derive rounded final price from original + source %
-  if (sourceDiscount > 0 && price >= originalPrice) {
-    price = roundFinalPrice(originalPrice * (1 - sourceDiscount / 100))
-  }
-
   if (price >= originalPrice) {
-    const rounded = roundFinalPrice(originalPrice)
+    const finalPrice = originalPrice
     return {
       barcode,
       productCode: raw.productCode ?? raw.product_code ?? null,
       productNum: raw.productNum ?? raw.product_num ?? null,
       name: raw.name ?? null,
-      price: rounded,
-      originalPrice: rounded,
+      price: finalPrice,
+      originalPrice: finalPrice,
       discountPercent: 0,
       stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
       offerName: null,
     }
   }
 
-  // Only compute discount when source did not send it
   if (sourceDiscount < 0) {
     discountPercent = computeDiscountPercent(originalPrice, price)
   }
@@ -571,6 +551,5 @@ module.exports = {
   getByBarcode,
   enrichProductPricing,
   computeDiscountPercent,
-  roundFinalPrice,
   getSyncStatus,
 }
