@@ -24,162 +24,145 @@ function getMinPrice(product) {
   return product?.min_price ?? product?.variants?.[0]?.price
 }
 
-function buildSpotlightGroups(products, featured, bestSellers) {
+function collectGroupImages(products, limit = 6) {
+  const out = []
+  products.forEach((p) => {
+    getProductImages(p).forEach((src) => {
+      if (out.length < limit && !out.some((x) => x.src === src)) {
+        out.push({ src, product: p })
+      }
+    })
+  })
+  return out
+}
+
+function buildLookbookGroups(products, featured, bestSellers) {
   const seen = new Set()
   const all = [...featured, ...bestSellers, ...products].filter((p) => {
     if (!p?.id || seen.has(p.id)) return false
     seen.add(p.id)
-    return true
+    return getProductImages(p).length >= 1
   })
-
-  const withGallery = all.filter((p) => getProductImages(p).length >= 2)
-  const pool = withGallery.length >= 2 ? withGallery : all.filter((p) => getProductImages(p).length >= 1)
-  if (pool.length < 2) return []
+  if (all.length < 2) return []
 
   const groups = []
 
-  const featuredPool = pool.filter((p) => isTruthyFlag(p.is_featured))
+  const featuredPool = all.filter((p) => isTruthyFlag(p.is_featured))
   if (featuredPool.length >= 2) {
     groups.push({
       id: 'featured',
-      tag: 'تشكيلة VIP',
-      title: 'لمسة فخامة',
-      highlight: 'تستحقينها اليوم',
-      subtitle: 'صور إضافية حصرية من منتجاتنا المميزة — اكتشفي كل تفصيل',
-      cta: 'تسوقي المميز',
+      label: '01 — VIP',
+      headline: 'تشكيلة النجوم',
+      hook: 'منتجاتنا الأكثر تميزاً — شاهديها من كل زاوية',
+      cta: 'تسوقي التشكيلة',
       link: '/explore?featured=1',
-      products: featuredPool.slice(0, 4),
-      theme: 'rose',
+      products: featuredPool.slice(0, 5),
+      tone: 'noir',
     })
   }
 
-  const bestPool = pool.filter((p) => isTruthyFlag(p.is_best_seller))
+  const bestPool = all.filter((p) => isTruthyFlag(p.is_best_seller))
   if (bestPool.length >= 2) {
     groups.push({
       id: 'bestseller',
-      tag: 'الأكثر طلباً',
-      title: 'اختاري الأفضل',
-      highlight: 'كالجماليات المحبوبة',
-      subtitle: 'مجموعة الأكثر مبيعاً — صور حقيقية من زبائننا ومعرض المنتج',
-      cta: 'شاهدي الأكثر مبيعاً',
+      label: '02 — TRENDING',
+      headline: 'الأكثر مبيعاً',
+      hook: 'ما تختاره آلاف العميلات — صور حقيقية من المعرض',
+      cta: 'اكتشفي الأكثر طلباً',
       link: '/explore',
-      products: bestPool.slice(0, 4),
-      theme: 'gold',
+      products: bestPool.slice(0, 5),
+      tone: 'wine',
     })
   }
 
-  const richGallery = [...pool].sort((a, b) => getProductImages(b).length - getProductImages(a).length)
-  const gallerySlice = richGallery.slice(0, 4)
-  if (gallerySlice.length >= 2 && !groups.some((g) => g.id === 'gallery')) {
+  const rich = [...all].sort((a, b) => getProductImages(b).length - getProductImages(a).length)
+  const galleryPool = rich.filter((p) => getProductImages(p).length >= 2).slice(0, 5)
+  if (galleryPool.length >= 2) {
     groups.push({
       id: 'gallery',
-      tag: 'معرض الصور',
-      title: 'كل زاوية',
-      highlight: 'تبرز جمالك',
-      subtitle: 'معرض صور إضافي لمجموعة مختارة — شاهدي المنتج من كل زاوية',
-      cta: 'استكشفي المجموعة',
+      label: '03 — LOOKBOOK',
+      headline: 'معرض الصور',
+      hook: 'كل لقطة تكشف تفصيلاً جديداً — مجموعة متجدّدة',
+      cta: 'استكشفي المعرض',
       link: '/explore',
-      products: gallerySlice,
-      theme: 'blush',
+      products: galleryPool,
+      tone: 'blush',
     })
   }
 
-  if (pool.length >= 3) {
-    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 4)
+  if (all.length >= 3) {
+    const pick = [...all].sort(() => Math.random() - 0.5).slice(0, 5)
     groups.push({
-      id: 'daily-pick',
-      tag: 'اختيار اليوم',
-      title: 'عرض محدود',
-      highlight: 'لفترة قصيرة',
-      subtitle: 'تشكيلة متجددة تجمع أفضل المنتجات بصورها الإضافية',
+      id: 'fresh',
+      label: '04 — NEW DROP',
+      headline: 'اختيار اللحظة',
+      hook: 'تشكيلة جديدة تتغيّر — لا تفوّتي الفرصة',
       cta: 'تسوقي الآن',
       link: '/explore',
-      products: shuffled,
-      theme: 'coral',
+      products: pick,
+      tone: 'rose',
     })
   }
 
   return groups.slice(0, 4)
 }
 
-function SpotlightSlide({ group, isActive, heroIdx }) {
+function LookbookBoard({ group, isActive, focusIdx }) {
+  const tiles = collectGroupImages(group.products, 6)
   const heroProduct = group.products[0]
-  const heroImages = getProductImages(heroProduct)
-  const sideProducts = group.products.slice(1)
 
   return (
-    <article
-      className={`hsa-slide hsa-slide--${group.theme}${isActive ? ' is-active' : ''}`}
-      aria-hidden={!isActive}
-    >
-      <div className="hsa-slide-bg" aria-hidden="true" />
-      <div className="hsa-slide-spark hsa-slide-spark--1" aria-hidden="true" />
-      <div className="hsa-slide-spark hsa-slide-spark--2" aria-hidden="true" />
-
-      <div className="hsa-visual">
-        <div className="hsa-hero-ring" aria-hidden="true" />
-        <div className="hsa-hero-stack">
-          {heroImages.map((img, i) => (
-            <img
-              key={`${group.id}-hero-${i}`}
-              src={`${IMG_BASE}${img}`}
-              alt=""
-              className={`hsa-hero-img${i === heroIdx % heroImages.length ? ' is-visible' : ''}`}
-              loading="lazy"
-            />
+    <article className={`hl-board hl-board--${group.tone}${isActive ? ' is-active' : ''}`}>
+      <div className="hl-board-mosaic" aria-hidden={!isActive}>
+        {tiles.map((tile, i) => (
+          <div
+            key={`${tile.src}-${i}`}
+            className={`hl-tile hl-tile--${i}${i === focusIdx % Math.max(tiles.length, 1) ? ' is-focused' : ''}`}
+          >
+            <img src={`${IMG_BASE}${tile.src}`} alt="" loading="lazy" />
+            <span className="hl-tile-shine" />
+          </div>
+        ))}
+        {tiles.length < 6 &&
+          Array.from({ length: 6 - tiles.length }).map((_, i) => (
+            <div key={`ph-${i}`} className={`hl-tile hl-tile--${tiles.length + i} hl-tile--ghost`} aria-hidden="true" />
           ))}
-        </div>
-
-        <div className="hsa-orbit">
-          {sideProducts.map((p, i) => {
-            const imgs = getProductImages(p)
-            const extra = imgs[1] || imgs[0]
-            if (!extra) return null
-            return (
-              <Link
-                key={p.id}
-                to={`/products/${p.id}`}
-                className={`hsa-orbit-item hsa-orbit-item--${i + 1}`}
-                aria-label={p.name}
-              >
-                <img src={`${IMG_BASE}${extra}`} alt="" loading="lazy" />
-                <span className="hsa-orbit-glow" aria-hidden="true" />
-              </Link>
-            )
-          })}
-        </div>
-
-        <Link to={`/products/${heroProduct.id}`} className="hsa-hero-link" aria-label={heroProduct.name}>
-          <span className="hsa-hero-price">{formatPrice(getMinPrice(heroProduct))}</span>
-        </Link>
       </div>
 
-      <div className="hsa-copy">
-        <span className="hsa-tag">{group.tag}</span>
-        <h3 className="hsa-title">
-          {group.title}
-          <em>{group.highlight}</em>
-        </h3>
-        <p className="hsa-subtitle">{group.subtitle}</p>
+      <div className="hl-board-veil" aria-hidden="true" />
 
-        <div className="hsa-chips">
-          {group.products.map((p) => {
+      <div className="hl-board-content">
+        <span className="hl-board-label">{group.label}</span>
+        <h3 className="hl-board-headline">{group.headline}</h3>
+        <p className="hl-board-hook">{group.hook}</p>
+
+        <div className="hl-board-products">
+          {group.products.slice(0, 4).map((p) => {
             const thumb = getProductImages(p)[0]
             return (
-              <Link key={p.id} to={`/products/${p.id}`} className="hsa-chip" title={p.name}>
+              <Link key={p.id} to={`/products/${p.id}`} className="hl-board-product" title={p.name}>
                 {thumb ? <img src={`${IMG_BASE}${thumb}`} alt="" loading="lazy" /> : <span>✦</span>}
-                <span className="hsa-chip-name">{p.name}</span>
+                <span className="hl-board-product-meta">
+                  <strong>{p.name}</strong>
+                  <em>{formatPrice(getMinPrice(p))}</em>
+                </span>
               </Link>
             )
           })}
         </div>
 
-        <Link to={group.link} className="hsa-cta">
+        <Link to={group.link} className="hl-board-cta">
           <span>{group.cta}</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </Link>
+
+        {heroProduct && (
+          <Link to={`/products/${heroProduct.id}`} className="hl-board-featured-tag">
+            {heroProduct.name}
+          </Link>
+        )}
       </div>
     </article>
   )
@@ -187,31 +170,53 @@ function SpotlightSlide({ group, isActive, heroIdx }) {
 
 export default function HomeSpotlightAdsSection({ products = [], featured = [], bestSellers = [] }) {
   const sectionRef = useRef(null)
+  const trackRef = useRef(null)
+  const activeIdxRef = useRef(0)
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [focusIdx, setFocusIdx] = useState(0)
   const [inView, setInView] = useState(false)
-  const [groupIdx, setGroupIdx] = useState(0)
-  const [heroIdx, setHeroIdx] = useState(0)
-  const [fadeKey, setFadeKey] = useState(0)
 
   const groups = useMemo(
-    () => buildSpotlightGroups(products, featured, bestSellers),
+    () => buildLookbookGroups(products, featured, bestSellers),
     [products, featured, bestSellers]
   )
 
-  const activeGroup = groups[groupIdx]
+  const scrollToIndex = useCallback((index) => {
+    const track = trackRef.current
+    if (!track) return
+    const card = track.children[index]
+    if (!card) return
+    const targetLeft = card.offsetLeft - (track.clientWidth - card.clientWidth) / 2
+    track.scrollTo({ left: targetLeft, behavior: 'smooth' })
+    activeIdxRef.current = index
+    setActiveIdx(index)
+    setFocusIdx(0)
+  }, [])
 
-  const nextGroup = useCallback(() => {
-    if (groups.length <= 1) return
-    setGroupIdx((i) => (i + 1) % groups.length)
-    setHeroIdx(0)
-    setFadeKey((k) => k + 1)
-  }, [groups.length])
+  const handleScroll = useCallback(() => {
+    const track = trackRef.current
+    if (!track?.children.length) return
+    const center = track.scrollLeft + track.clientWidth / 2
+    let closest = 0
+    let minDist = Infinity
+    Array.from(track.children).forEach((child, i) => {
+      const childCenter = child.offsetLeft + child.clientWidth / 2
+      const dist = Math.abs(childCenter - center)
+      if (dist < minDist) {
+        minDist = dist
+        closest = i
+      }
+    })
+    activeIdxRef.current = closest
+    setActiveIdx(closest)
+  }, [])
 
   useEffect(() => {
     const el = sectionRef.current
     if (!el) return
     const obs = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.2 }
+      { threshold: 0.15 }
     )
     obs.observe(el)
     return () => obs.disconnect()
@@ -219,64 +224,64 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
 
   useEffect(() => {
     if (!inView || groups.length <= 1) return
-    const t = setInterval(nextGroup, 9000)
+    const t = setInterval(() => {
+      scrollToIndex((activeIdxRef.current + 1) % groups.length)
+    }, 7500)
     return () => clearInterval(t)
-  }, [inView, groups.length, nextGroup])
+  }, [inView, groups.length, scrollToIndex])
 
   useEffect(() => {
-    if (!inView || !activeGroup) return
-    const heroImages = getProductImages(activeGroup.products[0])
-    if (heroImages.length <= 1) return
-    const t = setInterval(() => setHeroIdx((i) => i + 1), 3800)
+    if (!inView) return
+    const t = setInterval(() => setFocusIdx((i) => i + 1), 3200)
     return () => clearInterval(t)
-  }, [inView, activeGroup, groupIdx])
+  }, [inView, activeIdx])
 
   if (!groups.length) return null
 
   return (
-    <section ref={sectionRef} className="hsa-section" aria-label="إعلانات مميزة">
-      <div className="hsa-section-head">
-        <div>
-          <span className="hsa-eyebrow">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.8 5.7 21l2.3-7-6-4.6h7.6L12 2z" />
-            </svg>
-            اكتشفي المزيد
-          </span>
-          <h2 className="hsa-head-title">عروض بصريّة حصرية</h2>
-          <p className="hsa-head-desc">مجموعات منتجات متجددة — صور إضافية حقيقية</p>
+    <section ref={sectionRef} className="hl-section" aria-label="تشكيلات Rybella">
+      <div className="hl-section-glow" aria-hidden="true" />
+
+      <header className="hl-head">
+        <div className="hl-head-main">
+          <span className="hl-eyebrow">Rybella Curated</span>
+          <h2 className="hl-title">تشكيلات تُلهمك</h2>
+          <p className="hl-desc">معرض صور حيّ · مجموعات منتجات تتجدّد تلقائياً</p>
         </div>
         {groups.length > 1 && (
-          <div className="hsa-progress" aria-hidden="true">
-            {groups.map((g, i) => (
-              <button
-                key={g.id}
-                type="button"
-                className={`hsa-progress-dot${i === groupIdx ? ' is-active' : ''}`}
-                onClick={() => { setGroupIdx(i); setHeroIdx(0) }}
-                aria-label={`مجموعة ${i + 1}`}
-              />
-            ))}
+          <div className="hl-head-nav">
+            <span className="hl-counter">
+              {String(activeIdx + 1).padStart(2, '0')}
+              <span className="hl-counter-sep">/</span>
+              {String(groups.length).padStart(2, '0')}
+            </span>
+            <div className="hl-dots">
+              {groups.map((g, i) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  className={`hl-dot${i === activeIdx ? ' is-active' : ''}`}
+                  onClick={() => scrollToIndex(i)}
+                  aria-label={`تشكيلة ${i + 1}`}
+                />
+              ))}
+            </div>
           </div>
         )}
-      </div>
+      </header>
 
-      <div className="hsa-stage" key={fadeKey}>
-        {groups.map((group, i) => (
-          <SpotlightSlide
-            key={group.id}
-            group={group}
-            isActive={i === groupIdx}
-            heroIdx={i === groupIdx ? heroIdx : 0}
-          />
-        ))}
-      </div>
-
-      {groups.length > 1 && (
-        <div className="hsa-timer-bar" aria-hidden="true">
-          <span className="hsa-timer-fill" key={`${groupIdx}-${fadeKey}`} />
+      <div className="hl-stage">
+        <div className="hl-track" ref={trackRef} onScroll={handleScroll}>
+          {groups.map((group, i) => (
+            <LookbookBoard
+              key={group.id}
+              group={group}
+              isActive={i === activeIdx}
+              focusIdx={i === activeIdx ? focusIdx : 0}
+            />
+          ))}
         </div>
-      )}
+      </div>
     </section>
   )
 }
