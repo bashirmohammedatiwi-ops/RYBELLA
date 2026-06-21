@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatPrice } from '../utils/format'
+import { computeDeliveryFee, qualifiesForFreeShipping } from '../utils/delivery'
 import './ProvinceSelect.css'
 
-export default function ProvinceSelect({ zones, value, onChange, disabled }) {
+export default function ProvinceSelect({ zones, value, onChange, disabled, subtotal = 0, freeShippingThreshold = 50000 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
 
@@ -17,6 +18,12 @@ export default function ProvinceSelect({ zones, value, onChange, disabled }) {
   }, [])
 
   const selected = zones.find((z) => z.city === value)
+  const freeShipping = qualifiesForFreeShipping(subtotal, freeShippingThreshold)
+
+  const formatZoneFee = (zone) => {
+    const fee = computeDeliveryFee(subtotal, zone.delivery_fee, freeShippingThreshold)
+    return fee === 0 ? 'مجاني' : formatPrice(fee)
+  }
 
   const handleSelect = (zone) => {
     onChange(zone.city, Number(zone.delivery_fee) || 0)
@@ -46,7 +53,9 @@ export default function ProvinceSelect({ zones, value, onChange, disabled }) {
           </span>
         </span>
         {selected && (
-          <span className="province-select-fee">{formatPrice(selected.delivery_fee)}</span>
+          <span className={`province-select-fee ${freeShipping ? 'is-free' : ''}`}>
+            {formatZoneFee(selected)}
+          </span>
         )}
         <span className={`province-select-chevron ${open ? 'is-open' : ''}`} aria-hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -74,8 +83,8 @@ export default function ProvinceSelect({ zones, value, onChange, disabled }) {
                     onClick={() => handleSelect(zone)}
                   >
                     <span className="province-select-option-name">{zone.city}</span>
-                    <span className="province-select-option-fee">
-                      توصيل {formatPrice(zone.delivery_fee)}
+                    <span className={`province-select-option-fee ${freeShipping ? 'is-free' : ''}`}>
+                      توصيل {formatZoneFee(zone)}
                     </span>
                     {isSelected && (
                       <span className="province-select-check" aria-hidden>

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
-import { deliveryZonesAPI, couponsAPI, ordersAPI } from '../services/api'
+import { deliveryZonesAPI, couponsAPI, ordersAPI, webSettingsAPI } from '../services/api'
 import { formatPrice, formatNumber } from '../utils/format'
+import { computeDeliveryFee, parseFreeShippingThreshold, qualifiesForFreeShipping } from '../utils/delivery'
 import { isValidIraqiPhone, normalizeIraqiPhone, IRAQI_PHONE_HINT } from '../utils/phone'
 import MobileHeader from '../components/MobileHeader'
 import ProvinceSelect from '../components/ProvinceSelect'
@@ -11,7 +12,7 @@ import './Checkout.css'
 
 export default function Checkout() {
   const { user } = useAuth()
-  const { items, loadCart } = useCart()
+  const { items, bundles, loadCart } = useCart()
   const navigate = useNavigate()
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,11 +23,15 @@ export default function Checkout() {
   const [notes, setNotes] = useState('')
   const [couponCode, setCouponCode] = useState('')
   const [couponApplied, setCouponApplied] = useState(null)
-  const [deliveryFee, setDeliveryFee] = useState(0)
+  const [zoneDeliveryFee, setZoneDeliveryFee] = useState(0)
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(50000)
   const [error, setError] = useState('')
 
   useEffect(() => {
     deliveryZonesAPI.getAll().then((r) => setZones(r?.data || [])).catch(() => []).finally(() => setLoading(false))
+    webSettingsAPI.get()
+      .then((r) => setFreeShippingThreshold(parseFreeShippingThreshold(r?.data?.free_shipping_threshold)))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -35,7 +40,7 @@ export default function Checkout() {
 
   const handleProvinceChange = (provinceName, fee) => {
     setCity(provinceName)
-    setDeliveryFee(fee)
+    setZoneDeliveryFee(fee)
     setError('')
   }
 
@@ -43,10 +48,19 @@ export default function Checkout() {
     setPhone(normalizeIraqiPhone(e.target.value).slice(0, 11))
   }
 
+  const getBundleTotal = (b) => b.total_price ?? (b.unit_price || 0) * (b.quantity || 1)
+
+  const calcSubtotal = (cartItems, cartBundles) => {
+    const itemsSum = (cartItems || []).reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0)
+    const bundlesSum = (cartBundles || []).reduce((s, b) => s + getBundleTotal(b), 0)
+    return itemsSum + bundlesSum
+  }
+
   const handleApplyCoupon = async () => {
     const list = Array.isArray(items) ? items : []
-    if (!couponCode.trim() || !list.length) return
-    const total = list.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0)
+    const bundleList = Array.isArray(bundles) ? bundles : []
+    if (!couponCode.trim() || (!list.length && !bundleList.length)) return
+    const total = calcSubtotal(list, bundleList)
     try {
       const { data } = await couponsAPI.apply({ code: couponCode.trim(), total_price: total })
       setCouponApplied(data)
@@ -72,7 +86,8 @@ export default function Checkout() {
       return
     }
     const list = Array.isArray(items) ? items : []
-    if (!list.length) {
+    const bundleList = Array.isArray(bundles) ? bundles : []
+    if (!list.length && !bundleList.length) {
       setError('سلة التسوق فارغة')
       return
     }
@@ -83,8 +98,14 @@ export default function Checkout() {
         variant_id: i.variant_id,
         quantity: i.quantity || 1,
       }))
+      const orderBundles = bundleList.map((b) => ({
+        offer_id: b.offer_id,
+        quantity: b.quantity || 1,
+        lines: (b.lines || []).map((l) => ({ variant_id: l.variant_id, quantity: 1 })),
+      }))
       await ordersAPI.create({
         items: orderItems,
+        bundles: orderBundles,
         address: address.trim(),
         city: city.trim(),
         phone: normalizedPhone,
@@ -114,7 +135,8 @@ export default function Checkout() {
   }
 
   const list = Array.isArray(items) ? items : []
-  if (list.length === 0) {
+  const bundleList = Array.isArray(bundles) ? bundles : []
+  if (list.length === 0 && bundleList.length === 0) {
     return (
       <div className="checkout-page checkout-empty">
         <MobileHeader title="إتمام الطلب" showBack showCart={false} />
@@ -134,8 +156,10 @@ export default function Checkout() {
     )
   }
 
-  const subtotal = list.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0)
+  const subtotal = calcSubtotal(list, bundleList)
   const discount = couponApplied?.discount_amount || 0
+  const deliveryFee = computeDeliveryFee(subtotal, zoneDeliveryFee, freeShippingThreshold)
+  const hasFreeShipping = city && qualifiesForFreeShipping(subtotal, freeShippingThreshold)
   const finalTotal = subtotal - discount + deliveryFee
 
   const getItemName = (i) => i.product_name || 'منتج'
@@ -168,6 +192,8 @@ export default function Checkout() {
               value={city}
               onChange={handleProvinceChange}
               disabled={!zones.length}
+              subtotal={subtotal}
+              freeShippingThreshold={freeShippingThreshold}
             />
 
             {!zones.length && (
@@ -253,6 +279,14 @@ export default function Checkout() {
             )}
 
             <div className="checkout-items">
+              {bundleList.map((b) => (
+                <div key={`bundle-${b.id ?? b.offer_id}`} className="checkout-item checkout-item-bundle">
+                  <span className="checkout-item-name">
+                    باكج: {b.offer_title || 'حصري'} × {formatNumber(b.quantity || 1)}
+                  </span>
+                  <span className="checkout-item-price">{formatPrice(getBundleTotal(b))}</span>
+                </div>
+              ))}
               {list.map((i) => (
                 <div key={i.id ?? i.variant_id} className="checkout-item">
                   <span className="checkout-item-name">{getItemName(i)} × {formatNumber(i.quantity || 1)}</span>
@@ -274,8 +308,17 @@ export default function Checkout() {
               )}
               <div className="checkout-total-row">
                 <span>رسوم التوصيل</span>
-                <span>{city ? formatPrice(deliveryFee) : '—'}</span>
+                <span>
+                  {!city ? '—' : hasFreeShipping ? (
+                    <span className="checkout-free-delivery">مجاني</span>
+                  ) : formatPrice(deliveryFee)}
+                </span>
               </div>
+              {hasFreeShipping && (
+                <p className="checkout-free-shipping-note">
+                  🎉 توصيل مجاني للطلبات {formatPrice(freeShippingThreshold)} فأكثر
+                </p>
+              )}
               <div className="checkout-total-final">
                 <span>المجموع الكلي</span>
                 <strong>{formatPrice(finalTotal)}</strong>

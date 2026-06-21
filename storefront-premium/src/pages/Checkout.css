@@ -431,11 +431,27 @@
   box-shadow: none;
 }
 
+.checkout-item-bundle .checkout-item-name {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
 .checkout-payment-note {
   text-align: center;
   margin-top: 0.75rem;
   font-size: 0.78rem;
   color: var(--text-muted);
+}
+
+.checkout-free-delivery {
+  color: #047857;
+  font-weight: 700;
+}
+
+.checkout-free-shipping-note {
+  font-size: 0.8rem;
+  color: #047857;
+  margin: 0.15rem 0 0.5rem;
 }
 
 /* Mobile sticky submit bar */

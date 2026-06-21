@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { validateBundleLines, formatCartBundleRow } = require('../services/bundleService');
 
 const getOrCreateCart = async (userId) => {
   let [carts] = await db.query('SELECT id FROM cart WHERE user_id = ?', [userId]);
@@ -20,7 +21,14 @@ exports.getCart = async (req, res) => {
       JOIN products p ON pv.product_id = p.id
       WHERE ci.cart_id = ?
     `, [cartId]);
-    res.json(items);
+
+    const [bundleRows] = await db.query('SELECT * FROM cart_bundles WHERE cart_id = ?', [cartId]);
+    const bundles = []
+    for (const row of bundleRows) {
+      bundles.push(await formatCartBundleRow(row))
+    }
+
+    res.json({ items, bundles });
   } catch (error) {
     console.error('Get cart error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
@@ -49,6 +57,49 @@ exports.addItem = async (req, res) => {
   }
 };
 
+exports.addBundle = async (req, res) => {
+  try {
+    const { offer_id, lines, quantity = 1 } = req.body;
+    const qty = parseInt(quantity, 10) || 1
+    if (!offer_id || qty < 1) {
+      return res.status(400).json({ message: 'معرف العرض والكمية مطلوبة' });
+    }
+
+    const validation = await validateBundleLines(offer_id, lines)
+    if (!validation.ok) {
+      return res.status(400).json({ message: validation.message })
+    }
+
+    const cartId = await getOrCreateCart(req.user.id)
+    const [existing] = await db.query('SELECT id, quantity FROM cart_bundles WHERE cart_id = ? AND offer_id = ?', [cartId, offer_id])
+
+    let bundleId
+    if (existing.length) {
+      bundleId = existing[0].id
+      await db.query('UPDATE cart_bundles SET quantity = quantity + ? WHERE id = ?', [qty, bundleId])
+      await db.query('DELETE FROM cart_bundle_items WHERE cart_bundle_id = ?', [bundleId])
+    } else {
+      const [result] = await db.query(
+        'INSERT INTO cart_bundles (cart_id, offer_id, quantity) VALUES (?, ?, ?)',
+        [cartId, offer_id, qty]
+      )
+      bundleId = result.insertId
+    }
+
+    for (const line of validation.lines) {
+      await db.query(
+        'INSERT INTO cart_bundle_items (cart_bundle_id, variant_id) VALUES (?, ?)',
+        [bundleId, line.variant_id]
+      )
+    }
+
+    res.status(201).json({ message: 'تمت إضافة الباكج إلى السلة' })
+  } catch (error) {
+    console.error('Add bundle error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
+
 exports.updateItem = async (req, res) => {
   try {
     const { quantity } = req.body;
@@ -72,6 +123,29 @@ exports.updateItem = async (req, res) => {
   }
 };
 
+exports.updateBundle = async (req, res) => {
+  try {
+    const { quantity } = req.body;
+    const bundleId = req.params.bundleId;
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({ message: 'الكمية مطلوبة' });
+    }
+
+    const cartId = await getOrCreateCart(req.user.id);
+    const [result] = await db.query(
+      'UPDATE cart_bundles SET quantity = ? WHERE id = ? AND cart_id = ?',
+      [quantity, bundleId, cartId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'الباكج غير موجود' });
+    }
+    res.json({ message: 'تم تحديث كمية الباكج' });
+  } catch (error) {
+    console.error('Update bundle error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
+
 exports.removeItem = async (req, res) => {
   try {
     const cartId = await getOrCreateCart(req.user.id);
@@ -86,10 +160,25 @@ exports.removeItem = async (req, res) => {
   }
 };
 
+exports.removeBundle = async (req, res) => {
+  try {
+    const cartId = await getOrCreateCart(req.user.id);
+    const [result] = await db.query('DELETE FROM cart_bundles WHERE id = ? AND cart_id = ?', [req.params.bundleId, cartId]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'الباكج غير موجود' });
+    }
+    res.json({ message: 'تم حذف الباكج من السلة' });
+  } catch (error) {
+    console.error('Remove bundle error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
+
 exports.clearCart = async (req, res) => {
   try {
     const cartId = await getOrCreateCart(req.user.id);
     await db.query('DELETE FROM cart_items WHERE cart_id = ?', [cartId]);
+    await db.query('DELETE FROM cart_bundles WHERE cart_id = ?', [cartId]);
     res.json({ message: 'تم تفريغ السلة' });
   } catch (error) {
     console.error('Clear cart error:', error);

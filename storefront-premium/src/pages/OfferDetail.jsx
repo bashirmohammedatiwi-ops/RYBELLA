@@ -11,7 +11,7 @@ export default function OfferDetail() {
   const [offer, setOffer] = useState(null)
   const [loading, setLoading] = useState(true)
   const [addedToCart, setAddedToCart] = useState(false)
-  const { addItem } = useCart()
+  const { addBundle } = useCart()
 
   useEffect(() => {
     offersAPI.getById(id)
@@ -25,12 +25,14 @@ export default function OfferDetail() {
     return variants.find((v) => (v.stock ?? 0) > 0) || variants[0]
   }
 
-  const handleAddBundle = () => {
+  const handleAddBundle = async () => {
     if (!offer?.products?.length) return
+    const lines = []
     for (const p of offer.products) {
       const v = getFirstVariant(p)
-      if (!v) continue
-      addItem(v.id, 1, {
+      if (!v) return
+      lines.push({
+        variant_id: v.id,
         product_id: p.id,
         product_name: p.name,
         shade_name: v.shade_name,
@@ -38,6 +40,17 @@ export default function OfferDetail() {
         image: v.image || p.main_image || p.images?.[0],
       })
     }
+    await addBundle({
+      offer_id: offer.id,
+      offer_title: offer.title,
+      offer_image: offer.image,
+      discount_percent: offer.discount_percent || 0,
+      discount_label: offer.discount_label,
+      quantity: 1,
+      lines,
+      unit_price: totalAfterDiscount,
+      subtotal: totalOriginal,
+    })
     setAddedToCart(true)
     window.setTimeout(() => setAddedToCart(false), 2200)
   }

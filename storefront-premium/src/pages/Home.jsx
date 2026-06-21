@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { productsAPI, categoriesAPI, subcategoriesAPI, bannersAPI, offersAPI, brandsAPI, webSettingsAPI, wishlistAPI, IMG_BASE } from '../services/api'
+import { productsAPI, categoriesAPI, subcategoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
@@ -17,7 +17,6 @@ export default function Home() {
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
   const [banners, setBanners] = useState([])
-  const [brands, setBrands] = useState([])
   const [offers, setOffers] = useState([])
   const [featured, setFeatured] = useState([])
   const [popular, setPopular] = useState([])
@@ -38,15 +37,13 @@ export default function Home() {
       categoriesAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       subcategoriesAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       bannersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      brandsAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       offersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       productsAPI.getAll({ featured: '1' }).then((r) => toArr(r?.data)).catch(() => []),
       productsAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-    ]).then(([cats, subcats, bns, brs, offs, feat, pop]) => {
+    ]).then(([cats, subcats, bns, offs, feat, pop]) => {
       setCategories(cats)
       setSubcategories(subcats)
       setBanners(bns)
-      setBrands(brs)
       setOffers(offs)
       setFeatured(feat.slice(0, 10))
       setPopular(pop)
@@ -297,24 +294,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* 8. الماركات */}
-      {brands.length > 0 && (
-        <section className="home-section">
-          <div className="home-section-header">
-            <h2 className="home-section-title">الماركات</h2>
-            <Link to="/brands" className="home-section-link">الكل</Link>
-          </div>
-          <div className="home-brands">
-            {brands.slice(0, 8).map((b) => (
-              <Link key={b.id} to={`/explore?brand=${b.id}`} className="home-brand">
-                {b.logo ? <img src={`${IMG_BASE}${b.logo}`} alt={b.name} /> : <span>{b.name?.[0] || '?'}</span>}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 9. شاهدته مؤخراً */}
+      {/* 8. شاهدته مؤخراً */}
       {showRecent && (
         <section className="home-section">
           <div className="home-section-header">

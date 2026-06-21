@@ -199,7 +199,8 @@
   flex-shrink: 0;
 }
 
-.province-select-check svg {
-  width: 100%;
-  height: 100%;
+.province-select-fee.is-free,
+.province-select-option-fee.is-free {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
 }

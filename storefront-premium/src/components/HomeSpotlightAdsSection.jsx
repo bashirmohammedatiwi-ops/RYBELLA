@@ -12,6 +12,12 @@ const STACK_LAYOUT = [
   { rot: 15, x: 80, y: -72, w: 162, h: 162, scale: 1, shape: 'round', z: 7 },
 ]
 
+const ROTATION_MS = 15 * 60 * 1000
+
+function getRotationBucket() {
+  return Math.floor(Date.now() / ROTATION_MS)
+}
+
 function isTruthyFlag(value) {
   return value === true || value === 1 || value === '1'
 }
@@ -32,7 +38,7 @@ function getMinPrice(product) {
   return product?.min_price ?? product?.variants?.[0]?.price
 }
 
-function buildSpotlightProducts(products, featured, bestSellers) {
+function buildSpotlightProducts(products, featured, bestSellers, rotationBucket = 0) {
   const seen = new Set()
   const all = [...featured, ...bestSellers, ...products].filter((p) => {
     if (!p?.id || seen.has(p.id)) return false
@@ -45,7 +51,15 @@ function buildSpotlightProducts(products, featured, bestSellers) {
     (isTruthyFlag(p.is_featured) ? 40 : 0) +
     (isTruthyFlag(p.is_best_seller) ? 28 : 0)
 
-  return [...all].sort((a, b) => score(b) - score(a)).slice(0, 8)
+  const sorted = [...all].sort((a, b) => score(b) - score(a))
+  if (sorted.length <= 8) return sorted
+
+  const start = (rotationBucket * 8) % sorted.length
+  const picked = []
+  for (let i = 0; i < 8; i += 1) {
+    picked.push(sorted[(start + i) % sorted.length])
+  }
+  return picked
 }
 
 function getStackCards(images, frontIdx) {
@@ -190,11 +204,33 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
   const userPausedRef = useRef(false)
   const [activeIdx, setActiveIdx] = useState(0)
   const [inView, setInView] = useState(false)
+  const [rotationBucket, setRotationBucket] = useState(() => getRotationBucket())
 
   const items = useMemo(
-    () => buildSpotlightProducts(products, featured, bestSellers),
-    [products, featured, bestSellers]
+    () => buildSpotlightProducts(products, featured, bestSellers, rotationBucket),
+    [products, featured, bestSellers, rotationBucket]
   )
+
+  useEffect(() => {
+    const syncRotation = () => setRotationBucket(getRotationBucket())
+    syncRotation()
+    let intervalId
+    const timeoutId = window.setTimeout(() => {
+      syncRotation()
+      intervalId = window.setInterval(syncRotation, ROTATION_MS)
+    }, ROTATION_MS - (Date.now() % ROTATION_MS))
+    return () => {
+      window.clearTimeout(timeoutId)
+      if (intervalId) window.clearInterval(intervalId)
+    }
+  }, [])
+
+  useEffect(() => {
+    activeIdxRef.current = 0
+    setActiveIdx(0)
+    const track = trackRef.current
+    if (track) track.scrollTo({ left: 0, behavior: 'auto' })
+  }, [rotationBucket, items.length])
 
   const scrollTo = useCallback((index) => {
     const track = trackRef.current

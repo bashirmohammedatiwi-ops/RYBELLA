@@ -163,7 +163,7 @@ export const subcategoriesAPI = {
 export const ordersAPI = {
   getAll: (params) => api.get('/orders', { params }),
   getById: (id) => api.get(`/orders/${id}`),
-  updateStatus: (id, status) => api.put(`/orders/${id}/status`, { status }),
+  updateStatus: (id, data) => api.put(`/orders/${id}/status`, data),
 };
 
 export const usersAPI = {

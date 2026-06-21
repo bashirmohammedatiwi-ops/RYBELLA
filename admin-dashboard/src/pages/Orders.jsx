@@ -19,13 +19,22 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import { Search as SearchIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../services/api';
-
-const statusColors = { pending: 'warning', confirmed: 'info', processing: 'primary', shipped: 'secondary', delivered: 'success', cancelled: 'error' };
-const statusLabels = { pending: 'قيد الانتظار', confirmed: 'مؤكد', processing: 'قيد التجهيز', shipped: 'تم الشحن', delivered: 'تم التسليم', cancelled: 'ملغي' };
+import {
+  ORDER_STATUSES,
+  ORDER_STATUS_LABELS,
+  getOrderStatusLabel,
+  getOrderStatusColor,
+  normalizeOrderStatus,
+} from '../utils/orderStatus';
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -37,6 +46,8 @@ export default function Orders() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [cancelDialog, setCancelDialog] = useState({ open: false, orderId: null, reason: '' });
+  const [statusError, setStatusError] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -53,21 +64,46 @@ export default function Orders() {
     load();
   }, []);
 
-  const handleStatusChange = async (orderId, status) => {
+  const applyStatusUpdate = async (orderId, status, cancel_reason = null) => {
+    setStatusError('');
     try {
-      await ordersAPI.updateStatus(orderId, status);
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+      const payload = { status };
+      if (status === 'cancelled') payload.cancel_reason = cancel_reason;
+      await ordersAPI.updateStatus(orderId, payload);
+      setOrders((prev) => prev.map((o) => (
+        o.id === orderId
+          ? { ...o, status, cancel_reason: status === 'cancelled' ? cancel_reason : null }
+          : o
+      )));
     } catch (err) {
-      console.error(err);
+      setStatusError(err.response?.data?.message || 'فشل تحديث الحالة');
     }
   };
 
+  const handleStatusChange = async (orderId, status) => {
+    if (status === 'cancelled') {
+      setCancelDialog({ open: true, orderId, reason: '' });
+      return;
+    }
+    await applyStatusUpdate(orderId, status);
+  };
+
+  const handleConfirmCancel = async () => {
+    const reason = cancelDialog.reason.trim();
+    if (!reason) {
+      setStatusError('يرجى إدخال سبب الإلغاء');
+      return;
+    }
+    await applyStatusUpdate(cancelDialog.orderId, 'cancelled', reason);
+    setCancelDialog({ open: false, orderId: null, reason: '' });
+  };
+
   const filtered = orders.filter((o) => {
-    if (statusFilter && o.status !== statusFilter) return false;
+    if (statusFilter && normalizeOrderStatus(o.status) !== statusFilter) return false;
     if (search) {
       const s = search.toLowerCase();
       const matchId = String(o.id).includes(s);
-      const matchPhone = (o.customer_phone || '').toLowerCase().includes(s);
+      const matchPhone = (o.customer_phone || o.phone || '').toLowerCase().includes(s);
       const matchName = (o.customer_name || '').toLowerCase().includes(s);
       return matchId || matchPhone || matchName;
     }
@@ -91,15 +127,18 @@ export default function Orders() {
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
             sx={{ minWidth: 220 }}
           />
-          <FormControl size="small" sx={{ minWidth: 160 }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>حالة الطلب</InputLabel>
             <Select value={statusFilter} label="حالة الطلب" onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
               <MenuItem value="">الكل</MenuItem>
-              {Object.entries(statusLabels).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
+              {ORDER_STATUSES.map((k) => <MenuItem key={k} value={k}>{ORDER_STATUS_LABELS[k]}</MenuItem>)}
             </Select>
           </FormControl>
         </Box>
       </Box>
+
+      {statusError && <Typography color="error" sx={{ mb: 2 }}>{statusError}</Typography>}
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -114,25 +153,37 @@ export default function Orders() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginated.map((order) => (
-              <TableRow key={order.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/orders/${order.id}`)}>
-                <TableCell>{order.id}</TableCell>
-                <TableCell>{Number(order.final_price).toLocaleString('ar-IQ')} د.ع</TableCell>
-                <TableCell><Chip label={statusLabels[order.status] || order.status} color={statusColors[order.status] || 'default'} size="small" /></TableCell>
-                <TableCell>{order.payment_method === 'cash' ? 'الدفع عند الاستلام' : order.payment_method}</TableCell>
-                <TableCell>{new Date(order.created_at).toLocaleDateString('ar-IQ')}</TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <Select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)}>
-                      {Object.entries(statusLabels).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
-                    </Select>
-                  </FormControl>
-                </TableCell>
-                <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                  <IconButton size="small" onClick={() => navigate(`/orders/${order.id}`)} title="عرض التفاصيل"><ViewIcon /></IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+            {paginated.map((order) => {
+              const displayStatus = normalizeOrderStatus(order.status);
+              return (
+                <TableRow key={order.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/orders/${order.id}`)}>
+                  <TableCell>{order.id}</TableCell>
+                  <TableCell>{Number(order.final_price).toLocaleString('ar-IQ')} د.ع</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={getOrderStatusLabel(order.status)}
+                      color={getOrderStatusColor(order.status)}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>{order.payment_method === 'cash' ? 'الدفع عند الاستلام' : order.payment_method}</TableCell>
+                  <TableCell>{new Date(order.created_at).toLocaleDateString('ar-IQ')}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <FormControl size="small" sx={{ minWidth: 170 }}>
+                      <Select
+                        value={ORDER_STATUSES.includes(displayStatus) ? displayStatus : 'pending'}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                      >
+                        {ORDER_STATUSES.map((k) => <MenuItem key={k} value={k}>{ORDER_STATUS_LABELS[k]}</MenuItem>)}
+                      </Select>
+                    </FormControl>
+                  </TableCell>
+                  <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                    <IconButton size="small" onClick={() => navigate(`/orders/${order.id}`)} title="عرض التفاصيل"><ViewIcon /></IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
         <TablePagination
@@ -147,6 +198,28 @@ export default function Orders() {
           labelDisplayedRows={({ from, to, count }) => `${from}-${to} من ${count}`}
         />
       </TableContainer>
+
+      <Dialog open={cancelDialog.open} onClose={() => setCancelDialog({ open: false, orderId: null, reason: '' })} fullWidth maxWidth="sm">
+        <DialogTitle>إلغاء الطلب</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            يرجى ذكر سبب إلغاء الطلب — سيظهر للزبون في الموقع.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            label="سبب الإلغاء"
+            value={cancelDialog.reason}
+            onChange={(e) => setCancelDialog((d) => ({ ...d, reason: e.target.value }))}
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelDialog({ open: false, orderId: null, reason: '' })}>تراجع</Button>
+          <Button variant="contained" color="error" onClick={handleConfirmCancel}>تأكيد الإلغاء</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

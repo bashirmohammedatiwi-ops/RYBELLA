@@ -55,8 +55,11 @@ export const authAPI = {
 export const cartAPI = {
   get: () => api.get('/cart'),
   add: (data) => api.post('/cart/add', data),
+  addBundle: (data) => api.post('/cart/add-bundle', data),
   update: (itemId, data) => api.put(`/cart/${itemId}`, data),
+  updateBundle: (bundleId, data) => api.put(`/cart/bundles/${bundleId}`, data),
   remove: (itemId) => api.delete(`/cart/${itemId}`),
+  removeBundle: (bundleId) => api.delete(`/cart/bundles/${bundleId}`),
   clear: () => api.delete('/cart'),
 }
 export const ordersAPI = {

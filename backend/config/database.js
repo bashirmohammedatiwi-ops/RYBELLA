@@ -422,6 +422,63 @@ const initDb = async () => {
   } catch (e) {
     console.error('Inventory sync migration:', e.message);
   }
+  // Migration: orders.cancel_reason + normalize legacy statuses
+  try {
+    const orderInfo = db.exec('PRAGMA table_info(orders)');
+    const orderCols = (orderInfo[0]?.values || []).map((r) => r[1]);
+    if (!orderCols.includes('cancel_reason')) {
+      db.run('ALTER TABLE orders ADD COLUMN cancel_reason TEXT');
+      saveDb();
+    }
+    db.run(`UPDATE orders SET status = 'preparing_shipping'
+      WHERE status IN ('confirmed', 'processing', 'shipped')`);
+    saveDb();
+  } catch (e) {
+    console.error('Orders status migration:', e.message);
+  }
+  // Migration: cart & order bundles
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS cart_bundles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cart_id INTEGER NOT NULL,
+      offer_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (cart_id) REFERENCES cart(id) ON DELETE CASCADE,
+      UNIQUE(cart_id, offer_id)
+    )`);
+    db.exec(`CREATE TABLE IF NOT EXISTS cart_bundle_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cart_bundle_id INTEGER NOT NULL,
+      variant_id INTEGER NOT NULL,
+      FOREIGN KEY (cart_bundle_id) REFERENCES cart_bundles(id) ON DELETE CASCADE,
+      FOREIGN KEY (variant_id) REFERENCES product_variants(id)
+    )`);
+    db.exec(`CREATE TABLE IF NOT EXISTS order_bundles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      offer_id INTEGER NOT NULL,
+      offer_title TEXT NOT NULL,
+      discount_percent REAL DEFAULT 0,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      subtotal REAL NOT NULL,
+      total_price REAL NOT NULL,
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    )`);
+    db.exec(`CREATE TABLE IF NOT EXISTS order_bundle_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_bundle_id INTEGER NOT NULL,
+      variant_id INTEGER NOT NULL,
+      product_name TEXT,
+      shade_name TEXT,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      price REAL NOT NULL,
+      FOREIGN KEY (order_bundle_id) REFERENCES order_bundles(id) ON DELETE CASCADE
+    )`);
+    saveDb();
+  } catch (e) {
+    console.error('Bundle tables migration:', e.message);
+  }
 };
 
 // Async query - returns [rows] for SELECT, [{ insertId }] for INSERT (mysql2 compatible)

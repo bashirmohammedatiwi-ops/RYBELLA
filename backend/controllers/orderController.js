@@ -1,4 +1,21 @@
 const db = require('../config/database');
+const { getFreeShippingThreshold, computeDeliveryFee } = require('../utils/delivery');
+const { ORDER_STATUSES, isValidOrderStatus } = require('../utils/orderStatus');
+
+const db = require('../config/database');
+const { getFreeShippingThreshold, computeDeliveryFee } = require('../utils/delivery');
+const { isValidOrderStatus } = require('../utils/orderStatus');
+const { validateBundleLines } = require('../services/bundleService');
+
+async function attachOrderBundles(order) {
+  const [bundles] = await db.query('SELECT * FROM order_bundles WHERE order_id = ?', [order.id]);
+  for (const bundle of bundles) {
+    const [lines] = await db.query('SELECT * FROM order_bundle_items WHERE order_bundle_id = ?', [bundle.id]);
+    bundle.items = lines;
+  }
+  order.bundles = bundles;
+  return order;
+}
 
 exports.getById = async (req, res) => {
   try {
@@ -23,6 +40,7 @@ exports.getById = async (req, res) => {
       WHERE oi.order_id = ?
     `, [order.id]);
     order.items = items;
+    await attachOrderBundles(order);
     res.json(order);
   } catch (error) {
     console.error('Get order error:', error);
@@ -55,6 +73,7 @@ exports.getAll = async (req, res) => {
         WHERE oi.order_id = ?
       `, [order.id]);
       order.items = items;
+      await attachOrderBundles(order);
     }
 
     res.json(orders);
@@ -66,20 +85,25 @@ exports.getAll = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { items, address, city, payment_method, coupon_code } = req.body;
+    const { items, bundles, address, city, payment_method, coupon_code } = req.body;
     const userId = req.user.id;
+    const lineItems = Array.isArray(items) ? items : [];
+    const bundleOrders = Array.isArray(bundles) ? bundles : [];
 
-    if (!items || !Array.isArray(items) || items.length === 0 || !address || !city) {
+    if ((!lineItems.length && !bundleOrders.length) || !address || !city) {
       return res.status(400).json({ message: 'عناصر الطلب والعنوان والمدينة مطلوبة' });
     }
 
     const [zone] = await db.query('SELECT delivery_fee FROM delivery_zones WHERE city = ?', [city]);
-    const delivery_fee = zone.length > 0 ? parseFloat(zone[0].delivery_fee) : 5000;
+    const zoneFee = zone.length > 0 ? parseFloat(zone[0].delivery_fee) : 5000;
+    const freeShippingThreshold = await getFreeShippingThreshold(db);
 
     let total_price = 0;
+    let discount = 0;
     const orderItems = [];
-    const orderProductIds = new Set();
-    for (const item of items) {
+    const orderBundles = [];
+
+    for (const item of lineItems) {
       const [variant] = await db.query('SELECT price, stock, product_id FROM product_variants WHERE id = ?', [item.variant_id]);
       if (variant.length === 0) {
         return res.status(400).json({ message: `المنتج غير موجود: ${item.variant_id}` });
@@ -88,28 +112,31 @@ exports.create = async (req, res) => {
         return res.status(400).json({ message: `الكمية غير متوفرة للمنتج: ${item.variant_id}` });
       }
       total_price += variant[0].price * item.quantity;
-      orderProductIds.add(variant[0].product_id);
       orderItems.push({ variant_id: item.variant_id, quantity: item.quantity, price: variant[0].price, product_id: variant[0].product_id });
     }
 
-    let discount = 0;
-    const [offers] = await db.query('SELECT id, product_ids, discount_percent FROM offers WHERE active = 1 AND (discount_percent IS NOT NULL AND discount_percent > 0)');
-    for (const offer of offers || []) {
-      let offerProductIds = [];
-      try {
-        const parsed = typeof offer.product_ids === 'string' ? JSON.parse(offer.product_ids || '[]') : offer.product_ids || [];
-        offerProductIds = Array.isArray(parsed) ? parsed.map((id) => parseInt(id, 10)).filter((n) => !isNaN(n)) : [];
-      } catch (_) {}
-      if (offerProductIds.length === 0) continue;
-      const offerSet = new Set(offerProductIds);
-      const hasAll = offerProductIds.every((pid) => orderProductIds.has(pid));
-      if (!hasAll) continue;
-      const bundleSubtotal = orderItems
-        .filter((oi) => offerSet.has(oi.product_id))
-        .reduce((s, oi) => s + oi.price * oi.quantity, 0);
-      discount += bundleSubtotal * (parseFloat(offer.discount_percent) || 0) / 100;
-      break;
+    for (const bundle of bundleOrders) {
+      const qty = parseInt(bundle.quantity, 10) || 1;
+      const validation = await validateBundleLines(bundle.offer_id, bundle.lines);
+      if (!validation.ok) {
+        return res.status(400).json({ message: validation.message });
+      }
+      const bundleSubtotal = validation.pricing.subtotal * qty;
+      const bundleDiscount = validation.pricing.discount * qty;
+      const bundleTotal = validation.pricing.unitTotal * qty;
+      total_price += bundleSubtotal;
+      discount += bundleDiscount;
+      orderBundles.push({
+        offer_id: bundle.offer_id,
+        offer_title: validation.offer.title,
+        discount_percent: validation.offer.discount_percent || 0,
+        quantity: qty,
+        subtotal: bundleSubtotal,
+        total_price: bundleTotal,
+        lines: validation.lines,
+      });
     }
+
     if (coupon_code) {
       const [coupon] = await db.query(
         "SELECT discount_percent FROM coupons WHERE code = ? AND active = 1 AND expiration_date > date('now')",
@@ -120,6 +147,7 @@ exports.create = async (req, res) => {
       }
     }
 
+    const delivery_fee = computeDeliveryFee(total_price, zoneFee, freeShippingThreshold);
     const final_price = total_price + delivery_fee - discount;
 
     const [orderResult] = await db.query(
@@ -128,19 +156,38 @@ exports.create = async (req, res) => {
       [userId, total_price, delivery_fee, discount, final_price, payment_method || 'cash', address, city, req.body.phone || null, req.body.coupon_code || null]
     );
 
+    const orderId = orderResult.insertId;
+
     for (const item of orderItems) {
       await db.query(
         'INSERT INTO order_items (order_id, variant_id, quantity, price) VALUES (?, ?, ?, ?)',
-        [orderResult.insertId, item.variant_id, item.quantity, item.price]
+        [orderId, item.variant_id, item.quantity, item.price]
       );
       await db.query('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [item.quantity, item.variant_id]);
     }
 
+    for (const bundle of orderBundles) {
+      const [bundleResult] = await db.query(
+        `INSERT INTO order_bundles (order_id, offer_id, offer_title, discount_percent, quantity, subtotal, total_price)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [orderId, bundle.offer_id, bundle.offer_title, bundle.discount_percent, bundle.quantity, bundle.subtotal, bundle.total_price]
+      );
+      for (const line of bundle.lines) {
+        await db.query(
+          `INSERT INTO order_bundle_items (order_bundle_id, variant_id, product_name, shade_name, quantity, price)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [bundleResult.insertId, line.variant_id, line.product_name, line.shade_name, bundle.quantity, line.price]
+        );
+        await db.query('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [bundle.quantity, line.variant_id]);
+      }
+    }
+
     await db.query('DELETE FROM cart_items WHERE cart_id IN (SELECT id FROM cart WHERE user_id = ?)', [userId]);
+    await db.query('DELETE FROM cart_bundles WHERE cart_id IN (SELECT id FROM cart WHERE user_id = ?)', [userId]);
 
     res.status(201).json({
       message: 'تم إنشاء الطلب بنجاح',
-      order_id: orderResult.insertId,
+      order_id: orderId,
       final_price
     });
   } catch (error) {
@@ -151,14 +198,21 @@ exports.create = async (req, res) => {
 
 exports.updateStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-    const validStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
-    if (!validStatuses.includes(status)) {
+    const { status, cancel_reason } = req.body;
+    if (!isValidOrderStatus(status)) {
       return res.status(400).json({ message: 'حالة غير صالحة' });
     }
 
-    await db.query('UPDATE orders SET status = ? WHERE id = ?', [status, req.params.id]);
-    res.json({ message: 'تم تحديث حالة الطلب بنجاح' });
+    const reason = (cancel_reason || '').trim();
+    if (status === 'cancelled' && !reason) {
+      return res.status(400).json({ message: 'سبب الإلغاء مطلوب عند إلغاء الطلب' });
+    }
+
+    await db.query(
+      'UPDATE orders SET status = ?, cancel_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [status, status === 'cancelled' ? reason : null, req.params.id]
+    );
+    res.json({ message: 'تم تحديث حالة الطلب بنجاح', status, cancel_reason: status === 'cancelled' ? reason : null });
   } catch (error) {
     console.error('Update order status error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
