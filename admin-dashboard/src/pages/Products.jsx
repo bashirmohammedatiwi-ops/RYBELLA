@@ -41,6 +41,7 @@ import {
 import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, syncAPI, getImgBase } from '../services/api';
 import SortableTableRow, { DragHandleCell } from '../components/SortableTableRow';
 import ImageDisplay from '../components/ImageDisplay';
+import { formatAdminPrice } from '../components/SyncedPricingBox';
 
 export default function Products() {
   const navigate = useNavigate();
@@ -119,15 +120,16 @@ export default function Products() {
     }
   };
 
-  const formatPrice = (price, product) => {
-    if (!price) return '-';
-    const formatted = new Intl.NumberFormat('ar-IQ').format(price) + ' د.ع';
+  const formatListPricing = (product) => {
+    const price = Number(product?.min_price);
     const original = Number(product?.min_original_price);
     const discount = Number(product?.max_discount_percent);
-    if (product?.has_discount && original > price && discount > 0) {
-      return `${formatted} (قبل: ${new Intl.NumberFormat('ar-IQ').format(original)} · -${discount}%)`;
-    }
-    return formatted;
+    const hasDiscount = product?.has_discount && discount > 0 && original > price;
+    return {
+      before: formatAdminPrice(hasDiscount ? original : price),
+      after: formatAdminPrice(price),
+      discount: hasDiscount ? `${discount}%` : '—',
+    };
   };
 
   const handleSyncAll = async () => {
@@ -345,7 +347,9 @@ export default function Products() {
                     <TableCell>العلامة التجارية</TableCell>
                     <TableCell>الفئة</TableCell>
                     <TableCell>الفئة الثانوية</TableCell>
-                    <TableCell>السعر</TableCell>
+                    <TableCell>قبل الخصم</TableCell>
+                    <TableCell>بعد الخصم</TableCell>
+                    <TableCell>نسبة الخصم</TableCell>
                     <TableCell>الظلال</TableCell>
                     <TableCell align="center">إجراءات</TableCell>
                   </TableRow>
@@ -400,7 +404,9 @@ export default function Products() {
                       <TableCell>{product.brand_name}</TableCell>
                       <TableCell>{product.category_name}</TableCell>
                       <TableCell>{product.subcategory_name || '-'}</TableCell>
-                      <TableCell>{formatPrice(product.min_price, product)}</TableCell>
+                      <TableCell>{formatListPricing(product).before}</TableCell>
+                      <TableCell>{formatListPricing(product).after}</TableCell>
+                      <TableCell>{formatListPricing(product).discount}</TableCell>
                       <TableCell>
                         <Chip
                           label={`${product.variants?.length || 0} ظل`}

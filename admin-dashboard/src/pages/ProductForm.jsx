@@ -20,17 +20,9 @@ import {
 } from '@mui/material';
 import { ArrowBack as BackIcon, Save as SaveIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, variantsAPI, syncAPI, getImgBase } from '../services/api';
+import SyncedPricingBox from '../components/SyncedPricingBox';
 
 const emptyElement = () => ({ barcode: '', color_code: '#000000', shade_name: '', price: '', stock: '', original_price: '', discount_percent: '', expiration_date: '', imageFile: null });
-
-function formatSyncedLabel(el) {
-  const parts = [];
-  if (el.price !== '' && el.price != null) parts.push(`السعر: ${el.price}`);
-  if (el.original_price && Number(el.original_price) > Number(el.price)) parts.push(`قبل: ${el.original_price}`);
-  if (el.discount_percent > 0) parts.push(`خصم ${el.discount_percent}%`);
-  if (el.stock !== '' && el.stock != null) parts.push(`المخزون: ${el.stock}`);
-  return parts.length ? parts.join(' · ') : 'يُجلب تلقائياً بعد حفظ الباركود';
-}
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -324,9 +316,7 @@ export default function ProductForm() {
                   required
                   helperText="السعر والمخزون ونسبة التخفيض تُجلب تلقائياً من السيرفر عند حفظ الباركود"
                 />
-                <Typography variant="body2" color="text.secondary">
-                  {formatSyncedLabel(form)}
-                </Typography>
+                <SyncedPricingBox data={form} />
               </Box>
             )}
 
@@ -462,9 +452,9 @@ export default function ProductForm() {
                   <TextField label="الباركود *" value={el.barcode} onChange={(e) => updateElement(i, 'barcode', e.target.value)} onBlur={() => syncBarcodeFields(el.barcode, (synced) => { const next = [...elements]; next[i] = { ...next[i], ...synced }; setElements(next); })} required size="small" sx={{ minWidth: 140 }} />
                   <TextField label="اللون" type="color" value={el.color_code} onChange={(e) => updateElement(i, 'color_code', e.target.value)} size="small" sx={{ width: 60, height: 40 }} />
                   <TextField label="كود اللون" value={el.color_code} onChange={(e) => updateElement(i, 'color_code', e.target.value)} size="small" sx={{ width: 120 }} />
-                  <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center', minWidth: 180 }}>
-                    {formatSyncedLabel(el)}
-                  </Typography>
+                  <Box sx={{ width: '100%' }}>
+                    <SyncedPricingBox data={el} compact />
+                  </Box>
                   <TextField label="تاريخ الصلاحية" type="date" value={el.expiration_date} onChange={(e) => updateElement(i, 'expiration_date', e.target.value)} InputLabelProps={{ shrink: true }} size="small" sx={{ width: 160 }} />
                   <Button size="small" variant="outlined" component="label" sx={{ alignSelf: 'flex-end' }}>
                     {el.imageFile ? el.imageFile.name : el.existingImage ? 'تغيير الصورة' : 'إضافة صورة'}

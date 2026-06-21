@@ -130,73 +130,59 @@ function sanitizeSyncItem(raw) {
   const barcode = normalizeBarcode(raw.barcode)
   if (!barcode) return null
 
-  let originalPrice = clampPrice(raw.originalPrice ?? raw.original_price ?? raw.price)
-  let price = clampPrice(raw.price ?? raw.finalPrice ?? raw.final_price ?? originalPrice)
-  if (price <= 0 && originalPrice > 0) price = originalPrice
-  if (originalPrice <= 0 && price > 0) originalPrice = price
-
+  let originalPrice = clampPrice(raw.originalPrice ?? raw.original_price ?? 0)
+  let price = clampPrice(raw.price ?? raw.finalPrice ?? raw.final_price ?? 0)
+  let discountPercent = clampInt(raw.discountPercent ?? raw.discount_percent, 0)
+  discountPercent = Math.max(0, Math.min(100, discountPercent))
   const offerName = raw.offerName ?? raw.offer_name ?? null
-  const sourceDiscountRaw = raw.discountPercent ?? raw.discount_percent
-  const hasSourceDiscount = sourceDiscountRaw != null && sourceDiscountRaw !== ''
-    && Number.isFinite(Number(sourceDiscountRaw))
-  let sourceDiscount = hasSourceDiscount
-    ? Math.max(0, Math.min(100, clampInt(sourceDiscountRaw, 0)))
-    : -1
 
-  const hasPromo = sourceDiscount > 0 || !!(offerName && String(offerName).trim())
-    || (originalPrice > price && price > 0)
+  if (originalPrice <= 0 && price > 0) originalPrice = price
+  if (price <= 0 && originalPrice > 0) price = originalPrice
 
-  if (!hasPromo) {
-    const finalPrice = originalPrice || price
+  // Promo with explicit discount % from Alhayaa/POS — trust % and fix final price if needed
+  if (discountPercent > 0 && originalPrice > 0) {
+    if (price <= 0 || price >= originalPrice) {
+      price = clampPrice(originalPrice * (1 - discountPercent / 100))
+    }
     return {
       barcode,
       productCode: raw.productCode ?? raw.product_code ?? null,
       productNum: raw.productNum ?? raw.product_num ?? null,
       name: raw.name ?? null,
-      price: finalPrice,
-      originalPrice: finalPrice,
-      discountPercent: 0,
+      price,
+      originalPrice,
+      discountPercent,
       stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
-      offerName: null,
+      offerName: offerName?.trim() || null,
     }
   }
 
-  originalPrice = clampPrice(raw.originalPrice ?? raw.original_price ?? originalPrice)
-  if (originalPrice <= 0) originalPrice = price
-
-  let discountPercent = sourceDiscount >= 0
-    ? sourceDiscount
-    : computeDiscountPercent(originalPrice, price)
-
-  if (price >= originalPrice) {
-    const finalPrice = originalPrice
-    return {
-      barcode,
-      productCode: raw.productCode ?? raw.product_code ?? null,
-      productNum: raw.productNum ?? raw.product_num ?? null,
-      name: raw.name ?? null,
-      price: finalPrice,
-      originalPrice: finalPrice,
-      discountPercent: 0,
-      stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
-      offerName: null,
-    }
-  }
-
-  if (sourceDiscount < 0) {
+  if (originalPrice > price && price > 0) {
     discountPercent = computeDiscountPercent(originalPrice, price)
+    return {
+      barcode,
+      productCode: raw.productCode ?? raw.product_code ?? null,
+      productNum: raw.productNum ?? raw.product_num ?? null,
+      name: raw.name ?? null,
+      price,
+      originalPrice,
+      discountPercent,
+      stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
+      offerName: offerName?.trim() || null,
+    }
   }
 
+  const finalPrice = originalPrice || price
   return {
     barcode,
     productCode: raw.productCode ?? raw.product_code ?? null,
     productNum: raw.productNum ?? raw.product_num ?? null,
     name: raw.name ?? null,
-    price,
-    originalPrice,
-    discountPercent,
+    price: finalPrice,
+    originalPrice: finalPrice,
+    discountPercent: 0,
     stock: Math.max(0, clampInt(raw.stock ?? raw.quantity, 0)),
-    offerName: offerName || null,
+    offerName: null,
   }
 }
 

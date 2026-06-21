@@ -27,20 +27,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SyncIcon from '@mui/icons-material/Sync';
 import { productsAPI, variantsAPI, syncAPI, getImgBase } from '../services/api';
 import ImageDisplay from '../components/ImageDisplay';
-
-function formatPrice(n) {
-  return Number(n || 0).toLocaleString('ar-IQ');
-}
-
-function formatPricing(v) {
-  const price = Number(v.price || 0);
-  const original = Number(v.original_price || 0);
-  const discount = Number(v.discount_percent || 0);
-  if (discount > 0 && original > price) {
-    return `${formatPrice(price)} د.ع (قبل: ${formatPrice(original)} · خصم ${discount}%)`;
-  }
-  return `${formatPrice(price)} د.ع`;
-}
+import SyncedPricingBox, { formatAdminPrice, getAdminPricing } from '../components/SyncedPricingBox';
 
 export default function ProductVariants() {
   const { id } = useParams();
@@ -195,7 +182,9 @@ export default function ProductVariants() {
               <TableCell>اسم العنصر / اللون</TableCell>
               <TableCell>اللون</TableCell>
               <TableCell>الباركود</TableCell>
-              <TableCell>السعر</TableCell>
+              <TableCell>قبل الخصم</TableCell>
+              <TableCell>بعد الخصم</TableCell>
+              <TableCell>نسبة الخصم</TableCell>
               <TableCell>المخزون</TableCell>
               <TableCell>آخر مزامنة</TableCell>
               <TableCell>تاريخ الانتهاء</TableCell>
@@ -203,7 +192,9 @@ export default function ProductVariants() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {(product.variants || []).map((v) => (
+            {(product.variants || []).map((v) => {
+              const pricing = getAdminPricing(v);
+              return (
               <TableRow key={v.id}>
                 <TableCell>
                   <ImageDisplay src={v.image} size="md" fit="cover" />
@@ -216,7 +207,9 @@ export default function ProductVariants() {
                   </Box>
                 </TableCell>
                 <TableCell>{v.barcode || '-'}</TableCell>
-                <TableCell>{formatPricing(v)}</TableCell>
+                <TableCell>{formatAdminPrice(pricing.originalPrice)}</TableCell>
+                <TableCell>{formatAdminPrice(pricing.finalPrice)}</TableCell>
+                <TableCell>{pricing.hasDiscount ? `${pricing.discountPercent}%` : '—'}</TableCell>
                 <TableCell>
                   <Chip label={v.stock} color={v.stock <= 5 ? 'error' : 'default'} size="small" />
                 </TableCell>
@@ -231,7 +224,7 @@ export default function ProductVariants() {
                   </IconButton>
                 </TableCell>
               </TableRow>
-            ))}
+            );})}
           </TableBody>
         </Table>
       </TableContainer>
@@ -245,11 +238,7 @@ export default function ProductVariants() {
             <TextField label="كود اللون (hex)" value={form.color_code} onChange={(e) => setForm({ ...form, color_code: e.target.value })} fullWidth />
             <TextField label="الباركود *" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} required fullWidth helperText="يُستخدم لجلب السعر والمخزون ونسبة التخفيض تلقائياً" />
             <TextField label="SKU" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} fullWidth />
-            {editingVariant && (
-              <Typography variant="body2" color="text.secondary">
-                {formatPricing(editingVariant)}
-              </Typography>
-            )}
+            {editingVariant && <SyncedPricingBox data={editingVariant} />}
             <TextField label="تاريخ الانتهاء" type="date" value={form.expiration_date} onChange={(e) => setForm({ ...form, expiration_date: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
             <Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>صورة العنصر</Typography>
