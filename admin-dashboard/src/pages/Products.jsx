@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -18,13 +18,13 @@ import {
   TableHead,
   TableRow,
   TextField,
-  TablePagination,
   Typography,
   CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -56,11 +56,10 @@ export default function Products() {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
   const [imageDialog, setImageDialog] = useState({ open: false, product: null });
-  const [draggedIndex, setDraggedIndex] = useState(-1);
+  const [draggedKey, setDraggedKey] = useState(null);
+  const [reorderSuccess, setReorderSuccess] = useState('');
   const [syncingAll, setSyncingAll] = useState(false);
 
   useEffect(() => {
@@ -86,7 +85,6 @@ export default function Products() {
   }, [categoryId]);
 
   useEffect(() => {
-    setPage(0);
     loadProducts();
   }, [search, statusFilter, featuredOnly, brandId, categoryId, subcategoryId]);
 
@@ -163,7 +161,36 @@ export default function Products() {
 
   const getProductThumb = (p) => p?.main_image || p?.images?.[0] || null;
 
-  const paginated = products.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const productGroups = useMemo(() => {
+    const categoryOrder = {};
+    categories.forEach((c, i) => {
+      categoryOrder[c.id] = c.sort_order ?? i;
+    });
+
+    const groupsMap = new Map();
+    for (const product of products) {
+      const categoryKey = product.category_id || 0;
+      if (!groupsMap.has(categoryKey)) {
+        const category = categories.find((c) => c.id === categoryKey);
+        groupsMap.set(categoryKey, {
+          categoryId: categoryKey,
+          categoryName: category?.name || product.category_name || 'بدون فئة',
+          categorySortOrder: categoryOrder[categoryKey] ?? 999,
+          products: [],
+        });
+      }
+      groupsMap.get(categoryKey).products.push(product);
+    }
+
+    return Array.from(groupsMap.values())
+      .sort((a, b) => a.categorySortOrder - b.categorySortOrder || a.categoryName.localeCompare(b.categoryName, 'ar'))
+      .map((group) => ({
+        ...group,
+        products: [...group.products].sort(
+          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || String(a.name || '').localeCompare(String(b.name || ''), 'ar')
+        ),
+      }));
+  }, [products, categories]);
 
   const clearFilters = () => {
     setSearch('');
@@ -172,7 +199,6 @@ export default function Products() {
     setBrandId('');
     setCategoryId('');
     setSubcategoryId('');
-    setPage(0);
   };
 
   const hasActiveFilters = search || statusFilter || featuredOnly || brandId || categoryId || subcategoryId;
@@ -187,20 +213,26 @@ export default function Products() {
     return false;
   };
 
-  const handleReorder = async (fromIndex, toIndex) => {
-    const fromGlobal = page * rowsPerPage + fromIndex;
-    const toGlobal = page * rowsPerPage + toIndex;
-    const reordered = [...products];
-    const [removed] = reordered.splice(fromGlobal, 1);
-    reordered.splice(toGlobal, 0, removed);
+  const handleReorderInCategory = async (categoryId, fromIndex, toIndex) => {
+    const group = productGroups.find((g) => g.categoryId === categoryId);
+    if (!group) return;
+
+    const reordered = [...group.products];
+    const [removed] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, removed);
     const items = reordered.map((p, i) => ({ id: p.id, sort_order: i }));
+
     try {
-      await productsAPI.reorder(items);
-      setProducts(reordered.map((p, i) => ({ ...p, sort_order: i })));
+      await productsAPI.reorder({ items, category_id: categoryId });
+      const orderMap = Object.fromEntries(items.map((item) => [item.id, item.sort_order]));
+      setProducts((prev) => prev.map((p) => (
+        orderMap[p.id] != null ? { ...p, sort_order: orderMap[p.id] } : p
+      )));
+      setReorderSuccess('تم تحديث ترتيب المنتجات داخل القسم');
     } catch (err) {
       alert(err.response?.data?.message || 'فشل تحديث الترتيب');
     }
-    setDraggedIndex(-1);
+    setDraggedKey(null);
   };
 
   const handleDuplicate = async (product) => {
@@ -331,6 +363,16 @@ export default function Products() {
         </CardContent>
       </Card>
 
+      {reorderSuccess && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setReorderSuccess('')}>
+          {reorderSuccess}
+        </Alert>
+      )}
+
+      <Alert severity="info" sx={{ mb: 2 }}>
+        المنتجات مجمّعة حسب ترتيب الأقسام (من صفحة الفئات). اسحبي المنتجات داخل كل قسم لإعادة ترتيبها.
+      </Alert>
+
       <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
         <CardContent>
           {loading ? (
@@ -356,108 +398,127 @@ export default function Products() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginated.map((product, i) => (
-                    <SortableTableRow
-                      key={product.id}
-                      item={product}
-                      index={i}
-                      isDragging={draggedIndex === i}
-                      onDragStart={setDraggedIndex}
-                      onDrop={handleReorder}
-                      onDragEnd={() => setDraggedIndex(-1)}
-                      hover
-                    >
-                      <DragHandleCell />
-                      <TableCell>{product.sort_order ?? '-'}</TableCell>
-                      <TableCell>
-                        <Box
-                          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, cursor: 'pointer' }}
-                          onClick={() => setImageDialog({ open: true, product })}
-                          role="button"
-                        >
-                          <ImageDisplay
-                            src={getProductThumb(product)}
-                            size="md"
-                            fit="cover"
-                            onClick={() => setImageDialog({ open: true, product })}
-                          />
-                          {(getProductImages(product)?.length || 0) > 1 && (
-                            <ZoomIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-                          )}
-                        </Box>
+                  {productGroups.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={13} align="center">
+                        <Typography color="text.secondary" sx={{ py: 3 }}>لا توجد منتجات</Typography>
                       </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                          <Typography variant="body2" fontWeight={500}>{product.name}</Typography>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {(product.status || 'published') !== 'published' && (
-                              <Chip label={statusLabels[product.status] || product.status} size="small" color="default" variant="outlined" />
-                            )}
-                            {!!product.is_featured && <Chip label="مميز" size="small" color="secondary" />}
-                            {!!product.is_best_seller && <Chip label="أكثر مبيعاً" size="small" color="success" />}
-                            {isProductNew(product) && <Chip label="جديد" size="small" color="info" />}
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={statusLabels[product.status || 'published'] || product.status} size="small" color={product.status === 'published' ? 'success' : product.status === 'draft' ? 'warning' : 'default'} variant="outlined" />
-                      </TableCell>
-                      <TableCell>{product.brand_name}</TableCell>
-                      <TableCell>{product.category_name}</TableCell>
-                      <TableCell>{product.subcategory_name || '-'}</TableCell>
-                      <TableCell>{formatListPricing(product).before}</TableCell>
-                      <TableCell>{formatListPricing(product).after}</TableCell>
-                      <TableCell>{formatListPricing(product).discount}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={`${product.variants?.length || 0} ظل`}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          onClick={() => navigate(`/products/${product.id}/variants`)}
-                          icon={<VariantsIcon />}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <IconButton size="small" onClick={() => handleDuplicate(product)} title="نسخ">
-                          <DuplicateIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => navigate(`/products/${product.id}/variants`)}
-                          title="الظلال"
-                        >
-                          <VariantsIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => navigate(`/products/${product.id}/edit`)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => setDeleteDialog({ open: true, product })}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </SortableTableRow>
-                  ))}
+                    </TableRow>
+                  ) : (
+                    productGroups.map((group) => (
+                      <Fragment key={`group-${group.categoryId}`}>
+                        <TableRow sx={{ bgcolor: 'rgba(94, 53, 177, 0.06)' }}>
+                          <TableCell colSpan={13} sx={{ py: 1.5, borderBottom: '2px solid', borderColor: 'primary.light' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                              <Typography variant="subtitle1" fontWeight={800} color="primary.dark">
+                                {group.categoryName}
+                              </Typography>
+                              <Chip
+                                size="small"
+                                label={`${group.products.length} منتج · ترتيب القسم ${group.categorySortOrder}`}
+                                color="primary"
+                                variant="outlined"
+                              />
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                        {group.products.map((product, i) => {
+                          const dragKey = `${group.categoryId}-${i}`;
+                          return (
+                            <SortableTableRow
+                              key={product.id}
+                              item={product}
+                              index={i}
+                              isDragging={draggedKey === dragKey}
+                              onDragStart={() => setDraggedKey(dragKey)}
+                              onDrop={(fromIndex, toIndex) => handleReorderInCategory(group.categoryId, fromIndex, toIndex)}
+                              onDragEnd={() => setDraggedKey(null)}
+                              hover
+                            >
+                              <DragHandleCell />
+                              <TableCell>{product.sort_order ?? i}</TableCell>
+                              <TableCell>
+                                <Box
+                                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, cursor: 'pointer' }}
+                                  onClick={() => setImageDialog({ open: true, product })}
+                                  role="button"
+                                >
+                                  <ImageDisplay
+                                    src={getProductThumb(product)}
+                                    size="md"
+                                    fit="cover"
+                                    onClick={() => setImageDialog({ open: true, product })}
+                                  />
+                                  {(getProductImages(product)?.length || 0) > 1 && (
+                                    <ZoomIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                                  )}
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="body2" fontWeight={500}>{product.name}</Typography>
+                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                    {(product.status || 'published') !== 'published' && (
+                                      <Chip label={statusLabels[product.status] || product.status} size="small" color="default" variant="outlined" />
+                                    )}
+                                    {!!product.is_featured && <Chip label="مميز" size="small" color="secondary" />}
+                                    {!!product.is_best_seller && <Chip label="أكثر مبيعاً" size="small" color="success" />}
+                                    {isProductNew(product) && <Chip label="جديد" size="small" color="info" />}
+                                  </Box>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Chip label={statusLabels[product.status || 'published'] || product.status} size="small" color={product.status === 'published' ? 'success' : product.status === 'draft' ? 'warning' : 'default'} variant="outlined" />
+                              </TableCell>
+                              <TableCell>{product.brand_name}</TableCell>
+                              <TableCell>{product.category_name}</TableCell>
+                              <TableCell>{product.subcategory_name || '-'}</TableCell>
+                              <TableCell>{formatListPricing(product).before}</TableCell>
+                              <TableCell>{formatListPricing(product).after}</TableCell>
+                              <TableCell>{formatListPricing(product).discount}</TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={`${product.variants?.length || 0} ظل`}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                  onClick={() => navigate(`/products/${product.id}/variants`)}
+                                  icon={<VariantsIcon />}
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                <IconButton size="small" onClick={() => handleDuplicate(product)} title="نسخ">
+                                  <DuplicateIcon />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => navigate(`/products/${product.id}/variants`)}
+                                  title="الظلال"
+                                >
+                                  <VariantsIcon />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => navigate(`/products/${product.id}/edit`)}
+                                >
+                                  <EditIcon />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => setDeleteDialog({ open: true, product })}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </TableCell>
+                            </SortableTableRow>
+                          );
+                        })}
+                      </Fragment>
+                    ))
+                  )}
                 </TableBody>
               </Table>
-              <TablePagination
-                component="div"
-                count={products.length}
-                page={page}
-                onPageChange={(_, p) => setPage(p)}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-                rowsPerPageOptions={[5, 10, 25, 50]}
-                labelRowsPerPage="صفوف لكل صفحة"
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} من ${count}`}
-              />
             </TableContainer>
           )}
         </CardContent>

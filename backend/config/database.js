@@ -523,6 +523,23 @@ const initDb = async () => {
   } catch (e) {
     console.error('User notifications migration:', e.message);
   }
+  // Migration: push_tokens (إشعارات الهاتف)
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS push_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'web',
+      endpoint TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, platform, endpoint)
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id)');
+    saveDb();
+  } catch (e) {
+    console.error('Push tokens migration:', e.message);
+  }
 };
 
 // Async query - returns [rows] for SELECT, [{ insertId }] for INSERT (mysql2 compatible)

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { notificationsAPI } from '../services/api'
 import { formatDate } from '../utils/format'
 import MobileHeader from '../components/MobileHeader'
+import { PushEnableButton } from '../components/PushPermissionPrompt'
 import './Notifications.css'
 
 export default function Notifications() {
@@ -77,6 +78,8 @@ export default function Notifications() {
             </button>
           )}
         </div>
+
+        <PushEnableButton />
 
         {items.length === 0 ? (
           <div className="premium-notifications-empty">

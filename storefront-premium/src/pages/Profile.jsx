@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { PushEnableButton } from '../components/PushPermissionPrompt'
 import './Profile.css'
 
 export default function Profile() {
@@ -20,6 +21,7 @@ export default function Profile() {
         <Link to="/notifications">الإشعارات</Link>
         <Link to="/wishlist">المفضلة</Link>
       </div>
+      <PushEnableButton className="premium-profile-push" />
       <button className="premium-profile-logout" onClick={logout}>تسجيل الخروج</button>
     </div>
   )

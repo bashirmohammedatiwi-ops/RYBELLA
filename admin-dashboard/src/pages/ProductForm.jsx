@@ -349,7 +349,7 @@ export default function ProductForm() {
               fullWidth
               helperText="سيظهر شارة جديد حتى هذا التاريخ. اتركه فارغاً لإظهارها حسب تاريخ الإنشاء (30 يوم)"
             />
-            <TextField label="التسلسل" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} fullWidth placeholder="رقم أقل = ظهور أولاً ضمن البراند والفئة" inputProps={{ min: 0 }} />
+            <TextField label="التسلسل" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} fullWidth placeholder="رقم أقل = ظهور أولاً داخل نفس القسم" inputProps={{ min: 0 }} />
             <TextField label="وسوم (مفصولة بفاصلة)" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} fullWidth placeholder="مثلاً: مضاد للبكتيريا، مناسب للبشرة الجافة" helperText="للبحث والتصفية" />
             <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>حقول SEO</Typography>
             <TextField label="عنوان Meta (للمحركات)" value={form.meta_title} onChange={(e) => setForm({ ...form, meta_title: e.target.value })} fullWidth />

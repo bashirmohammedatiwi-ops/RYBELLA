@@ -92,4 +92,9 @@ export const reviewsAPI = {
   create: (data) => api.post('/reviews', data),
 };
 
+export const notificationsAPI = {
+  subscribePush: (data) => api.post('/notifications/push/subscribe', data),
+  unsubscribePush: (data) => api.post('/notifications/push/unsubscribe', data),
+};
+
 export default api;

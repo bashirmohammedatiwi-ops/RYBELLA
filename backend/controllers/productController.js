@@ -86,8 +86,9 @@ exports.getAll = async (req, res) => {
       price_desc: '(SELECT MAX(price) FROM product_variants WHERE product_id = p.id) DESC',
       newest: 'p.created_at DESC',
     };
+    const defaultOrder = 'COALESCE(c.sort_order, 999) ASC, p.sort_order ASC, p.name ASC';
     const useRelevanceSort = searchMeta && !sort_by;
-    const orderClause = useRelevanceSort ? 'p.sort_order ASC, p.name ASC' : (orderMap[sort_by] || 'p.sort_order ASC, p.name ASC');
+    const orderClause = useRelevanceSort ? defaultOrder : (orderMap[sort_by] || defaultOrder);
     query += ' ORDER BY ' + orderClause;
 
     const [products] = await db.query(query, params);
@@ -227,7 +228,10 @@ exports.create = async (req, res) => {
     const tagsStr = Array.isArray(tags) ? tags.join(',') : (typeof tags === 'string' ? tags : '');
     let prodOrder = sort_order !== undefined && sort_order !== '' ? parseInt(sort_order, 10) : null;
     if (prodOrder === null || isNaN(prodOrder)) {
-      const [maxRow] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM products');
+      const [maxRow] = await db.query(
+        'SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM products WHERE category_id = ?',
+        [category_id]
+      );
       prodOrder = maxRow[0]?.next_order ?? 0;
     }
 
@@ -342,10 +346,26 @@ exports.delete = async (req, res) => {
 
 exports.reorder = async (req, res) => {
   try {
-    const { items } = req.body;
+    const { items, category_id: categoryId } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'items مطلوب (مصفوفة من {id, sort_order})' });
     }
+
+    if (categoryId) {
+      const ids = items.map((item) => item.id).filter((id) => id != null);
+      if (ids.length !== items.length) {
+        return res.status(400).json({ message: 'معرّفات المنتجات غير صالحة' });
+      }
+      const placeholders = ids.map(() => '?').join(',');
+      const [rows] = await db.query(
+        `SELECT id FROM products WHERE category_id = ? AND id IN (${placeholders})`,
+        [categoryId, ...ids]
+      );
+      if (rows.length !== ids.length) {
+        return res.status(400).json({ message: 'يجب أن تكون جميع المنتجات ضمن نفس القسم' });
+      }
+    }
+
     for (const item of items) {
       if (item.id != null && item.sort_order != null) {
         await db.query('UPDATE products SET sort_order = ? WHERE id = ?', [parseInt(item.sort_order, 10) || 0, item.id]);
@@ -363,9 +383,14 @@ exports.duplicate = async (req, res) => {
     const [products] = await db.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
     if (products.length === 0) return res.status(404).json({ message: 'المنتج غير موجود' });
     const src = products[0];
+    const [maxRow] = await db.query(
+      'SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM products WHERE category_id = ?',
+      [src.category_id]
+    );
+    const nextOrder = maxRow[0]?.next_order ?? 0;
     const [ins] = await db.query(
-      `INSERT INTO products (name, brand_id, category_id, subcategory_id, description, main_image, barcode, status, is_featured, is_best_seller, new_until, meta_title, meta_description, tags)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (name, brand_id, category_id, subcategory_id, description, main_image, barcode, status, is_featured, is_best_seller, new_until, meta_title, meta_description, tags, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         (src.name || '') + ' (نسخة)',
         src.brand_id,
@@ -381,6 +406,7 @@ exports.duplicate = async (req, res) => {
         src.meta_title,
         src.meta_description,
         src.tags,
+        nextOrder,
       ]
     );
     const newId = ins.insertId;

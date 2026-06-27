@@ -1,0 +1,147 @@
+.push-permission-prompt {
+  position: fixed;
+  inset-inline: 12px;
+  bottom: calc(12px + var(--bottom-nav-h, 70px));
+  z-index: 1200;
+  animation: push-slide-up 0.35s ease;
+}
+
+.push-permission-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid rgba(195, 20, 119, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(80, 0, 43, 0.16);
+}
+
+.push-permission-icon {
+  font-size: 1.6rem;
+}
+
+.push-permission-text strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+  color: #1a0a10;
+}
+
+.push-permission-text p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #6b4f58;
+}
+
+.push-permission-msg {
+  margin-top: 6px !important;
+  color: #c31477 !important;
+  font-weight: 700;
+}
+
+.push-permission-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.push-permission-enable,
+.push-permission-later,
+.push-enable-btn {
+  border: 0;
+  border-radius: 999px;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.push-permission-enable,
+.push-enable-btn {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  color: #fff;
+  background: linear-gradient(135deg, #c31477, #a70e64);
+}
+
+.push-permission-later {
+  padding: 0.7rem 0.9rem;
+  background: #f5f5f5;
+  color: #666;
+}
+
+.push-permission-highlight {
+  margin-top: 8px !important;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(195, 20, 119, 0.08), rgba(255, 179, 204, 0.2));
+  color: #9d1459 !important;
+  font-size: 0.8rem !important;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.push-permission-reassurance {
+  margin-top: 6px !important;
+  font-size: 0.74rem !important;
+  color: #9b7a84 !important;
+}
+
+.push-enable-teaser {
+  margin: 0 0 0.55rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: #4a3038;
+  text-align: center;
+}
+
+.push-enable-block {
+  margin-top: 0.75rem;
+}
+
+.push-enable-btn {
+  width: 100%;
+  padding: 0.85rem 1rem;
+}
+
+.push-enable-status,
+.push-enable-feedback {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+
+.push-enable-status.is-on {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.push-enable-status.is-denied {
+  color: #b45309;
+  line-height: 1.45;
+}
+
+@keyframes push-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .push-permission-prompt {
+    inset-inline: auto;
+    right: 20px;
+    left: auto;
+    width: min(380px, calc(100vw - 40px));
+  }
+}
+
+[dir="rtl"] .push-permission-prompt {
+  right: auto;
+  left: 20px;
+}

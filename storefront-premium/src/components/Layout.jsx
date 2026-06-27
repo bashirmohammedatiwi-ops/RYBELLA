@@ -5,6 +5,7 @@ import BottomNav from './BottomNav'
 import BackToTop from './BackToTop'
 import FloatingContact from './FloatingContact'
 import ScrollToTop from './ScrollToTop'
+import PushPermissionPrompt from './PushPermissionPrompt'
 import './Layout.css'
 
 export default function Layout({ children }) {
@@ -37,6 +38,7 @@ export default function Layout({ children }) {
       {showBottomNav && <BottomNav />}
       {settings?.show_back_to_top !== '0' && <BackToTop />}
       {settings?.show_contact_float !== '0' && <FloatingContact whatsappNumber={settings?.whatsapp_number} />}
+      <PushPermissionPrompt />
     </div>
   )
 }

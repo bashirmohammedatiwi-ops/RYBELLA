@@ -56,7 +56,10 @@ export default function Notifications() {
     setSending(true);
     try {
       const { data } = await notificationsAPI.create(form);
-      setSuccess(data?.message || 'تم إرسال الإشعار بنجاح');
+      const pushInfo = data?.push_devices
+        ? ` — وصل ${data.push_sent || 0} جهاز هاتف من ${data.push_devices}`
+        : '';
+      setSuccess((data?.message || 'تم إرسال الإشعار بنجاح') + pushInfo);
       setOpen(false);
       setForm({ title: '', message: '' });
       loadNotifications();
@@ -87,7 +90,7 @@ export default function Notifications() {
         <Box>
           <Typography variant="h5" fontWeight={600}>الإشعارات</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            أرسل إشعارات لجميع الزبائن المسجّلين في المتجر
+            أرسل إشعارات للزبائن داخل المتجر وإلى الهواتف التي فعّلت الإذن
           </Typography>
         </Box>
         <Button variant="contained" startIcon={<SendIcon />} onClick={() => setOpen(true)}>
@@ -156,8 +159,8 @@ export default function Notifications() {
           </DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              سيصل الإشعار فوراً لجميع الزبائن المسجّلين في التطبيق.
-            </Typography>
+            سيصل الإشعار داخل المتجر وإلى الهواتف التي وافقت على إذن الإشعارات.
+          </Typography>
             <TextField
               fullWidth
               label="عنوان الإشعار"

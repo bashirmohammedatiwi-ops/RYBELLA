@@ -85,7 +85,7 @@ export const authAPI = {
 
 export const productsAPI = {
   getAll: (params) => api.get('/products', { params }),
-  reorder: (items) => api.put('/products/reorder', { items }),
+  reorder: (payload) => api.put('/products/reorder', payload),
   getById: (id) => api.get(`/products/${id}`),
   create: (formData) => api.post('/products', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },

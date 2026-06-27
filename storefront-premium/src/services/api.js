@@ -88,4 +88,7 @@ export const notificationsAPI = {
   getUnreadCount: () => api.get('/notifications/unread-count'),
   markRead: (id) => api.patch(`/notifications/${id}/read`),
   markAllRead: () => api.patch('/notifications/read-all'),
+  getVapidPublicKey: () => api.get('/notifications/push/vapid-public-key'),
+  subscribePush: (data) => api.post('/notifications/push/subscribe', data),
+  unsubscribePush: (data) => api.post('/notifications/push/unsubscribe', data),
 }

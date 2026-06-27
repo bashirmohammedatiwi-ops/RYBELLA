@@ -15,6 +15,7 @@ import { CartProvider } from './src/context/CartContext';
 import { ToastProvider } from './src/context/ToastContext';
 import { RecentlyViewedProvider } from './src/context/RecentlyViewedContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import PushNotificationSetup from './src/components/PushNotificationSetup';
 import { colors } from './src/theme';
 
 try { SplashScreen.preventAutoHideAsync?.(); } catch (_) {}
@@ -44,6 +45,7 @@ export default function App() {
       <CartProvider>
         <ToastProvider>
           <RecentlyViewedProvider>
+            <PushNotificationSetup />
             <AppNavigator />
             <StatusBar style="dark" />
           </RecentlyViewedProvider>
