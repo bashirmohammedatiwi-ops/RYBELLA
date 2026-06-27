@@ -10,13 +10,13 @@ function CategoryStripItem({ category, index }) {
   return (
     <Link
       to={`/explore?category=${category.id}`}
-      className="hc-chip"
+      className="hc-pill"
       style={{ '--ring-a': toneA, '--ring-b': toneB }}
     >
-      <span className="hc-chip-ring">
+      <span className="hc-pill-icon">
         <CategoryIconVisual category={category} />
       </span>
-      <span className="hc-chip-label">{category.name}</span>
+      <span className="hc-pill-name">{category.name}</span>
     </Link>
   )
 }
@@ -60,41 +60,37 @@ function CategoryImageCard({ category, index }) {
 export default function HomeCategoriesSection({ categories = [], variant = 'section' }) {
   if (!categories.length) return null
 
-  if (variant === 'header') {
+  if (variant === 'strip') {
     return (
-      <nav className="hc-strip" aria-label="الأقسام السريعة">
-        <div className="hc-strip-track">
-          {categories.map((c, i) => (
-            <CategoryStripItem key={c.id} category={c} index={i} />
-          ))}
-          <Link to="/categories" className="hc-chip hc-chip--all">
-            <span className="hc-chip-ring hc-chip-ring--all">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                <rect x="14" y="14" width="7" height="7" rx="1.5" />
-              </svg>
-            </span>
-            <span className="hc-chip-label">الكل</span>
-          </Link>
+      <section className="hc-quick" aria-label="الأقسام">
+        <div className="hc-quick-panel">
+          <div className="hc-quick-track-wrap">
+            <div className="hc-quick-track">
+              {categories.map((c, i) => (
+                <CategoryStripItem key={c.id} category={c} index={i} />
+              ))}
+              <Link to="/categories" className="hc-pill hc-pill--all">
+                <span className="hc-pill-icon hc-pill-icon--all">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  </svg>
+                </span>
+                <span className="hc-pill-name">كل الأقسام</span>
+              </Link>
+            </div>
+          </div>
         </div>
-      </nav>
+      </section>
     )
   }
 
   return (
-    <section className="hc-section" aria-label="الأقسام الرئيسية">
-      <div className="hc-section-bg" aria-hidden="true">
-        <span className="hc-section-glow" />
-      </div>
-
+    <section className="hc-section" aria-label="الأقسام">
       <header className="hc-section-head">
-        <div>
-          <span className="hc-section-eyebrow">الأقسام</span>
-          <h2 className="hc-section-title">اختاري عالمكِ</h2>
-          <p className="hc-section-desc">كل قسم بصورته — تصفّحي بسهولة واكتشفي ما يناسبك.</p>
-        </div>
+        <h2 className="hc-section-title">الأقسام</h2>
         <Link to="/categories" className="hc-section-link">عرض الكل</Link>
       </header>
 

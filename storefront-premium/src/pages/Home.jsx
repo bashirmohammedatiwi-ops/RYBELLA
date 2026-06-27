@@ -126,11 +126,10 @@ export default function Home() {
           />
           <button type="submit">بحث</button>
         </form>
-
-        <HomeCategoriesSection categories={categories} variant="header" />
       </header>
 
       <main className="home-main">
+        <HomeCategoriesSection categories={categories} variant="strip" />
         {banners.length > 0 ? (
           <section className="home-banners-section" aria-label="بنرات العروض">
             <div
@@ -219,13 +218,6 @@ export default function Home() {
           </section>
         )}
 
-        <nav className="home-quick-nav" aria-label="روابط سريعة">
-          <Link to="/explore">كل المنتجات</Link>
-          <Link to="/categories">الفئات</Link>
-          <Link to="/explore?featured=1">المميزة</Link>
-          <Link to="/explore?sort_by=newest">وصل حديثاً</Link>
-        </nav>
-
         <HomeCategoriesSection categories={categories} variant="section" />
 
         <StoriesBar />
@@ -241,11 +233,7 @@ export default function Home() {
         {featuredProducts.length > 0 && (
           <section className="home-section">
             <div className="home-section-header">
-              <div>
-                <span className="home-section-eyebrow">مختارات</span>
-                <h2 className="home-section-title">منتجات مميزة</h2>
-                <p className="home-section-desc">اختيارات ناعمة ومناسبة لكل يوم.</p>
-              </div>
+              <h2 className="home-section-title">منتجات مميزة</h2>
               <Link to="/explore?featured=1" className="home-section-link">الكل</Link>
             </div>
             <div className="home-products">
@@ -262,23 +250,28 @@ export default function Home() {
         )}
 
         {newProducts.length > 0 && (
-          <section className="home-simple-card">
-            <div>
-              <span>وصل حديثاً</span>
-              <h2>منتجات جديدة لتجربة أجمل</h2>
-              <p>تصفحي أحدث الإضافات بتصميم بسيط وواضح.</p>
+          <section className="home-section">
+            <div className="home-section-header">
+              <h2 className="home-section-title">وصل حديثاً</h2>
+              <Link to="/explore?sort_by=newest" className="home-section-link">الكل</Link>
             </div>
-            <Link to="/explore?sort_by=newest">شاهدي الجديد</Link>
+            <div className="home-products">
+              {newProducts.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  wishlistIds={wishlistIds}
+                  onWishlistToggle={user ? toggleWishlist : undefined}
+                />
+              ))}
+            </div>
           </section>
         )}
 
         {bestSellerProducts.length > 0 && (
           <section className="home-section">
             <div className="home-section-header">
-              <div>
-                <span className="home-section-eyebrow">الأكثر طلباً</span>
-                <h2 className="home-section-title">المفضلة لدى الزبائن</h2>
-              </div>
+              <h2 className="home-section-title">الأكثر طلباً</h2>
               <Link to="/explore" className="home-section-link">الكل</Link>
             </div>
             <div className="home-products">
@@ -297,10 +290,7 @@ export default function Home() {
         {showRecent && (
           <section className="home-section">
             <div className="home-section-header">
-              <div>
-                <span className="home-section-eyebrow">رجوع سريع</span>
-                <h2 className="home-section-title">شاهدته مؤخراً</h2>
-              </div>
+              <h2 className="home-section-title">شاهدته مؤخراً</h2>
             </div>
             <div className="home-products">
               {recentProducts.map((p) => (
@@ -314,11 +304,6 @@ export default function Home() {
             </div>
           </section>
         )}
-
-        <section className="home-footer-note">
-          <span>{heroTitle}</span>
-          <p>تجربة تسوق بسيطة، أنيقة، وسريعة.</p>
-        </section>
       </main>
     </div>
   )

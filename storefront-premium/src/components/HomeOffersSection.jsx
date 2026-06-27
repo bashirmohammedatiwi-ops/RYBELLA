@@ -79,17 +79,7 @@ export default function HomeOffersSection({ offers = [] }) {
 
       <div className="ho-section-inner">
         <header className="ho-head">
-          <div className="ho-head-text">
-            <span className="ho-eyebrow">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 2l1.8 5.5H19l-4.5 3.3 1.7 5.2L12 14.8 7.8 16l1.7-5.2L5 7.5h5.2L12 2z" />
-              </svg>
-              عروض محدودة
-            </span>
-            <h2 className="ho-title">عروض حصرية</h2>
-            <span className="ho-accent" aria-hidden="true" />
-            <p className="ho-desc">باقات مختارة بأسعار لا تُفوَّت</p>
-          </div>
+          <h2 className="ho-title">العروض</h2>
           {offers.length > 1 && (
             <span className="ho-counter" aria-live="polite">
               {activeIdx + 1}

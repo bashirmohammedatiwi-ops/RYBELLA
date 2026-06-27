@@ -12,7 +12,7 @@
 .home-main {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .home-header {
@@ -22,7 +22,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px 12px;
+  padding: 12px 14px 14px;
   padding-top: calc(12px + env(safe-area-inset-top, 0));
   background:
     radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.2), transparent 34%),
@@ -452,7 +452,7 @@
 
 .home-section-header {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
@@ -615,6 +615,7 @@
 }
 
 /* Component simplification overrides */
+.home .hc-quick,
 .home .hc-section,
 .home .ho-section,
 .home .sg-section {
