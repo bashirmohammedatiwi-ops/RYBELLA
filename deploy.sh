@@ -87,7 +87,7 @@ fi
 migrate_docker_volumes_if_needed() {
   # عند تغيير مجلد التشغيل (deployment/ → جذر المشروع) يُنشئ Docker volumes جديدة فارغة.
   # ننسخ البيانات من الأسماء القديمة إن وُجدت.
-  local     pairs=(
+  local pairs=(
     "deployment_backend_data:rybella_backend_data"
     "deployment_backend_uploads:rybella_backend_uploads"
     "deployment_backend_backups:rybella_backend_backups"
@@ -123,9 +123,72 @@ done
 echo "==> Building and starting containers..."
 docker compose --env-file "$ENV_FILE" up -d --build "$@"
 
+wait_for_service() {
+  local i
+  for i in $(seq 1 30); do
+    if docker exec rybella-backend wget -q --spider http://127.0.0.1:4000/api/health 2>/dev/null; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+post_deploy_checks() {
+  echo ""
+  echo "==> Post-deploy checks..."
+
+  if ! wait_for_service; then
+    echo "WARN: Backend health check timed out — see: docker compose logs backend"
+    return 1
+  fi
+  echo "OK  Backend /api/health"
+
+  if docker exec rybella-backend test -d /app/backups 2>/dev/null; then
+    echo "OK  Backup directory /app/backups"
+  else
+    echo "FAIL Backup directory missing"
+    return 1
+  fi
+
+  local backup_health
+  backup_health="$(docker exec rybella-backend wget -qO- http://127.0.0.1:4000/api/health/backups 2>/dev/null || true)"
+  if echo "$backup_health" | grep -q '"ok":true'; then
+    echo "OK  Backup API ready ($backup_health)"
+  else
+    echo "FAIL Backup health: $backup_health"
+    return 1
+  fi
+
+  local http_port
+  http_port="$(grep -E '^HTTP_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo 4000)"
+  http_port="${http_port:-4000}"
+  local nginx_code
+  nginx_code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${http_port}/api/health/backups" 2>/dev/null || echo 000)"
+  if [ "$nginx_code" = "200" ]; then
+    echo "OK  Admin Nginx /api/health/backups (HTTP $nginx_code)"
+  else
+    echo "WARN Admin Nginx returned HTTP $nginx_code for /api/health/backups (rebuild web container if needed)"
+  fi
+
+  echo ""
+  echo "============================================"
+  echo "  Rybella — جاهز للاستخدام"
+  echo "============================================"
+  echo "  المتجر:        https://rybellairaq.com"
+  echo "  لوحة التحكم:   https://admin.rybellairaq.com"
+  echo "  النسخ الاحتياطية: سجّل دخول → النسخ الاحتياطية → نسخة جديدة"
+  echo "  (لا حاجة لأي token يدوي — تسجيل الدخول في اللوحة يكفي)"
+  echo "============================================"
+}
+
+post_deploy_checks || true
+
 echo ""
 echo "==> Status:"
 docker compose ps
 echo ""
-echo "Admin + API:  http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'YOUR_IP'):4000"
-echo "Web store:    http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'YOUR_IP'):4003"
+HTTP_PORT="$(grep -E '^HTTP_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo 4000)"
+WEBSTORE_PORT="$(grep -E '^WEBSTORE_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo 4003)"
+echo "Admin + API:  http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'YOUR_IP'):${HTTP_PORT:-4000}"
+echo "Web store:    http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'YOUR_IP'):${WEBSTORE_PORT:-4003}"

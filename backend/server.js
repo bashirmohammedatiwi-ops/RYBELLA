@@ -86,6 +86,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Rybella Iraq API is running' });
 });
 
+app.get('/api/health/backups', require('./controllers/backupController').health);
+
 function startInventorySyncJob() {
   const intervalMin = parseInt(process.env.INVENTORY_SYNC_INTERVAL_MIN || '5', 10);
   if (!process.env.EXTERNAL_INVENTORY_API_URL) {

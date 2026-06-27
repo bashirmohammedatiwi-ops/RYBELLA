@@ -94,3 +94,20 @@ exports.remove = async (req, res) => {
     res.status(500).json({ message: 'تعذّر حذف النسخة الاحتياطية' });
   }
 };
+
+/** فحص جاهزية النسخ — بدون تسجيل دخول (للنشر والمراقبة) */
+exports.health = async (req, res) => {
+  try {
+    const dir = backupService.getBackupsDir();
+    const backups = backupService.listBackups();
+    res.json({
+      ok: true,
+      dir,
+      count: backups.length,
+      writable: true,
+    });
+  } catch (error) {
+    console.error('Backup health error:', error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
