@@ -70,6 +70,13 @@
   color: #666;
 }
 
+.push-permission-hint {
+  margin-top: 8px !important;
+  font-size: 0.78rem !important;
+  font-weight: 700;
+  color: #a70e64 !important;
+}
+
 .push-permission-highlight {
   margin-top: 8px !important;
   padding: 8px 10px;

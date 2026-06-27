@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../core/config.dart';
 import '../services/api_service.dart';
+import '../providers/cart_provider.dart';
+import '../utils/pricing.dart';
 import '../widgets/app_image.dart';
 
 class OfferDetailScreen extends StatefulWidget {
@@ -18,6 +21,8 @@ class OfferDetailScreen extends StatefulWidget {
 class _OfferDetailScreenState extends State<OfferDetailScreen> {
   Map<String, dynamic>? _offer;
   bool _loading = true;
+  bool _adding = false;
+  bool _added = false;
 
   @override
   void initState() {
@@ -37,6 +42,61 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
     if (path == null || path.isEmpty) return '';
     if (path.toString().startsWith('http')) return path.toString();
     return '${AppConfig.imgBase}$path';
+  }
+
+  Map<String, dynamic>? _firstVariant(Map<String, dynamic> product) {
+    final variants = product['variants'] as List? ?? [];
+    if (variants.isEmpty) return null;
+    for (final v in variants) {
+      final map = Map<String, dynamic>.from(v as Map);
+      if (((map['stock'] as num?) ?? 0) > 0) return map;
+    }
+    return Map<String, dynamic>.from(variants.first as Map);
+  }
+
+  Future<void> _addBundle() async {
+    final products = _offer!['products'] as List? ?? [];
+    if (products.isEmpty) return;
+    final rawLines = <Map<String, dynamic>>[];
+    for (final p in products) {
+      final product = Map<String, dynamic>.from(p as Map);
+      final v = _firstVariant(product);
+      if (v == null) return;
+      rawLines.add({
+        'variant_id': v['id'],
+        'product_id': product['id'],
+        'product_name': product['name'],
+        'shade_name': v['shade_name'],
+        'price': v['price'],
+        'quantity': 1,
+        'image': v['image'] ?? product['main_image'] ?? (product['images'] as List?)?.first,
+      });
+    }
+    final discount = (_offer!['discount_percent'] as num?) ?? 0;
+    final pricing = calcBundlePricing(rawLines, discountPercent: discount, quantity: 1);
+    setState(() => _adding = true);
+    final ok = await context.read<CartProvider>().addBundle(
+          offerId: _offer!['id'] as int,
+          offerTitle: _offer!['title']?.toString() ?? 'عرض',
+          offerImage: _offer!['image']?.toString(),
+          discountPercent: discount,
+          discountLabel: _offer!['discount_label']?.toString(),
+          lines: pricing.lines,
+          unitPrice: pricing.unitTotal,
+          subtotal: pricing.subtotal,
+        );
+    if (mounted) {
+      setState(() {
+        _adding = false;
+        _added = ok;
+      });
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت إضافة العرض للسلة')));
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) setState(() => _added = false);
+        });
+      }
+    }
   }
 
   @override
@@ -250,6 +310,23 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
                           ),
                         );
                       }),
+                    ],
+                    if (products.isNotEmpty) ...[
+                      const SizedBox(height: 28),
+                      FilledButton(
+                        onPressed: _adding ? null : _addBundle,
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: _added ? Colors.green : AppTheme.primary,
+                        ),
+                        child: _adding
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : Text(_added ? 'تمت الإضافة ✓' : 'أضيفي العرض للسلة'),
+                      ),
                     ],
                   ],
                 ),

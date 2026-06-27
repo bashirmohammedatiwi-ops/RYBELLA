@@ -10,8 +10,12 @@ class ApiService {
   static final _client = ApiClient.instance;
 
   // Auth
-  static Future<ApiResponse> login(String email, String password) async {
-    final res = await _client.post('/auth/login', body: {'email': email, 'password': password});
+  static Future<ApiResponse> login(String identifier, String password) async {
+    final trimmed = identifier.trim();
+    final body = trimmed.contains('@')
+        ? {'email': trimmed, 'password': password}
+        : {'phone': trimmed, 'password': password};
+    final res = await _client.post('/auth/login', body: body);
     if (res.success && res.data != null) {
       final token = res.data['token'] as String?;
       if (token != null) await _client.setToken(token);
@@ -133,11 +137,32 @@ class ApiService {
   }
 
   // Cart
-  static Future<List<Map<String, dynamic>>> getCart() async {
+  static Future<Map<String, dynamic>> getCartData() async {
     final res = await _client.get('/cart');
-    if (!res.success || res.data == null) return [];
-    final list = res.data is List ? res.data as List : [];
-    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    if (!res.success || res.data == null) {
+      return {'items': <Map<String, dynamic>>[], 'bundles': <Map<String, dynamic>>[]};
+    }
+    if (res.data is List) {
+      final list = res.data as List;
+      return {
+        'items': list.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+        'bundles': <Map<String, dynamic>>[],
+      };
+    }
+    final map = Map<String, dynamic>.from(res.data as Map);
+    final items = (map['items'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final bundles = (map['bundles'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    return {'items': items, 'bundles': bundles};
+  }
+
+  /// @deprecated use getCartData
+  static Future<List<Map<String, dynamic>>> getCart() async {
+    final data = await getCartData();
+    return data['items'] as List<Map<String, dynamic>>;
   }
 
   static Future<ApiResponse> addToCart(int variantId, int quantity) async {
@@ -154,6 +179,44 @@ class ApiService {
 
   static Future<ApiResponse> removeCartItem(int itemId) async {
     return _client.delete('/cart/$itemId');
+  }
+
+  static Future<ApiResponse> addBundleToCart(int offerId, List<Map<String, dynamic>> lines, {int quantity = 1}) async {
+    return _client.post('/cart/add-bundle', body: {
+      'offer_id': offerId,
+      'quantity': quantity,
+      'lines': lines,
+    });
+  }
+
+  static Future<ApiResponse> removeCartBundle(int bundleId) async {
+    return _client.delete('/cart/bundles/$bundleId');
+  }
+
+  // Notifications
+  static Future<List<Map<String, dynamic>>> getMyNotifications() async {
+    final res = await _client.get('/notifications/mine');
+    if (!res.success || res.data == null) return [];
+    final list = res.data is List ? res.data as List : [];
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  static Future<int> getUnreadNotificationsCount() async {
+    final res = await _client.get('/notifications/unread-count');
+    if (!res.success || res.data == null) return 0;
+    return (res.data['count'] as num?)?.toInt() ?? 0;
+  }
+
+  static Future<ApiResponse> markNotificationRead(int id) async {
+    return _client.patch('/notifications/$id/read', body: {});
+  }
+
+  static Future<ApiResponse> markAllNotificationsRead() async {
+    return _client.patch('/notifications/read-all', body: {});
+  }
+
+  static Future<ApiResponse> subscribePush({required String token, required String platform}) async {
+    return _client.post('/notifications/push/subscribe', body: {'token': token, 'platform': platform});
   }
 
   // Wishlist

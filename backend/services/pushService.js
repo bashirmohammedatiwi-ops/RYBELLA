@@ -52,6 +52,71 @@ async function sendWebPush(subscriptionJson, payload) {
   await webpush.sendNotification(subscription, JSON.stringify(payload));
 }
 
+function isExpoToken(token) {
+  return typeof token === 'string' && (token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken['));
+}
+
+let firebaseAdmin = null;
+
+function getFirebaseAdmin() {
+  if (firebaseAdmin === false) return null;
+  if (firebaseAdmin) return firebaseAdmin;
+  try {
+    const admin = require('firebase-admin');
+    if (admin.apps.length) {
+      firebaseAdmin = admin;
+      return admin;
+    }
+    const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (json) {
+      admin.initializeApp({ credential: admin.credential.cert(JSON.parse(json)) });
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      admin.initializeApp({ credential: admin.credential.applicationDefault() });
+    } else {
+      firebaseAdmin = false;
+      return null;
+    }
+    firebaseAdmin = admin;
+    return admin;
+  } catch (err) {
+    console.warn('[push] Firebase Admin not available:', err.message);
+    firebaseAdmin = false;
+    return null;
+  }
+}
+
+async function sendFcmPush(tokens, title, body, data = {}) {
+  const admin = getFirebaseAdmin();
+  if (!admin || !tokens.length) return { sent: 0, failed: tokens.length };
+  let sent = 0;
+  let failed = 0;
+  const unique = [...new Set(tokens.filter(Boolean))];
+  for (const token of unique) {
+    try {
+      await admin.messaging().send({
+        token,
+        notification: { title, body },
+        data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v ?? '')])),
+        android: { priority: 'high' },
+        apns: { payload: { aps: { sound: 'default' } } },
+      });
+      sent += 1;
+    } catch (err) {
+      failed += 1;
+      if (err.code === 'messaging/registration-token-not-registered') {
+        await dbDeleteToken(token);
+      }
+    }
+  }
+  return { sent, failed };
+}
+
+async function dbDeleteToken(token) {
+  try {
+    await db.query('DELETE FROM push_tokens WHERE token = ?', [token]);
+  } catch (_) {}
+}
+
 async function sendExpoPush(tokens, title, body, data = {}) {
   if (!tokens.length) return { sent: 0, failed: 0 };
   const unique = [...new Set(tokens.filter(Boolean))];
@@ -105,6 +170,7 @@ async function sendPushForNotification(title, message, notificationId) {
   let webSent = 0;
   let webFailed = 0;
   const expoTokens = [];
+  const fcmTokens = [];
 
   for (const row of rows) {
     if (row.platform === 'web') {
@@ -117,6 +183,10 @@ async function sendPushForNotification(title, message, notificationId) {
           await db.query('DELETE FROM push_tokens WHERE id = ?', [row.id]);
         }
       }
+    } else if (isExpoToken(row.token)) {
+      expoTokens.push(row.token);
+    } else if (['android', 'ios'].includes(row.platform)) {
+      fcmTokens.push(row.token);
     } else {
       expoTokens.push(row.token);
     }
@@ -126,13 +196,17 @@ async function sendPushForNotification(title, message, notificationId) {
     notificationId,
     url: '/notifications',
   });
+  const fcmResult = await sendFcmPush(fcmTokens, title, message, {
+    notificationId,
+    url: '/notifications',
+  });
 
   return {
     total: rows.length,
-    sent: webSent + expoResult.sent,
-    failed: webFailed + expoResult.failed,
+    sent: webSent + expoResult.sent + fcmResult.sent,
+    failed: webFailed + expoResult.failed + fcmResult.failed,
     web: webSent,
-    mobile: expoResult.sent,
+    mobile: expoResult.sent + fcmResult.sent,
   };
 }
 

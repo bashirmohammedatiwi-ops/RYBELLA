@@ -6,6 +6,7 @@ import BackToTop from './BackToTop'
 import FloatingContact from './FloatingContact'
 import ScrollToTop from './ScrollToTop'
 import PushPermissionPrompt from './PushPermissionPrompt'
+import Footer from './Footer'
 import './Layout.css'
 
 export default function Layout({ children }) {
@@ -34,6 +35,7 @@ export default function Layout({ children }) {
       )}
       <main className="app-main">
         {children}
+        <Footer settings={settings} />
       </main>
       {showBottomNav && <BottomNav />}
       {settings?.show_back_to_top !== '0' && <BackToTop />}

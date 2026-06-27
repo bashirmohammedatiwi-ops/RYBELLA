@@ -17,6 +17,7 @@ import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Wishlist from './pages/Wishlist'
 import Notifications from './pages/Notifications'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
     </Layout>
   )

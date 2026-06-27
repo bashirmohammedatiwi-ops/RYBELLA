@@ -1,7 +1,7 @@
 name: rybella_flutter
 description: "Rybella Iraq — تطبيق التسوق."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.11.0
@@ -24,6 +24,8 @@ dependencies:
   shimmer: ^3.0.0
   url_launcher: ^6.3.2
   video_player: ^2.11.1
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.5
 
 dev_dependencies:
   flutter_test:

@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'app_router.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'providers/recently_viewed_provider.dart';
+import 'providers/notifications_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (_) {
+    // Firebase غير مهيّأ — الإشعارات داخل التطبيق تعمل؛ راجع STORE_PUBLISHING.md
+  }
   // هاتف + تابلت: عمودي وأفقي للاستفادة من العرض على اللوحي
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -31,6 +39,7 @@ class RybellaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => WishlistProvider()),
         ChangeNotifierProvider(create: (_) => RecentlyViewedProvider()..load()),
+        ChangeNotifierProvider(create: (_) => NotificationsProvider()),
       ],
       child: const _AppWithAuthSync(),
     );

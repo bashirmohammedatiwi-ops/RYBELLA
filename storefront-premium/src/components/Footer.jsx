@@ -61,10 +61,13 @@ export default function Footer({ settings }) {
           <Link to="/categories">الفئات</Link>
           <Link to="/brands">العلامات</Link>
           <Link to="/cart">السلة</Link>
+          <Link to="/privacy-policy">سياسة الخصوصية</Link>
         </div>
       </div>
       <div className="rybella-footer-bottom">
         © {new Date().getFullYear()} {settings?.site_title || 'Rybella'}. جميع الحقوق محفوظة.
+        {' · '}
+        <Link to="/privacy-policy">سياسة الخصوصية</Link>
       </div>
     </footer>
   )

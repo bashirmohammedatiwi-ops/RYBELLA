@@ -45,8 +45,11 @@ export default function PushNotificationSetup() {
 
   const handleAccept = async () => {
     setLoading(true);
-    await registerForPushNotifications();
+    const result = await registerForPushNotifications();
     setLoading(false);
+    if (result.ok) {
+      await AsyncStorage.removeItem(DISMISS_KEY);
+    }
     setVisible(false);
   };
 
@@ -64,6 +67,9 @@ export default function PushNotificationSetup() {
           <Text style={styles.body}>{copy.body}</Text>
           <Text style={styles.highlight}>{copy.highlight}</Text>
           <Text style={styles.reassurance}>{copy.reassurance}</Text>
+          {loading && (
+            <Text style={styles.hint}>اضغطي «سماح» في نافذة الهاتف لإكمال التفعيل...</Text>
+          )}
 
           <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept} disabled={loading}>
             {loading ? (
@@ -130,6 +136,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
+  hint: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: colors.primary,
     marginBottom: spacing.lg,
   },
   acceptBtn: {

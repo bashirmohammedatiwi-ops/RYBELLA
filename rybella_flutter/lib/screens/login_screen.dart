@@ -7,7 +7,9 @@ import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? redirectTo;
+
+  const LoginScreen({super.key, this.redirectTo});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -15,14 +17,14 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -31,16 +33,22 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     final ok = await context.read<AuthProvider>().login(
-          _emailController.text.trim(),
+          _phoneController.text.trim(),
           _passwordController.text.trim(),
         );
     setState(() => _loading = false);
     if (ok && mounted) {
       await context.read<CartProvider>().mergeGuestCartAfterLogin();
-      if (mounted) context.go('/');
+      if (!mounted) return;
+      final target = widget.redirectTo;
+      if (target != null && target.isNotEmpty) {
+        context.go(target);
+      } else {
+        context.go('/');
+      }
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('البريد أو كلمة المرور غير صحيحة')),
+        const SnackBar(content: Text('رقم الهاتف أو كلمة المرور غير صحيحة')),
       );
     }
   }
@@ -71,34 +79,42 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 32),
                 TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) => v?.trim().isEmpty ?? true ? 'مطلوب' : null,
+                  controller: _phoneController,
+                  decoration: const InputDecoration(labelText: 'رقم الهاتف (07xxxxxxxxx)'),
+                  keyboardType: TextInputType.phone,
+                  textDirection: TextDirection.ltr,
+                  validator: (v) {
+                    final t = v?.trim() ?? '';
+                    if (t.isEmpty) return 'مطلوب';
+                    if (!RegExp(r'^07\d{9}$').hasMatch(t)) return 'رقم هاتف عراقي غير صالح';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'كلمة المرور',
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => _obscure = !_obscure),
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'كلمة المرور',
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscure = !_obscure),
+                    ),
                   ),
-                ),
-                obscureText: _obscure,
-                validator: (v) => v?.trim().isEmpty ?? true ? 'مطلوب' : null,
+                  obscureText: _obscure,
+                  validator: (v) => v?.trim().isEmpty ?? true ? 'مطلوب' : null,
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: _loading ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('دخول'),
+                  onPressed: _loading ? null : _submit,
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                  child: _loading
+                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('دخول'),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                onPressed: () => context.push('/register'),
-                child: const Text('إنشاء حساب جديد', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
+                  onPressed: () => context.push('/register'),
+                  child: const Text('إنشاء حساب جديد', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),

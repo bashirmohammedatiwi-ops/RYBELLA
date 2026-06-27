@@ -14,6 +14,8 @@ import 'screens/profile_screen.dart';
 import 'screens/orders_screen.dart';
 import 'screens/order_detail_screen.dart';
 import 'screens/wishlist_screen.dart';
+import 'screens/notifications_screen.dart';
+import 'screens/privacy_policy_screen.dart';
 import 'screens/categories_screen.dart';
 import 'screens/subcategories_screen.dart';
 import 'screens/brands_screen.dart';
@@ -21,6 +23,8 @@ import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'widgets/app_layout.dart';
 import 'widgets/animated_bottom_nav.dart';
+import 'widgets/whatsapp_fab.dart';
+import 'services/api_service.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 
@@ -114,6 +118,14 @@ GoRouter createAppRouter() {
             pageBuilder: (_, state) => _slidePage(state, const ProfileScreen()),
           ),
           GoRoute(
+            path: '/notifications',
+            pageBuilder: (_, state) => _slidePage(state, const NotificationsScreen()),
+          ),
+          GoRoute(
+            path: '/privacy-policy',
+            pageBuilder: (_, state) => _slidePage(state, const PrivacyPolicyScreen()),
+          ),
+          GoRoute(
             path: '/orders',
             pageBuilder: (_, state) => _slidePage(state, const OrdersScreen()),
           ),
@@ -146,7 +158,10 @@ GoRouter createAppRouter() {
       ),
       GoRoute(
         path: '/login',
-        pageBuilder: (_, __) => const MaterialPage(child: LoginScreen()),
+        pageBuilder: (_, state) {
+          final from = state.uri.queryParameters['from'];
+          return MaterialPage(child: LoginScreen(redirectTo: from));
+        },
       ),
       GoRoute(
         path: '/register',
@@ -156,19 +171,36 @@ GoRouter createAppRouter() {
     redirect: (context, state) {
       final auth = context.read<AuthProvider>();
       final path = state.matchedLocation;
-      final needsAuth = path == '/checkout' || path.startsWith('/orders');
+      final needsAuth = path == '/checkout' ||
+          path.startsWith('/orders') ||
+          path == '/notifications';
       if (needsAuth && !auth.isLoggedIn) {
-        return '/login?from=$path';
+        return '/login?from=${Uri.encodeComponent(path)}';
       }
       return null;
     },
   );
 }
 
-class _MainShell extends StatelessWidget {
+class _MainShell extends StatefulWidget {
   final Widget child;
 
   const _MainShell({required this.child});
+
+  @override
+  State<_MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<_MainShell> {
+  Map<String, dynamic>? _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    ApiService.getWebSettings().then((s) {
+      if (mounted) setState(() => _settings = s);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -183,11 +215,24 @@ class _MainShell extends StatelessWidget {
         path.startsWith('/register') ||
         isOrderDetail;
 
+    final showWhatsApp = _settings?['show_contact_float'] != '0';
+    final whatsapp = _settings?['whatsapp_number']?.toString();
+
     return Scaffold(
       extendBody: true,
-      body: AppLayout(
-        showBottomNav: !hideNav,
-        child: child,
+      body: Stack(
+        children: [
+          AppLayout(
+            showBottomNav: !hideNav,
+            child: widget.child,
+          ),
+          if (showWhatsApp && !hideNav)
+            Positioned(
+              left: 16,
+              bottom: 88,
+              child: WhatsAppFab(number: whatsapp),
+            ),
+        ],
       ),
       bottomNavigationBar: hideNav
           ? null

@@ -94,6 +94,19 @@ class ApiClient {
     }
   }
 
+  Future<ApiResponse> patch(String path, {Map<String, dynamic>? body}) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('${AppConfig.apiUrl}$path'),
+        headers: await _headers(),
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _handleResponse(res);
+    } catch (e) {
+      return ApiResponse.error(e.toString());
+    }
+  }
+
   Future<ApiResponse> delete(String path) async {
     try {
       final res = await http.delete(

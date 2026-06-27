@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'push_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _user;
@@ -26,10 +27,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String email, String password) async {
-    final res = await ApiService.login(email, password);
+  Future<bool> login(String identifier, String password) async {
+    final res = await ApiService.login(identifier, password);
     if (res.success) {
       await checkAuth();
+      await PushService.syncAfterLogin();
       return true;
     }
     return false;
@@ -45,6 +47,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await PushService.clearOnLogout();
     await ApiService.logout();
     _user = null;
     notifyListeners();

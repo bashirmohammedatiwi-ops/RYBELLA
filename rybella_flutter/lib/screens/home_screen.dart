@@ -16,7 +16,8 @@ import '../models/product.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/recently_viewed_provider.dart';
-import '../providers/wishlist_provider.dart';
+import '../utils/barcode.dart';
+import '../providers/notifications_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/app_image.dart';
 import '../widgets/home_subcategories_section.dart';
@@ -80,6 +81,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchFocusNode.addListener(_onSearchFocusChanged);
     _loadRecentSearches();
     _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.read<AuthProvider>().isLoggedIn) {
+        context.read<NotificationsProvider>().load();
+      }
+    });
   }
 
   void _onSearchFocusChanged() {
@@ -155,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return '/explore?${params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
   }
 
-  void _submitHomeSearch() {
+  Future<void> _submitHomeSearch() async {
     FocusManager.instance.primaryFocus?.unfocus();
     final q = _homeSearchController.text.trim();
     if (q.isEmpty) {
@@ -163,6 +169,16 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     _recordRecentSearch(q);
+    if (isBarcodeLikeQuery(q)) {
+      try {
+        final list = await ApiService.getProducts(search: q);
+        if (!mounted) return;
+        if (list.length == 1) {
+          context.go('/products/${list.first.id}');
+          return;
+        }
+      } catch (_) {}
+    }
     context.go(_buildExploreUrl(search: q));
   }
 
@@ -576,6 +592,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = context.watch<AuthProvider>();
     final cart = context.watch<CartProvider>();
     final wishlist = context.watch<WishlistProvider>();
+    final notif = context.watch<NotificationsProvider>();
     final heroTitle = _settings?['hero_title'] ?? 'Rybella';
     final heroSubtitle = _heroSubtitleResolved(_settings);
     final showRecent = _settings?['show_recently_viewed'] != '0' && _recentProducts.isNotEmpty;
@@ -596,8 +613,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: heroTitle,
                   subtitle: heroSubtitle,
                   cartCount: cart.totalCount,
+                  notificationCount: auth.isLoggedIn ? notif.unreadCount : 0,
                   horizontalPadding: ph,
                   onCategories: () => context.go('/categories'),
+                  onNotifications: auth.isLoggedIn ? () => context.go('/notifications') : null,
                   onCart: () => context.go('/cart'),
                   searchController: _homeSearchController,
                   searchFocusNode: _searchFocusNode,
@@ -880,8 +899,10 @@ class _HomeHeroLight extends StatelessWidget {
   final String title;
   final String subtitle;
   final int cartCount;
+  final int notificationCount;
   final double horizontalPadding;
   final VoidCallback onCategories;
+  final VoidCallback? onNotifications;
   final VoidCallback onCart;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
@@ -895,8 +916,10 @@ class _HomeHeroLight extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.cartCount,
+    this.notificationCount = 0,
     required this.horizontalPadding,
     required this.onCategories,
+    this.onNotifications,
     required this.onCart,
     required this.searchController,
     required this.searchFocusNode,
@@ -1055,6 +1078,10 @@ class _HomeHeroLight extends StatelessWidget {
                       ),
                     ),
                     _HlRoundIconButton(icon: Icons.grid_view_rounded, onTap: onCategories),
+                    if (onNotifications != null) ...[
+                      const SizedBox(width: 10),
+                      _HlRoundNotifButton(count: notificationCount, onTap: onNotifications!),
+                    ],
                     const SizedBox(width: 10),
                     _HlRoundCartButton(count: cartCount, onTap: onCart),
                   ],
@@ -1261,6 +1288,66 @@ class _HlRoundIconButton extends StatelessWidget {
             width: 48,
             height: 48,
             child: Icon(icon, size: 22, color: AppTheme.primaryDark),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HlRoundNotifButton extends StatelessWidget {
+  final int count;
+  final VoidCallback onTap;
+
+  const _HlRoundNotifButton({required this.count, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      elevation: 0,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Ink(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _Hl.surface,
+            border: Border.all(color: _Hl.cardEdge),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Icon(Icons.notifications_outlined, size: 22, color: AppTheme.primaryDark),
+                if (count > 0)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                      decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                      child: Text(
+                        count > 9 ? '9+' : '$count',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, height: 1),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

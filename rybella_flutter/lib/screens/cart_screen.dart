@@ -112,16 +112,16 @@ class _CartScreenState extends State<CartScreen> {
                   ],
                 ),
               )
-            : cart.items.isEmpty
+            : (cart.items.isEmpty && cart.bundles.isEmpty)
                 ? _CartEmpty(onExplore: () => context.go('/explore'))
                 : RefreshIndicator(
                     color: AppTheme.primary,
                     onRefresh: cart.loadCart,
                     child: ListView(
-                      padding: EdgeInsets.fromLTRB(16, 4, 16, cart.items.isNotEmpty ? bottom + 168 : 24),
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, cart.totalCount > 0 ? bottom + 168 : 24),
                       children: [
                         _CartSectionHeader(
-                          lines: cart.items.length,
+                          lines: cart.items.length + cart.bundles.length,
                           pieces: cart.totalCount,
                         ),
                         const SizedBox(height: 12),
@@ -146,12 +146,24 @@ class _CartScreenState extends State<CartScreen> {
                             ),
                           ),
                         ),
+                        ...cart.bundles.map(
+                          (bundle) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _CartBundleCard(
+                              bundle: bundle,
+                              onRemove: () {
+                                HapticFeedback.lightImpact();
+                                cart.removeBundle(bundle['id'] ?? bundle['bundle_key'] ?? bundle['offer_id']);
+                              },
+                            ),
+                          ),
+                        ),
                         _CartSummaryBlock(total: cart.totalPrice),
                       ],
                     ),
                   ),
       ),
-      bottomNavigationBar: cart.items.isEmpty
+      bottomNavigationBar: (cart.items.isEmpty && cart.bundles.isEmpty)
           ? null
           : ClipRect(
               child: BackdropFilter(
@@ -435,6 +447,67 @@ class _CartSectionHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── بطاقة عرض (Bundle) ───
+
+class _CartBundleCard extends StatelessWidget {
+  final Map<String, dynamic> bundle;
+  final VoidCallback onRemove;
+
+  const _CartBundleCard({required this.bundle, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = bundle['offer_title']?.toString() ?? 'عرض';
+    final label = bundle['discount_label']?.toString();
+    final qty = (bundle['quantity'] as num?)?.toInt() ?? 1;
+    final unit = (bundle['unit_price'] as num?)?.toDouble() ?? (bundle['total_price'] as num?)?.toDouble() ?? 0;
+    final total = unit * qty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(color: AppTheme.primary.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 6)),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppTheme.primarySoft,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.local_offer_outlined, color: AppTheme.primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                if (label != null) Text(label, style: TextStyle(color: AppTheme.primary, fontSize: 13)),
+                Text('×$qty', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text('${total.toStringAsFixed(0)} د.ع', style: const TextStyle(fontWeight: FontWeight.w800)),
+              IconButton(onPressed: onRemove, icon: const Icon(Icons.delete_outline, color: AppTheme.error, size: 22)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
