@@ -122,7 +122,7 @@
 .sg-card {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 22px;
   background: #fff;
   text-decoration: none;
@@ -147,16 +147,17 @@
 .sg-gallery-stage {
   position: relative;
   border-radius: 16px;
-  overflow: hidden;
-  background: #fafafa;
-  border: 1px solid rgba(195, 20, 119, 0.08);
+  overflow: visible;
+  background: transparent;
+  border: none;
+  padding-bottom: 8px;
 }
 
 .sg-gallery-bars {
   position: absolute;
   top: 10px;
   inset-inline: 10px;
-  z-index: 4;
+  z-index: 6;
   display: flex;
   gap: 4px;
 }
@@ -195,9 +196,45 @@
   transform-origin: right;
 }
 
+.sg-gallery-stack {
+  position: absolute;
+  inset: 12px 10px 20px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.sg-gallery-stack-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 28px rgba(92, 37, 52, 0.14);
+  transform:
+    translate(var(--stack-x, 0), var(--stack-y, 0))
+    rotate(var(--stack-rot, 0deg))
+    scale(var(--stack-scale, 0.9));
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease;
+}
+
+.sg-gallery-stack-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.88;
+}
+
 .sg-gallery-frame {
   position: relative;
+  z-index: 4;
   aspect-ratio: 4 / 5;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fafafa;
+  border: 1px solid rgba(195, 20, 119, 0.1);
+  box-shadow: 0 16px 40px rgba(92, 37, 52, 0.12);
 }
 
 .sg-gallery-img {
@@ -210,7 +247,7 @@
   padding: 16px;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.45s ease, visibility 0.45s ease;
+  transition: opacity 0.45s ease, visibility 0.45s ease, transform 0.45s ease;
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
@@ -219,13 +256,14 @@
 .sg-gallery-img.is-active {
   opacity: 1;
   visibility: visible;
+  transform: scale(1);
 }
 
 .sg-gallery-count {
   position: absolute;
-  bottom: 10px;
+  bottom: 18px;
   inset-inline-end: 10px;
-  z-index: 4;
+  z-index: 6;
   padding: 5px 10px;
   color: #1a0a10;
   background: rgba(255, 255, 255, 0.92);
@@ -236,32 +274,42 @@
   border: 1px solid rgba(195, 20, 119, 0.1);
 }
 
-.sg-gallery-thumbs {
+.sg-gallery-film {
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin-top: 4px;
+  padding: 0 8px 6px;
   overflow-x: auto;
-  padding: 2px 0 4px;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
-.sg-gallery-thumbs::-webkit-scrollbar {
+.sg-gallery-film::-webkit-scrollbar {
   display: none;
 }
 
-.sg-gallery-thumb {
-  flex: 0 0 52px;
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  border: 2px solid rgba(195, 20, 119, 0.12);
-  border-radius: 12px;
+.sg-gallery-polaroid {
+  flex: 0 0 auto;
+  width: 50px;
+  height: 64px;
+  margin-inline-start: -8px;
+  padding: 3px 3px 9px;
+  border: none;
   background: #fff;
-  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transform: rotate(calc(var(--film-i, 0) * 5deg));
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+  z-index: 1;
 }
 
-.sg-gallery-thumb img {
+.sg-gallery-polaroid:first-child {
+  margin-inline-start: 0;
+}
+
+.sg-gallery-polaroid img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -269,9 +317,11 @@
   pointer-events: none;
 }
 
-.sg-gallery-thumb.is-active {
-  border-color: #c31477;
-  transform: scale(1.05);
+.sg-gallery-polaroid.is-active {
+  transform: rotate(0deg) translateY(-8px) scale(1.1);
+  z-index: 10;
+  box-shadow: 0 12px 28px rgba(195, 20, 119, 0.25);
+  outline: 2px solid #c31477;
 }
 
 /* ─── Meta — light footer ─── */
@@ -371,13 +421,14 @@
   .sg-head { padding-inline: 24px; }
   .sg-track { padding-inline: 24px; gap: 24px; }
   .sg-slide { flex-basis: min(70vw, 440px); }
-  .sg-gallery-thumb { flex-basis: 58px; width: 58px; height: 58px; }
+  .sg-gallery-polaroid { width: 56px; height: 70px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sg-slide,
   .sg-gallery-img,
-  .sg-gallery-thumb,
+  .sg-gallery-stack-card,
+  .sg-gallery-polaroid,
   .sg-gallery-bar-fill {
     transition: none !important;
     animation: none !important;

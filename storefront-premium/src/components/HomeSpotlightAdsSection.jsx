@@ -63,6 +63,22 @@ function buildSpotlightProducts(products, featured, bestSellers, rotationBucket 
   return picked
 }
 
+function getStackLayers(images, frontIdx) {
+  const count = images.length
+  if (count <= 1) return []
+
+  const presets = [
+    { rot: -8, x: -12, y: 8, scale: 0.9, z: 1 },
+    { rot: 6, x: 14, y: 5, scale: 0.86, z: 2 },
+    { rot: -4, x: -6, y: 14, scale: 0.82, z: 3 },
+  ]
+
+  return presets.slice(0, Math.min(3, count - 1)).map((preset, k) => ({
+    ...preset,
+    idx: (frontIdx + k + 1) % count,
+  }))
+}
+
 function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
   const touchRef = useRef({ x: 0, y: 0 })
   const onChangeRef = useRef(onChange)
@@ -99,6 +115,7 @@ function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
   }
 
   const canAnimate = isActive && inView && count > 1
+  const stackLayers = getStackLayers(images, frontIdx)
 
   return (
     <div className="sg-gallery">
@@ -122,6 +139,24 @@ function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
           </div>
         )}
 
+        <div className="sg-gallery-stack" aria-hidden="true">
+          {stackLayers.map((layer) => (
+            <span
+              key={`${layer.idx}-${frontIdx}`}
+              className="sg-gallery-stack-card"
+              style={{
+                '--stack-rot': `${layer.rot}deg`,
+                '--stack-x': `${layer.x}px`,
+                '--stack-y': `${layer.y}px`,
+                '--stack-scale': layer.scale,
+                zIndex: layer.z,
+              }}
+            >
+              <img src={`${IMG_BASE}${images[layer.idx]}`} alt="" loading="lazy" draggable={false} />
+            </span>
+          ))}
+        </div>
+
         <div className="sg-gallery-frame">
           {images.map((src, i) => (
             <img
@@ -141,14 +176,15 @@ function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
       </div>
 
       {count > 1 && (
-        <div className="sg-gallery-thumbs" role="tablist" aria-label="صور المنتج">
+        <div className="sg-gallery-film" role="tablist" aria-label="صور المنتج">
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
               role="tab"
               aria-selected={i === frontIdx}
-              className={`sg-gallery-thumb${i === frontIdx ? ' is-active' : ''}`}
+              className={`sg-gallery-polaroid${i === frontIdx ? ' is-active' : ''}`}
+              style={{ '--film-i': i - frontIdx }}
               onClick={(e) => {
                 e.preventDefault()
                 onChange(i)

@@ -279,11 +279,13 @@
   position: relative;
   max-width: 1180px;
   margin: 8px 14px 0;
+  padding-top: 52px;
+  overflow: visible;
 }
 
 .home-banners {
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -307,20 +309,25 @@
   scroll-snap-align: start;
   border: 1px solid;
   border-radius: 22px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 12px 32px rgba(92, 37, 52, 0.1);
 }
 
 .home-banner-clip {
   position: absolute;
   inset: 0;
+  top: -52px;
+  height: calc(100% + 52px);
   border-radius: inherit;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 .home-banner-bg {
   position: absolute;
-  inset: 0;
+  top: 52px;
+  inset-inline: 0;
+  bottom: 0;
   border-radius: inherit;
   overflow: hidden;
 }
@@ -334,7 +341,8 @@
 .home-banner-content {
   position: absolute;
   inset-inline: 14px auto;
-  inset-block: 0;
+  top: 52px;
+  bottom: 0;
   z-index: 2;
   display: flex;
   align-items: center;
@@ -386,7 +394,7 @@
 .home-banner-discount-badge {
   position: absolute;
   z-index: 3;
-  top: 12px;
+  top: 60px;
   inset-inline-start: 14px;
   padding: 8px 11px;
   border-radius: 999px;

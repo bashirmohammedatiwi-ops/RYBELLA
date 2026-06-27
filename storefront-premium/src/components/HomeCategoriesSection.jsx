@@ -25,8 +25,8 @@ function CategoryRow({ category }) {
   const imageUrl = category.image ? `${IMG_BASE}${category.image}` : null
 
   return (
-    <Link to={`/explore?category=${category.id}`} className="hc-bottom-card">
-      <span className="hc-bottom-visual">
+    <Link to={`/explore?category=${category.id}`} className="hc-bottom-row">
+      <span className="hc-bottom-media">
         {imageUrl ? (
           <img src={imageUrl} alt="" loading="lazy" draggable={false} />
         ) : (
@@ -35,11 +35,10 @@ function CategoryRow({ category }) {
           </span>
         )}
       </span>
-
-      <span className="hc-bottom-footer">
+      <span className="hc-bottom-body">
         <span className="hc-bottom-name">{category.name}</span>
         <span className="hc-bottom-arrow" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </span>

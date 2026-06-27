@@ -218,8 +218,6 @@ export default function Home() {
           </section>
         )}
 
-        <HomeCategoriesSection categories={categories} variant="section" />
-
         <StoriesBar />
 
         <HomeSpotlightAdsSection
@@ -229,6 +227,8 @@ export default function Home() {
         />
 
         {showOffers && <HomeOffersSection offers={offers} />}
+
+        <HomeCategoriesSection categories={categories} variant="section" />
 
         {featuredProducts.length > 0 && (
           <section className="home-section">
