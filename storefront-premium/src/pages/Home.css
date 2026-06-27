@@ -44,17 +44,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 148px;
-  height: 48px;
+  width: 172px;
+  height: 58px;
   overflow: hidden;
   flex-shrink: 0;
-  padding: 5px 12px;
-  border-radius: 18px;
-  background: #c31477;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    0 10px 24px rgba(80, 0, 43, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 10px 28px rgba(40, 0, 22, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   text-decoration: none;
 }
 
@@ -62,7 +63,9 @@
   display: block;
   width: 100%;
   height: 100%;
+  max-height: 46px;
   object-fit: contain;
+  object-position: center;
 }
 
 .home-search {
@@ -615,7 +618,7 @@
 }
 
 /* Component simplification overrides */
-.home .hc-orbit,
+.home .hc-tiles,
 .home .hc-section,
 .home .ho-section,
 .home .sg-section {
@@ -624,25 +627,17 @@
   padding-block: 0;
 }
 
-.home .ho-section-bg,
-.home .ho-section-glow {
-  display: none;
-}
-
-.home .hc-section-head,
-.home .ho-head {
+.home .hc-section-head {
   padding-inline: 14px;
 }
 
-.home .hc-section-title,
-.home .ho-title {
+.home .hc-section-title {
   color: #26141a;
   font-size: clamp(1.35rem, 5vw, 2rem);
   font-weight: 800;
   letter-spacing: -0.035em;
 }
 
-.home .ho-card,
 .home .sg-slide,
 .home .premium-product-card {
   border-color: rgba(232, 93, 122, 0.12);
@@ -656,6 +651,16 @@
 
   .home-header {
     padding-inline: 24px;
+  }
+
+  .home-logo {
+    width: 196px;
+    height: 64px;
+    padding: 7px 16px;
+  }
+
+  .home-logo img {
+    max-height: 50px;
   }
 
   .home-intro,

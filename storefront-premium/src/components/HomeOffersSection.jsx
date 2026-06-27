@@ -25,23 +25,24 @@ export default function HomeOffersSection({ offers = [] }) {
     if (!track) return
     const card = track.children[index]
     if (!card) return
-    const targetLeft = card.offsetLeft - (track.clientWidth - card.clientWidth) / 2
-    track.scrollTo({ left: targetLeft, behavior: 'smooth' })
+    track.scrollTo({
+      left: card.offsetLeft - (track.clientWidth - card.clientWidth) / 2,
+      behavior: 'smooth',
+    })
     activeIdxRef.current = index
     setActiveIdx(index)
   }, [])
 
   const handleScroll = useCallback(() => {
     const track = trackRef.current
-    if (!track || !track.children.length) return
+    if (!track?.children.length) return
     const center = track.scrollLeft + track.clientWidth / 2
     let closest = 0
     let minDist = Infinity
     Array.from(track.children).forEach((child, i) => {
-      const childCenter = child.offsetLeft + child.clientWidth / 2
-      const dist = Math.abs(childCenter - center)
-      if (dist < minDist) {
-        minDist = dist
+      const d = Math.abs(child.offsetLeft + child.clientWidth / 2 - center)
+      if (d < minDist) {
+        minDist = d
         closest = i
       }
     })
@@ -63,8 +64,7 @@ export default function HomeOffersSection({ offers = [] }) {
   useEffect(() => {
     if (offers.length <= 1 || !inView) return
     const t = setInterval(() => {
-      const next = (activeIdxRef.current + 1) % offers.length
-      scrollToIndex(next)
+      scrollToIndex((activeIdxRef.current + 1) % offers.length)
     }, 6000)
     return () => clearInterval(t)
   }, [offers.length, inView, scrollToIndex])
@@ -72,102 +72,95 @@ export default function HomeOffersSection({ offers = [] }) {
   if (!offers.length) return null
 
   return (
-    <section ref={sectionRef} className="ho-section" aria-label="عروض حصرية">
-      <div className="ho-section-bg" aria-hidden="true" />
-      <div className="ho-section-glow ho-section-glow--a" aria-hidden="true" />
-      <div className="ho-section-glow ho-section-glow--b" aria-hidden="true" />
-
-      <div className="ho-section-inner">
+    <section ref={sectionRef} className="ho-section" aria-label="العروض">
+      <div className="ho-shell">
         <header className="ho-head">
           <h2 className="ho-title">العروض</h2>
           {offers.length > 1 && (
-            <span className="ho-counter" aria-live="polite">
-              {activeIdx + 1}
-              <span className="ho-counter-sep">/</span>
-              {offers.length}
-            </span>
-          )}
-        </header>
-
-        <div className="ho-stage">
-          <div className="ho-track-wrap">
-            <div
-              className="ho-track"
-              ref={trackRef}
-              onScroll={handleScroll}
-            >
-              {offers.map((o, i) => {
-                const discount = getDiscountPercent(o)
-                const label = o.discount_label || o.title
-                const showTitle = o.title && o.title !== o.discount_label
-
-                return (
-                  <Link
-                    key={o.id}
-                    to={getOfferLink(o)}
-                    className={`ho-card${i === activeIdx ? ' is-active' : ''}`}
-                  >
-                    <div className="ho-card-visual">
-                      {o.image ? (
-                        <img src={`${IMG_BASE}${o.image}`} alt={o.title || label} loading="lazy" />
-                      ) : (
-                        <div className="ho-card-placeholder" aria-hidden="true" />
-                      )}
-                      <span className="ho-card-tag">حصري</span>
-                      {discount != null && (
-                        <span className="ho-card-discount">-{formatPercent(discount)}</span>
-                      )}
-                    </div>
-
-                    <div className="ho-card-body">
-                      <span className="ho-card-label">{label}</span>
-                      {showTitle && <span className="ho-card-sub">{o.title}</span>}
-                      <span className="ho-card-cta">
-                        اكتشفي العرض
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                          <polyline points="15 18 9 12 15 6" />
-                        </svg>
-                      </span>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-
-          {offers.length > 1 && (
-            <div className="ho-controls">
-              <div className="ho-progress" aria-hidden="true">
-                <span
-                  className="ho-progress-fill"
-                  style={{ width: `${((activeIdx + 1) / offers.length) * 100}%` }}
-                />
-              </div>
-              <div className="ho-arrows">
+            <div className="ho-head-actions">
+              <span className="ho-count">{activeIdx + 1} / {offers.length}</span>
+              <div className="ho-nav">
                 <button
                   type="button"
-                  className="ho-arrow"
+                  className="ho-nav-btn"
                   aria-label="العرض السابق"
                   onClick={() => scrollToIndex((activeIdx - 1 + offers.length) % offers.length)}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="9 18 15 12 9 6" />
+                    <path d="M15 18l-6-6 6-6" />
                   </svg>
                 </button>
                 <button
                   type="button"
-                  className="ho-arrow"
+                  className="ho-nav-btn"
                   aria-label="العرض التالي"
                   onClick={() => scrollToIndex((activeIdx + 1) % offers.length)}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="15 18 9 12 15 6" />
+                    <path d="M9 18l6-6-6-6" />
                   </svg>
                 </button>
               </div>
             </div>
           )}
+        </header>
+
+        <div className="ho-track" ref={trackRef} onScroll={handleScroll}>
+          {offers.map((o, i) => {
+            const discount = getDiscountPercent(o)
+            const label = o.discount_label || o.title || 'عرض خاص'
+
+            return (
+              <Link
+                key={o.id}
+                to={getOfferLink(o)}
+                className={`ho-deal${i === activeIdx ? ' is-active' : ''}`}
+              >
+                <div className="ho-deal-visual">
+                  {o.image ? (
+                    <img src={`${IMG_BASE}${o.image}`} alt={label} loading="lazy" draggable={false} />
+                  ) : (
+                    <span className="ho-deal-fallback" aria-hidden="true" />
+                  )}
+                  <span className="ho-deal-shade" aria-hidden="true" />
+
+                  {discount != null && (
+                    <span className="ho-deal-stamp">
+                      <span className="ho-deal-stamp-val">-{formatPercent(discount)}</span>
+                      <span className="ho-deal-stamp-label">خصم</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="ho-deal-ticket">
+                  <span className="ho-deal-notch" aria-hidden="true" />
+                  <span className="ho-deal-name">{label}</span>
+                  <span className="ho-deal-arrow" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </span>
+                </div>
+              </Link>
+            )
+          })}
         </div>
+
+        {offers.length > 1 && (
+          <div className="ho-dots" role="tablist" aria-label="العروض">
+            {offers.map((o, i) => (
+              <button
+                key={o.id}
+                type="button"
+                role="tab"
+                aria-selected={i === activeIdx}
+                className={`ho-dot${i === activeIdx ? ' is-on' : ''}`}
+                onClick={() => scrollToIndex(i)}
+                aria-label={`عرض ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
