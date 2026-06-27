@@ -645,10 +645,16 @@
   padding-block: 0;
 }
 
-.home .ho-section,
-.home .sg-section {
+.home .ho-section {
   max-width: 1180px;
   margin-inline: auto;
+  padding-block: 0;
+}
+
+.home .sg-section {
+  max-width: none;
+  width: 100%;
+  margin-inline: 0;
   padding-block: 0;
 }
 
