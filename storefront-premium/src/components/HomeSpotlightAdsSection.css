@@ -404,3 +404,66 @@
     transition: none !important;
   }
 }
+
+/* Home luxury refresh refinements */
+.home .pk-section {
+  max-width: 1180px;
+  margin: 0 auto 18px;
+  padding: 18px 0 28px;
+}
+
+.home .pk-section::before {
+  content: 'معرض مختار';
+  display: inline-flex;
+  margin: 0 14px 12px;
+  padding: 6px 12px;
+  color: var(--primary-dark, #c94a5a);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  background: rgba(255,255,255,0.78);
+  border: 1px solid rgba(232,93,122,0.14);
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(232,93,122,0.08);
+}
+
+.home .pk-track {
+  padding-inline: 14px;
+  gap: 16px;
+}
+
+.home .pk-slide {
+  border-radius: 34px;
+  background: rgba(255,255,255,0.86);
+  border-color: rgba(232,93,122,0.14);
+  box-shadow:
+    0 18px 44px rgba(92,37,52,0.09),
+    0 8px 24px rgba(232,93,122,0.09);
+}
+
+.home .pk-slide.is-active {
+  box-shadow:
+    0 28px 58px rgba(92,37,52,0.15),
+    0 14px 32px rgba(232,93,122,0.14);
+}
+
+.home .pk-stack-bg {
+  background:
+    radial-gradient(ellipse 90% 62% at 50% 36%, rgba(255, 226, 236, 0.62), transparent 72%),
+    radial-gradient(circle at 82% 18%, rgba(232,93,122,0.13), transparent 34%),
+    linear-gradient(180deg, #fffdfd 0%, #fff3f7 100%);
+}
+
+.home .pk-info {
+  border-top-color: rgba(232,93,122,0.08);
+}
+
+.home .pk-name {
+  color: #2a151b;
+}
+
+.home .pk-price {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(232,93,122,0.08);
+}
