@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const archiver = require('archiver');
@@ -8,6 +9,10 @@ const uploadsDir = path.isAbsolute(process.env.UPLOAD_PATH || '')
   ? process.env.UPLOAD_PATH
   : path.join(__dirname, '..', process.env.UPLOAD_PATH || 'uploads');
 const MAX_BACKUPS = Math.max(1, parseInt(process.env.BACKUP_MAX_COUNT || '15', 10));
+const TOKEN_TTL_MS = 10 * 60 * 1000;
+
+/** @type {Map<string, { filename: string, expiresAt: number }>} */
+const downloadTokens = new Map();
 
 function ensureBackupsDir() {
   if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
@@ -119,10 +124,49 @@ function deleteBackup(filename) {
   fs.unlinkSync(filepath);
 }
 
+function pruneExpiredTokens() {
+  const now = Date.now();
+  for (const [token, entry] of downloadTokens) {
+    if (entry.expiresAt <= now) downloadTokens.delete(token);
+  }
+}
+
+function createDownloadToken(filename) {
+  getBackupPath(filename);
+  pruneExpiredTokens();
+  const token = crypto.randomBytes(24).toString('hex');
+  downloadTokens.set(token, { filename, expiresAt: Date.now() + TOKEN_TTL_MS });
+  return token;
+}
+
+function resolveDownloadToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  pruneExpiredTokens();
+  const entry = downloadTokens.get(token);
+  if (!entry || entry.expiresAt <= Date.now()) {
+    downloadTokens.delete(token);
+    return null;
+  }
+  return entry.filename;
+}
+
+function streamBackupFile(filename, res) {
+  const filepath = getBackupPath(filename);
+  const stat = fs.statSync(filepath);
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+  res.setHeader('Content-Length', stat.size);
+  res.setHeader('Cache-Control', 'no-store');
+  fs.createReadStream(filepath).pipe(res);
+}
+
 module.exports = {
   createBackup,
   listBackups,
   getBackupPath,
   deleteBackup,
+  createDownloadToken,
+  resolveDownloadToken,
+  streamBackupFile,
   formatBytes,
 };

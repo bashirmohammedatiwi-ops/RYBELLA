@@ -76,22 +76,23 @@ export default function Backups() {
   const handleDownload = async (filename) => {
     setDownloading(filename);
     setError('');
+    setMsg('');
     try {
-      const res = await backupAPI.download(filename);
-      const blob = new Blob([res.data], { type: 'application/zip' });
-      const url = window.URL.createObjectURL(blob);
+      const res = await backupAPI.getDownloadLink(filename);
+      const url = res.data?.url;
+      if (!url) throw new Error('no url');
+      setMsg(`بدء تحميل ${filename} — راقبي شريط التحميل في المتصفح (قد يستغرق دقائق للملفات الكبيرة)`);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      a.rel = 'noopener';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
-      setMsg(`جاري تحميل ${filename}`);
     } catch (e) {
-      setError(e.response?.data?.message || 'تعذّر تحميل الملف');
+      setError(e.response?.data?.message || 'تعذّر بدء التحميل');
     } finally {
-      setDownloading('');
+      window.setTimeout(() => setDownloading(''), 2000);
     }
   };
 

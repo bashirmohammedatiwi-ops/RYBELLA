@@ -237,6 +237,7 @@ export const notificationsAPI = {
 export const backupAPI = {
   list: () => api.get('/backups'),
   create: () => api.post('/backups'),
+  getDownloadLink: (filename) => api.post(`/backups/${encodeURIComponent(filename)}/link`),
   download: (filename) => api.get(`/backups/${encodeURIComponent(filename)}`, { responseType: 'blob' }),
   delete: (filename) => api.delete(`/backups/${encodeURIComponent(filename)}`),
 };

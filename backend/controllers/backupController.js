@@ -23,10 +23,48 @@ exports.create = async (req, res) => {
   }
 };
 
+/** رابط تحميل مؤقت — للمسؤول فقط */
+exports.createDownloadLink = async (req, res) => {
+  try {
+    const token = backupService.createDownloadToken(req.params.filename);
+    res.json({
+      url: `/api/backups/file?token=${token}`,
+      expiresInSeconds: 600,
+    });
+  } catch (error) {
+    if (error.code === 'INVALID_FILENAME') {
+      return res.status(400).json({ message: error.message });
+    }
+    if (error.code === 'NOT_FOUND') {
+      return res.status(404).json({ message: error.message });
+    }
+    console.error('Create download link error:', error);
+    res.status(500).json({ message: 'تعذّر إنشاء رابط التحميل' });
+  }
+};
+
+/** تحميل مباشر بالمتصفح — token مؤقت */
+exports.downloadFile = async (req, res) => {
+  try {
+    const filename = backupService.resolveDownloadToken(req.query.token);
+    if (!filename) {
+      return res.status(401).json({ message: 'رابط التحميل غير صالح أو منتهٍ' });
+    }
+    backupService.streamBackupFile(filename, res);
+  } catch (error) {
+    if (error.code === 'NOT_FOUND') {
+      return res.status(404).json({ message: error.message });
+    }
+    console.error('Download file error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'تعذّر تحميل النسخة الاحتياطية' });
+    }
+  }
+};
+
 exports.download = async (req, res) => {
   try {
-    const filepath = backupService.getBackupPath(req.params.filename);
-    res.download(filepath, req.params.filename);
+    backupService.streamBackupFile(req.params.filename, res);
   } catch (error) {
     if (error.code === 'INVALID_FILENAME') {
       return res.status(400).json({ message: error.message });
@@ -35,7 +73,9 @@ exports.download = async (req, res) => {
       return res.status(404).json({ message: error.message });
     }
     console.error('Download backup error:', error);
-    res.status(500).json({ message: 'تعذّر تحميل النسخة الاحتياطية' });
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'تعذّر تحميل النسخة الاحتياطية' });
+    }
   }
 };
 
