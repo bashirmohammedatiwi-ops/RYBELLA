@@ -7,6 +7,7 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
 import HomeOffersSection from '../components/HomeOffersSection'
 import HomeSpotlightAdsSection from '../components/HomeSpotlightAdsSection'
+import HomeCategoriesSection from '../components/HomeCategoriesSection'
 import StoriesBar from '../components/StoriesBar'
 import { formatCount, formatPercent } from '../utils/format'
 import './Home.css'
@@ -125,6 +126,8 @@ export default function Home() {
           />
           <button type="submit">بحث</button>
         </form>
+
+        <HomeCategoriesSection categories={categories} variant="header" />
       </header>
 
       <main className="home-main">
@@ -223,34 +226,7 @@ export default function Home() {
           <Link to="/explore?sort_by=newest">وصل حديثاً</Link>
         </nav>
 
-        {categories.length > 0 && (
-          <section className="home-section home-main-categories">
-            <div className="home-section-header">
-              <div>
-                <span className="home-section-eyebrow">الأقسام</span>
-                <h2 className="home-section-title">الأقسام الرئيسية</h2>
-                <p className="home-section-desc">كل الأقسام الرئيسية بصورها لسهولة الوصول.</p>
-              </div>
-              <Link to="/categories" className="home-section-link">عرض الكل</Link>
-            </div>
-
-            <div className="home-category-grid">
-              {categories.map((c) => (
-                <Link key={c.id} to={`/explore?category=${c.id}`} className="home-category-card">
-                  <span className="home-category-card-media">
-                    {c.image ? (
-                      <img src={`${IMG_BASE}${c.image}`} alt={c.name} loading="lazy" />
-                    ) : (
-                      <span className="home-category-card-fallback">{c.name?.slice(0, 1) || 'R'}</span>
-                    )}
-                  </span>
-                  <span className="home-category-card-overlay" />
-                  <span className="home-category-card-name">{c.overlay_text || c.name}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        <HomeCategoriesSection categories={categories} variant="section" />
 
         <StoriesBar />
 
