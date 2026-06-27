@@ -231,6 +231,7 @@ export const offersAPI = {
 export const notificationsAPI = {
   getAll: () => api.get('/notifications'),
   create: (data) => api.post('/notifications', data),
+  delete: (id) => api.delete(`/notifications/${id}`),
 };
 
 export const syncAPI = {

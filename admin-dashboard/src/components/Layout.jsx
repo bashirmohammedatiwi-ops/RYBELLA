@@ -59,6 +59,7 @@ const settingsNav = [
   { path: '/stories', label: 'اليوميات', icon: <StoriesIcon /> },
   { path: '/offers', label: 'العروض', icon: <OfferIcon /> },
   { path: '/coupons', label: 'الكوبونات', icon: <CouponIcon /> },
+  { path: '/notifications', label: 'الإشعارات', icon: <NotificationsIcon /> },
   { path: '/reviews', label: 'المراجعات', icon: <ReviewIcon /> },
   { path: '/delivery-zones', label: 'مناطق التوصيل', icon: <DeliveryIcon /> },
   { path: '/reports', label: 'التقارير', icon: <ReportIcon /> },

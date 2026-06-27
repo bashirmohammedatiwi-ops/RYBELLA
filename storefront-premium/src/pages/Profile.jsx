@@ -17,6 +17,7 @@ export default function Profile() {
       </div>
       <div className="premium-profile-links">
         <Link to="/orders">طلباتي</Link>
+        <Link to="/notifications">الإشعارات</Link>
         <Link to="/wishlist">المفضلة</Link>
       </div>
       <button className="premium-profile-logout" onClick={logout}>تسجيل الخروج</button>

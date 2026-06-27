@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { productsAPI, categoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, IMG_BASE } from '../services/api'
+import { productsAPI, categoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, notificationsAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
@@ -25,6 +25,7 @@ export default function Home() {
   const [settings, setSettings] = useState(null)
   const [recentProducts, setRecentProducts] = useState([])
   const [bannerIdx, setBannerIdx] = useState(0)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
   const bannerRef = useRef(null)
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -57,11 +58,17 @@ export default function Home() {
   }, [recentIds?.join(',')])
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setUnreadNotifications(0)
+      return
+    }
     wishlistAPI.getAll().then((r) => {
       const ids = (r?.data || []).map((p) => p.product_id || p.id)
       setWishlistIds(ids)
     }).catch(() => {})
+    notificationsAPI.getUnreadCount()
+      .then((r) => setUnreadNotifications(Number(r?.data?.count) || 0))
+      .catch(() => setUnreadNotifications(0))
   }, [user])
 
   const toggleWishlist = (productId) => {
@@ -120,6 +127,17 @@ export default function Home() {
                 <rect x="14" y="14" width="7" height="7" rx="1.5" />
               </svg>
             </Link>
+            {user && (
+              <Link to="/notifications" className="home-action-btn home-notifications" aria-label="الإشعارات">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 01-3.46 0" />
+                </svg>
+                {unreadNotifications > 0 && (
+                  <span className="home-cart-badge">{formatCount(unreadNotifications)}</span>
+                )}
+              </Link>
+            )}
             <Link to="/cart" className="home-action-btn home-cart" aria-label="السلة">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />

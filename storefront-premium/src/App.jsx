@@ -16,6 +16,7 @@ import Profile from './pages/Profile'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Wishlist from './pages/Wishlist'
+import Notifications from './pages/Notifications'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
         <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
       </Routes>
     </Layout>
   )

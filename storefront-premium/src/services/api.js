@@ -83,3 +83,9 @@ export const reviewsAPI = {
 }
 export const deliveryZonesAPI = { getAll: () => api.get('/delivery-zones') }
 export const couponsAPI = { apply: (data) => api.post('/coupons/apply', data) }
+export const notificationsAPI = {
+  getMine: () => api.get('/notifications/mine'),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllRead: () => api.patch('/notifications/read-all'),
+}

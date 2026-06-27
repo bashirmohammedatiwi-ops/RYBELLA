@@ -182,6 +182,18 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    notification_id INTEGER NOT NULL,
+    read_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE,
+    UNIQUE(user_id, notification_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id);
+
 -- Wishlist
 CREATE TABLE IF NOT EXISTS wishlist (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

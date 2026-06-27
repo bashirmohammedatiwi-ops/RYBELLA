@@ -505,6 +505,24 @@ const initDb = async () => {
   } catch (e) {
     console.error('Bundle tables migration:', e.message);
   }
+  // Migration: user_notifications (إشعارات الزبائن)
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS user_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      notification_id INTEGER NOT NULL,
+      read_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE,
+      UNIQUE(user_id, notification_id)
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_user_notifications_notification ON user_notifications(notification_id)');
+    saveDb();
+  } catch (e) {
+    console.error('User notifications migration:', e.message);
+  }
 };
 
 // Async query - returns [rows] for SELECT, [{ insertId }] for INSERT (mysql2 compatible)

@@ -21,6 +21,7 @@ import Reports from './pages/Reports'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import WebStoreSettings from './pages/WebStoreSettings'
+import Notifications from './pages/Notifications'
 import { useAuth } from './context/AuthContext'
 
 function LoginOrRedirect() {
@@ -57,6 +58,7 @@ function App() {
         <Route path="orders/:id" element={<OrderDetail />} />
         <Route path="customers" element={<Customers />} />
         <Route path="coupons" element={<Coupons />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="reviews" element={<Reviews />} />
         <Route path="delivery-zones" element={<DeliveryZones />} />
         <Route path="banners" element={<Banners />} />
