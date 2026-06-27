@@ -84,16 +84,30 @@ export default function Home() {
   const heroSubtitle = settings?.hero_subtitle || 'الجمال الذي تستحقينه'
   const showRecent = settings?.show_recently_viewed !== '0' && recentProducts.length > 0
   const showOffers = settings?.show_offers !== '0' && offers.length > 0
+  const heroProduct = featured[0] || bestSellers[0] || popular[0]
+  const editorialProducts = (featured.length ? featured : popular).slice(0, 6)
+  const bestSellerProducts = (bestSellers.length ? bestSellers : popular).slice(0, 8)
+  const newSeasonProducts = popular.slice(0, 6)
+  const stats = [
+    { value: formatCount(categories.length, 99) || '0', label: 'فئة' },
+    { value: formatCount(popular.length, 999) || '0', label: 'منتج' },
+    { value: formatCount(offers.length, 99) || '0', label: 'عرض' },
+  ]
 
   return (
     <div className="home">
-      {/* 1. شريط علوي ثابت */}
+      <div className="home-bg-orb home-bg-orb--a" aria-hidden="true" />
+      <div className="home-bg-orb home-bg-orb--b" aria-hidden="true" />
+
       <header className="home-header">
-        <Link to="/" className="home-logo">{heroTitle}</Link>
+        <Link to="/" className="home-logo">
+          <span className="home-logo-mark">R</span>
+          <span>{heroTitle}</span>
+        </Link>
         <form className="home-search" onSubmit={handleSearch}>
           <input
             type="text"
-            placeholder="ابحثي..."
+            placeholder="ابحثي عن منتج أو درجة..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -124,12 +138,51 @@ export default function Home() {
         </div>
       </header>
 
+      <section className="home-luxury-hero">
+        <div className="home-luxury-copy">
+          <span className="home-kicker">Rybella Iraq</span>
+          <h1>{heroSubtitle}</h1>
+          <p>اختيارات مكياج وعناية منتقاة بعناية، تجربة تسوق ناعمة، وعروض متجددة كل يوم.</p>
+          <div className="home-hero-actions">
+            <Link to="/explore" className="home-primary-cta">تسوقي الآن</Link>
+            {showOffers && <Link to={`/offers/${offers[0].id}`} className="home-secondary-cta">العروض الحصرية</Link>}
+          </div>
+          <div className="home-mini-stats" aria-label="إحصائيات المتجر">
+            {stats.map((s) => (
+              <span key={s.label}>
+                <strong>{s.value}</strong>
+                {s.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <Link to={heroProduct ? `/products/${heroProduct.id}` : '/explore'} className="home-hero-card">
+          <span className="home-hero-card-glow" aria-hidden="true" />
+          {heroProduct?.main_image || heroProduct?.images?.[0] || heroProduct?.variants?.[0]?.image ? (
+            <img
+              src={`${IMG_BASE}${heroProduct.main_image || heroProduct.images?.[0] || heroProduct.variants?.[0]?.image}`}
+              alt={heroProduct.name}
+            />
+          ) : (
+            <span className="home-hero-card-empty">Rybella</span>
+          )}
+          <span className="home-hero-card-label">
+            <small>اختيار اليوم</small>
+            <strong>{heroProduct?.name || 'اكتشفي المجموعة'}</strong>
+          </span>
+        </Link>
+      </section>
+
+      <nav className="home-quick-nav" aria-label="روابط سريعة">
+        <Link to="/explore?sort_by=newest">وصل حديثاً</Link>
+        <Link to="/explore?featured=1">مختارات مميزة</Link>
+        <Link to="/categories">الفئات</Link>
+        <Link to="/explore">كل المنتجات</Link>
+      </nav>
+
       <HomeCategoriesSection categories={categories} />
 
-      {/* اليوميات - مثل انستغرام */}
-      <StoriesBar />
-
-      {/* 2. البانرات - إعادة بناء كاملة: الصورة تخرج من الأعلى فقط */}
       <section className="home-hero">
         {banners.length > 0 ? (
           <div className="home-banners-wrapper">
@@ -228,11 +281,16 @@ export default function Home() {
         )}
       </section>
 
-      {/* 4. الفئات الثانوية */}
+      <StoriesBar />
+
       {subcategories.length > 0 && (
-        <section className="home-section">
-          <div className="home-section-header">
-            <h2 className="home-section-title">تسوقي حسب النوع</h2>
+        <section className="home-section home-section--glass">
+          <div className="home-section-header home-section-header--stacked">
+            <span className="home-section-eyebrow">تصفّحي حسب النوع</span>
+            <div>
+              <h2 className="home-section-title">اختاري مزاجك اليوم</h2>
+              <p className="home-section-desc">بوابات صغيرة تقودك مباشرة لما تحبين.</p>
+            </div>
             <Link to="/explore" className="home-section-link">الكل</Link>
           </div>
           <div className="home-subcategories">
@@ -258,47 +316,71 @@ export default function Home() {
         bestSellers={bestSellers}
       />
 
-      {/* 5. العروض الحصرية */}
       {showOffers && <HomeOffersSection offers={offers} />}
 
-      {/* 6. المنتجات المميزة */}
-      {featured.length > 0 && (
-        <section className="home-section">
+      {editorialProducts.length > 0 && (
+        <section className="home-section home-section--editorial">
           <div className="home-section-header">
             <div>
-              <h2 className="home-section-title">المنتجات المميزة</h2>
-              <p className="home-section-desc">اختياراتنا الخاصة لكِ</p>
+              <span className="home-section-eyebrow">مختارة لكِ</span>
+              <h2 className="home-section-title">منتجات تستحق التجربة</h2>
+              <p className="home-section-desc">لمسة نهائية ناعمة لمجموعتك اليومية.</p>
             </div>
             <Link to="/explore?featured=1" className="home-section-link">الكل</Link>
           </div>
           <div className="home-products">
-            {featured.map((p) => (
+            {editorialProducts.map((p) => (
               <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} />
             ))}
           </div>
         </section>
       )}
 
-      {/* 7. الأكثر مبيعاً */}
-      {(bestSellers.length > 0 || popular.length > 0) && (
+      {newSeasonProducts.length > 0 && (
+        <section className="home-showcase-strip">
+          <div className="home-showcase-copy">
+            <span>New Glow</span>
+            <h2>روتين جمال يبدأ من هنا</h2>
+            <p>ألوان، عناية، ولمسات سريعة لكل يوم.</p>
+            <Link to="/explore?sort_by=newest">شاهدي الجديد</Link>
+          </div>
+          <div className="home-showcase-products">
+            {newSeasonProducts.slice(0, 3).map((p) => {
+              const img = p.main_image || p.images?.[0] || p.variants?.[0]?.image
+              return (
+                <Link key={p.id} to={`/products/${p.id}`} className="home-showcase-product">
+                  {img ? <img src={`${IMG_BASE}${img}`} alt={p.name} /> : <span>{p.name}</span>}
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {bestSellerProducts.length > 0 && (
         <section className="home-section">
           <div className="home-section-header">
-            <h2 className="home-section-title">الأكثر مبيعاً</h2>
+            <div>
+              <span className="home-section-eyebrow">الأكثر طلباً</span>
+              <h2 className="home-section-title">المفضلة لدى زبائننا</h2>
+            </div>
             <Link to="/explore" className="home-section-link">الكل</Link>
           </div>
           <div className="home-products">
-            {(bestSellers.length ? bestSellers : popular.slice(0, 8)).map((p) => (
+            {bestSellerProducts.map((p) => (
               <ProductCard key={p.id} product={p} wishlistIds={wishlistIds} onWishlistToggle={user ? toggleWishlist : undefined} />
             ))}
           </div>
         </section>
       )}
 
-      {/* 8. شاهدته مؤخراً */}
       {showRecent && (
-        <section className="home-section">
+        <section className="home-section home-section--recent">
           <div className="home-section-header">
-            <h2 className="home-section-title">شاهدته مؤخراً</h2>
+            <div>
+              <span className="home-section-eyebrow">رجوع سريع</span>
+              <h2 className="home-section-title">شاهدته مؤخراً</h2>
+            </div>
           </div>
           <div className="home-products">
             {recentProducts.map((p) => (
@@ -308,6 +390,12 @@ export default function Home() {
         </section>
       )}
 
+      <section className="home-concierge">
+        <span>Rybella Promise</span>
+        <h2>تسوق أنيق، سريع، وواضح</h2>
+        <p>منتجات مرتبة، أسعار مقربة، وسلة سهلة لتجربة شراء مريحة من البداية للنهاية.</p>
+        <Link to="/explore">ابدئي التصفح</Link>
+      </section>
     </div>
   )
 }
