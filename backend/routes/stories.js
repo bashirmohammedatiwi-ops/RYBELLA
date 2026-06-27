@@ -6,7 +6,14 @@ const storyUploadMw = require('../middleware/uploadStories');
 
 const storyUpload = storyUploadMw.fields([
   { name: 'avatar', maxCount: 1 },
+  { name: 'videos', maxCount: 10 },
   { name: 'images', maxCount: 10 },
+]);
+
+const highlightUpload = storyUploadMw.fields([
+  { name: 'cover', maxCount: 1 },
+  { name: 'videos', maxCount: 20 },
+  { name: 'images', maxCount: 20 },
 ]);
 
 const handleMulterError = (err, req, res, next) => {
@@ -22,12 +29,22 @@ const handleMulterError = (err, req, res, next) => {
 
 router.get('/', storyController.getAll);
 router.get('/admin', auth, adminAuth, storyController.getAllAdmin);
+
 router.post('/', auth, adminAuth, (req, res, next) => {
   storyUpload(req, res, (err) => {
     if (err) return handleMulterError(err, req, res, next);
     next();
   });
 }, storyController.create);
+
+router.post('/highlights', auth, adminAuth, (req, res, next) => {
+  highlightUpload(req, res, (err) => {
+    if (err) return handleMulterError(err, req, res, next);
+    next();
+  });
+}, storyController.createHighlight);
+
+router.delete('/highlights/:id', auth, adminAuth, storyController.deleteHighlight);
 router.delete('/:id', auth, adminAuth, storyController.delete);
 
 module.exports = router;

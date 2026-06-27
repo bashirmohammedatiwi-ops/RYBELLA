@@ -206,6 +206,8 @@ export const storiesAPI = {
   getAll: () => api.get('/stories/admin'),
   create: (formData) => api.post('/stories', formData, formData instanceof FormData ? { transformRequest: [(d) => d] } : {}),
   delete: (id) => api.delete(`/stories/${id}`),
+  createHighlight: (formData) => api.post('/stories/highlights', formData, formData instanceof FormData ? { transformRequest: [(d) => d] } : {}),
+  deleteHighlight: (id) => api.delete(`/stories/highlights/${id}`),
 };
 
 export const webSettingsAPI = {

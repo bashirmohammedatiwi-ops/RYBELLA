@@ -368,6 +368,27 @@ const initDb = async () => {
       saveDb();
     }
   } catch (e) {}
+  // Migration: story_highlights (هايلايت مثل انستغرام - فيديوهات دائمة)
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS story_highlights (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      cover TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec(`CREATE TABLE IF NOT EXISTS story_highlight_slides (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      highlight_id INTEGER NOT NULL,
+      video TEXT NOT NULL,
+      thumbnail TEXT,
+      link_type TEXT DEFAULT 'none',
+      link_value TEXT,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY (highlight_id) REFERENCES story_highlights(id) ON DELETE CASCADE
+    )`);
+    saveDb();
+  } catch (e) {}
   // Migration: review_images (صور المراجعات)
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS review_images (

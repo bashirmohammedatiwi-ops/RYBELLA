@@ -205,12 +205,31 @@ CREATE TABLE IF NOT EXISTS story_slides (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     story_group_id INTEGER NOT NULL,
     image TEXT NOT NULL,
-    media_type TEXT DEFAULT 'image',
+    media_type TEXT DEFAULT 'video',
     thumbnail TEXT,
     link_type TEXT DEFAULT 'none',
     link_value TEXT,
     sort_order INTEGER DEFAULT 0,
     FOREIGN KEY (story_group_id) REFERENCES story_groups(id) ON DELETE CASCADE
+);
+
+-- Story highlights (هايلايت - فيديوهات مثبتة دائمة)
+CREATE TABLE IF NOT EXISTS story_highlights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    cover TEXT,
+    sort_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS story_highlight_slides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    highlight_id INTEGER NOT NULL,
+    video TEXT NOT NULL,
+    thumbnail TEXT,
+    link_type TEXT DEFAULT 'none',
+    link_value TEXT,
+    sort_order INTEGER DEFAULT 0,
+    FOREIGN KEY (highlight_id) REFERENCES story_highlights(id) ON DELETE CASCADE
 );
 
 -- Banners
