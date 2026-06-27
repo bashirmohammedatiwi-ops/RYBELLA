@@ -234,6 +234,13 @@ export const notificationsAPI = {
   delete: (id) => api.delete(`/notifications/${id}`),
 };
 
+export const backupAPI = {
+  list: () => api.get('/backups'),
+  create: () => api.post('/backups'),
+  download: (filename) => api.get(`/backups/${encodeURIComponent(filename)}`, { responseType: 'blob' }),
+  delete: (filename) => api.delete(`/backups/${encodeURIComponent(filename)}`),
+};
+
 export const syncAPI = {
   getByBarcode: (barcode) => api.get(`/sync/inventory/by-barcode/${encodeURIComponent(barcode)}`),
   refreshBarcode: (barcode) => api.post(`/sync/inventory/refresh-barcode/${encodeURIComponent(barcode)}`),

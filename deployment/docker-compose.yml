@@ -16,6 +16,7 @@ services:
       - NODE_ENV=production
       - PORT=4000
       - DB_PATH=/app/data/rybella.db
+      - BACKUP_PATH=/app/backups
       - JWT_SECRET=${JWT_SECRET:-RybellaChangeThisSecretInEnv}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - API_URL=${API_URL:-http://localhost:4000}
@@ -29,6 +30,7 @@ services:
     volumes:
       - backend_data:/app/data
       - backend_uploads:/app/uploads
+      - backend_backups:/app/backups
     networks:
       - rybella-network
     healthcheck:
@@ -75,6 +77,8 @@ volumes:
     name: rybella_backend_data
   backend_uploads:
     name: rybella_backend_uploads
+  backend_backups:
+    name: rybella_backend_backups
 
 networks:
   rybella-network:

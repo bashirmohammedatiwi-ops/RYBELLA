@@ -28,6 +28,7 @@ const storyRoutes = require('./routes/stories');
 const offerRoutes = require('./routes/offers');
 const webSettingsRoutes = require('./routes/webSettings');
 const inventorySyncRoutes = require('./routes/inventorySync');
+const backupRoutes = require('./routes/backups');
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 5000;
@@ -78,6 +79,7 @@ app.use('/api/stories', storyRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/web-settings', webSettingsRoutes);
 app.use('/api/sync', inventorySyncRoutes);
+app.use('/api/backups', backupRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

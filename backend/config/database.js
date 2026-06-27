@@ -569,4 +569,4 @@ const query = (sql, params = []) => {
   });
 };
 
-module.exports = { query };
+module.exports = { query, flushDb: async () => { await initDb(); saveDb(); }, getDbPath: () => dbPath };

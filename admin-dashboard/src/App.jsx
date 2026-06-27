@@ -20,6 +20,7 @@ import Offers from './pages/Offers'
 import Reports from './pages/Reports'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+import Backups from './pages/Backups'
 import WebStoreSettings from './pages/WebStoreSettings'
 import Notifications from './pages/Notifications'
 import { useAuth } from './context/AuthContext'
@@ -67,6 +68,7 @@ function App() {
         <Route path="reports" element={<Reports />} />
         <Route path="profile" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="backups" element={<Backups />} />
         <Route path="web-store" element={<WebStoreSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

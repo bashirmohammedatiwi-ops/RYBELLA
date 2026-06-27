@@ -30,3 +30,6 @@ Thumbs.db
 # Uploads (optional - remove if you want to track uploads)
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Backups (generated on server)
+backend/backups/

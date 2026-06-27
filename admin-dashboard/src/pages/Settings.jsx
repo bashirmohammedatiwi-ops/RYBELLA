@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -59,6 +60,17 @@ export default function Settings() {
           <FormControlLabel control={<Switch checked={darkMode} onChange={(e) => setDarkMode(e.target.checked)} />} label="الوضع الداكن (قريباً)" sx={{ mb: 2 }} />
           <Button variant="contained" onClick={handleSave} sx={{ bgcolor: '#5e35b1', '&:hover': { bgcolor: '#4527a0' } }}>
             حفظ الإعدادات
+          </Button>
+        </CardContent>
+      </Card>
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom fontWeight={600}>النسخ الاحتياطية</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            احفظ قاعدة البيانات وصور المنتجات وحمّلها على جهازك.
+          </Typography>
+          <Button variant="outlined" component={RouterLink} to="/backups" sx={{ borderColor: '#5e35b1', color: '#5e35b1' }}>
+            إدارة النسخ الاحتياطية
           </Button>
         </CardContent>
       </Card>
