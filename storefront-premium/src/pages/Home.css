@@ -615,7 +615,7 @@
 }
 
 /* Component simplification overrides */
-.home .home-cats-section,
+.home .hc-section,
 .home .ho-section,
 .home .sg-section {
   max-width: 1180px;
@@ -628,12 +628,12 @@
   display: none;
 }
 
-.home .home-cats-section-head,
+.home .hc-section-head,
 .home .ho-head {
   padding-inline: 14px;
 }
 
-.home .home-cats-section-title,
+.home .hc-section-title,
 .home .ho-title {
   color: #26141a;
   font-size: clamp(1.35rem, 5vw, 2rem);
