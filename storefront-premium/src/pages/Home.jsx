@@ -129,7 +129,7 @@ export default function Home() {
       </header>
 
       <main className="home-main">
-        <HomeCategoriesSection categories={categories} variant="strip" />
+        <StoriesBar />
         {banners.length > 0 ? (
           <section className="home-banners-section" aria-label="بنرات العروض">
             <div
@@ -218,7 +218,7 @@ export default function Home() {
           </section>
         )}
 
-        <StoriesBar />
+        <HomeCategoriesSection categories={categories} variant="strip" />
 
         <HomeSpotlightAdsSection
           products={popular}

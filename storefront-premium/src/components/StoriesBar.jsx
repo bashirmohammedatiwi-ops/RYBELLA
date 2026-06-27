@@ -4,6 +4,8 @@ import { storiesAPI, IMG_BASE } from '../services/api'
 import './StoriesBar.css'
 
 const SWIPE_THRESHOLD = 50
+const SWIPE_GROUP_THRESHOLD = 55
+const TAP_MOVE_TOLERANCE = 14
 const HOLD_TO_PAUSE_MS = 150
 const VIEWED_KEY = 'rybella_stories_viewed_v2'
 
@@ -52,8 +54,10 @@ function StoryViewer({
   groupIndex,
   slideIndex,
   onClose,
-  onNext,
-  onPrev,
+  onNextSlide,
+  onPrevSlide,
+  onNextGroup,
+  onPrevGroup,
   isHighlight,
   headerTitle,
   headerAvatar,
@@ -62,8 +66,12 @@ function StoryViewer({
   const videoRef = useRef(null)
   const preloadRef = useRef(null)
   const holdTimerRef = useRef(null)
-  const touchStart = useRef({ x: 0, y: 0 })
+  const wasHoldRef = useRef(false)
+  const touchStart = useRef({ x: 0, y: 0, time: 0 })
   const rafRef = useRef(null)
+  const viewerRef = useRef(null)
+
+  const [transitionDir, setTransitionDir] = useState(null)
 
   const imageTimerRef = useRef(null)
   const imageStartRef = useRef(0)
@@ -94,7 +102,12 @@ function StoryViewer({
   useEffect(() => {
     resetProgress()
     setIsMuted(false)
+    setTransitionDir(null)
   }, [groupIndex, slideIndex, resetProgress])
+
+  useEffect(() => {
+    setTransitionDir(null)
+  }, [groupIndex])
 
   useEffect(() => {
     const v = videoRef.current
@@ -122,7 +135,7 @@ function StoryViewer({
         else v.play().catch(() => {})
       }
     }
-    const onEnded = () => { if (!isPaused) onNext() }
+    const onEnded = () => { if (!isPaused) onNextSlide() }
 
     v.addEventListener('loadeddata', onLoaded)
     v.addEventListener('ended', onEnded)
@@ -130,7 +143,7 @@ function StoryViewer({
       v.removeEventListener('loadeddata', onLoaded)
       v.removeEventListener('ended', onEnded)
     }
-  }, [currentSlide, isPaused, onNext, groupIndex, slideIndex, isVideo, isMuted])
+  }, [currentSlide, isPaused, onNextSlide, groupIndex, slideIndex, isVideo, isMuted])
 
   useEffect(() => {
     if (!isVideo || isPaused) {
@@ -168,7 +181,7 @@ function StoryViewer({
       const pct = Math.min(100, (imageElapsedRef.current / imageDurationMs) * 100)
       setProgress(pct)
       if (pct >= 100) {
-        onNext()
+        onNextSlide()
         return
       }
       imageTimerRef.current = requestAnimationFrame(tick)
@@ -177,26 +190,44 @@ function StoryViewer({
     return () => {
       if (imageTimerRef.current) cancelAnimationFrame(imageTimerRef.current)
     }
-  }, [currentSlide, isVideo, isPaused, imageDurationMs, onNext, groupIndex, slideIndex])
+  }, [currentSlide, isVideo, isPaused, imageDurationMs, onNextSlide, groupIndex, slideIndex])
 
   useEffect(() => {
     if (!currentSlide) return
     const handleKey = (e) => {
-      if (e.key === 'ArrowRight') onPrev()
-      else if (e.key === 'ArrowLeft') onNext()
+      if (e.key === 'ArrowLeft') onNextSlide()
+      else if (e.key === 'ArrowRight') onPrevSlide()
       else if (e.key === 'Escape') onClose()
       else if (e.key === ' ') { e.preventDefault(); setIsPaused((p) => !p) }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [currentSlide, onNext, onPrev, onClose])
+  }, [currentSlide, onNextSlide, onPrevSlide, onClose])
 
   const handlePointerDown = (e) => {
-    touchStart.current = {
-      x: e.clientX ?? e.touches?.[0]?.clientX,
-      y: e.clientY ?? e.touches?.[0]?.clientY,
+    if (e.target.closest('button, a, .story-viewer-top')) return
+    const x = e.clientX ?? e.touches?.[0]?.clientX
+    const y = e.clientY ?? e.touches?.[0]?.clientY
+    touchStart.current = { x, y, time: Date.now() }
+    wasHoldRef.current = false
+    holdTimerRef.current = setTimeout(() => {
+      wasHoldRef.current = true
+      setIsPaused(true)
+    }, HOLD_TO_PAUSE_MS)
+  }
+
+  const handlePointerMove = (e) => {
+    const x = e.clientX ?? e.touches?.[0]?.clientX
+    const y = e.clientY ?? e.touches?.[0]?.clientY
+    if (x == null || y == null) return
+    const dx = Math.abs(x - touchStart.current.x)
+    const dy = Math.abs(y - touchStart.current.y)
+    if (dx > TAP_MOVE_TOLERANCE || dy > TAP_MOVE_TOLERANCE) {
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current)
+        holdTimerRef.current = null
+      }
     }
-    holdTimerRef.current = setTimeout(() => setIsPaused(true), HOLD_TO_PAUSE_MS)
   }
 
   const handlePointerUp = () => {
@@ -204,27 +235,69 @@ function StoryViewer({
       clearTimeout(holdTimerRef.current)
       holdTimerRef.current = null
     }
-    setIsPaused(false)
+    if (wasHoldRef.current) {
+      wasHoldRef.current = false
+      setIsPaused(false)
+    }
+  }
+
+  const handleTapZone = (side, e) => {
+    e.stopPropagation()
+    if (wasHoldRef.current) return
+    if (side === 'left') onNextSlide()
+    else onPrevSlide()
+  }
+
+  const finishGesture = (clientX, clientY, target) => {
+    if (target?.closest('.story-viewer-nav, .story-viewer-close, .story-viewer-mute, .story-viewer-link-btn, .story-viewer-top')) {
+      if (wasHoldRef.current) {
+        wasHoldRef.current = false
+        setIsPaused(false)
+      }
+      return
+    }
+    if (wasHoldRef.current) {
+      wasHoldRef.current = false
+      setIsPaused(false)
+      return
+    }
+
+    const dx = clientX - touchStart.current.x
+    const dy = clientY - touchStart.current.y
+    const absDx = Math.abs(dx)
+    const absDy = Math.abs(dy)
+
+    if (dy > SWIPE_THRESHOLD && absDy > absDx) {
+      onClose()
+      return
+    }
+    if (dy < -SWIPE_THRESHOLD && absDy > absDx && currentSlide?.link_url) {
+      navigate(currentSlide.link_url)
+      onClose()
+      return
+    }
+
+    if (absDx >= SWIPE_GROUP_THRESHOLD && absDx > absDy * 1.2) {
+      if (dx < 0) {
+        setTransitionDir('next')
+        onNextGroup()
+      } else {
+        setTransitionDir('prev')
+        onPrevGroup()
+      }
+    }
   }
 
   const handleTouchEnd = (e) => {
-    const endX = e.changedTouches[0].clientX
-    const endY = e.changedTouches[0].clientY
-    const dx = endX - touchStart.current.x
-    const dy = endY - touchStart.current.y
-    if (dy > SWIPE_THRESHOLD) onClose()
-    else if (dy < -SWIPE_THRESHOLD && currentSlide?.link_url) {
-      navigate(currentSlide.link_url)
-      onClose()
-    } else if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dy) < 40) {
-      if (dx > 0) onPrev()
-      else onNext()
-    } else if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
-      const rect = e.currentTarget.getBoundingClientRect()
-      const x = endX - rect.left
-      if (x < rect.width * 0.33) onPrev()
-      else if (x > rect.width * 0.66) onNext()
-    }
+    const t = e.changedTouches[0]
+    finishGesture(t.clientX, t.clientY, e.target)
+    handlePointerUp()
+  }
+
+  const handleMouseUp = (e) => {
+    if (e.button !== 0) return
+    finishGesture(e.clientX, e.clientY, e.target)
+    handlePointerUp()
   }
 
   if (!currentSlide) return null
@@ -235,12 +308,15 @@ function StoryViewer({
   return (
     <div className="story-viewer-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div
+        ref={viewerRef}
         className="story-viewer"
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => { touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; handlePointerDown(e) }}
-        onTouchEnd={(e) => { handleTouchEnd(e); handlePointerUp() }}
+        onTouchStart={handlePointerDown}
+        onTouchMove={handlePointerMove}
+        onTouchEnd={handleTouchEnd}
         onMouseDown={handlePointerDown}
-        onMouseUp={handlePointerUp}
+        onMouseMove={handlePointerMove}
+        onMouseUp={handleMouseUp}
         onMouseLeave={handlePointerUp}
       >
         <div className="story-viewer-top">
@@ -273,8 +349,15 @@ function StoryViewer({
         </div>
 
         <div className="story-viewer-content">
-          <button type="button" className="story-viewer-nav story-viewer-prev" onClick={onPrev} aria-label="السابق" tabIndex={-1} />
-          <div className="story-viewer-media">
+          <button
+            type="button"
+            className="story-viewer-nav story-viewer-tap-next"
+            onClick={(e) => handleTapZone('left', e)}
+            onTouchEnd={(e) => e.stopPropagation()}
+            aria-label="التالي"
+            tabIndex={-1}
+          />
+          <div className={`story-viewer-media ${transitionDir ? `story-enter-${transitionDir}` : ''}`}>
             {isLoading && <div className="story-viewer-loader" aria-hidden="true" />}
             {isVideo ? (
               <>
@@ -308,7 +391,14 @@ function StoryViewer({
               />
             )}
           </div>
-          <button type="button" className="story-viewer-nav story-viewer-next" onClick={onNext} aria-label="التالي" tabIndex={-1} />
+          <button
+            type="button"
+            className="story-viewer-nav story-viewer-tap-prev"
+            onClick={(e) => handleTapZone('right', e)}
+            onTouchEnd={(e) => e.stopPropagation()}
+            aria-label="السابق"
+            tabIndex={-1}
+          />
         </div>
 
         {isPaused && (
@@ -425,7 +515,7 @@ export default function StoriesBar() {
 
   const closeViewer = () => setViewer(null)
 
-  const navigateViewer = useCallback((direction) => {
+  const navigateSlide = useCallback((direction) => {
     if (!viewer) return
     const groups = viewer.type === 'highlight' ? highlights : storyGroups
     const group = groups[viewer.groupIdx]
@@ -441,14 +531,30 @@ export default function StoriesBar() {
       } else {
         closeViewer()
       }
-    } else {
-      if (viewer.slideIdx > 0) {
-        setViewer((v) => ({ ...v, slideIdx: v.slideIdx - 1 }))
-      } else if (viewer.groupIdx > 0) {
-        const prevIdx = viewer.groupIdx - 1
-        const prevSlides = groups[prevIdx]?.slides?.length || 1
-        setViewer({ ...viewer, groupIdx: prevIdx, slideIdx: prevSlides - 1 })
+    } else if (viewer.slideIdx > 0) {
+      setViewer((v) => ({ ...v, slideIdx: v.slideIdx - 1 }))
+    } else if (viewer.groupIdx > 0) {
+      const prevIdx = viewer.groupIdx - 1
+      const prevSlides = groups[prevIdx]?.slides?.length || 1
+      setViewer({ ...viewer, groupIdx: prevIdx, slideIdx: prevSlides - 1 })
+    }
+  }, [viewer, highlights, storyGroups, saveViewed])
+
+  const navigateGroup = useCallback((direction) => {
+    if (!viewer) return
+    const groups = viewer.type === 'highlight' ? highlights : storyGroups
+
+    if (direction === 'next') {
+      if (viewer.groupIdx < groups.length - 1) {
+        const nextIdx = viewer.groupIdx + 1
+        setViewer({ ...viewer, groupIdx: nextIdx, slideIdx: 0 })
+        if (viewer.type === 'story') saveViewed(groups[nextIdx])
+      } else {
+        closeViewer()
       }
+    } else if (viewer.groupIdx > 0) {
+      const prevIdx = viewer.groupIdx - 1
+      setViewer({ ...viewer, groupIdx: prevIdx, slideIdx: 0 })
     }
   }, [viewer, highlights, storyGroups, saveViewed])
 
@@ -503,8 +609,10 @@ export default function StoriesBar() {
           }
           headerAvatar={activeGroups[viewer.groupIdx]?.cover || activeGroups[viewer.groupIdx]?.avatar}
           onClose={closeViewer}
-          onNext={() => navigateViewer('next')}
-          onPrev={() => navigateViewer('prev')}
+          onNextSlide={() => navigateSlide('next')}
+          onPrevSlide={() => navigateSlide('prev')}
+          onNextGroup={() => navigateGroup('next')}
+          onPrevGroup={() => navigateGroup('prev')}
         />
       )}
     </>

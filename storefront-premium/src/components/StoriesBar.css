@@ -274,16 +274,41 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 35%;
+  width: 30%;
   background: transparent;
   border: none;
   cursor: pointer;
   z-index: 3;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.story-viewer-prev { left: 0; }
-.story-viewer-next { right: 0; }
+/* يسار = التالي | يمين = السابق (مثل انستغرام RTL) */
+.story-viewer-tap-next {
+  left: 0;
+}
+
+.story-viewer-tap-prev {
+  right: 0;
+}
+
+.story-viewer-media.story-enter-next {
+  animation: storyEnterFromLeft 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.story-viewer-media.story-enter-prev {
+  animation: storyEnterFromRight 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes storyEnterFromLeft {
+  from { opacity: 0.6; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes storyEnterFromRight {
+  from { opacity: 0.6; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 
 .story-viewer-mute {
   position: absolute;
