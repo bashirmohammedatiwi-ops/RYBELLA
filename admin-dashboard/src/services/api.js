@@ -164,6 +164,7 @@ export const ordersAPI = {
   getAll: (params) => api.get('/orders', { params }),
   getById: (id) => api.get(`/orders/${id}`),
   updateStatus: (id, data) => api.put(`/orders/${id}/status`, data),
+  delete: (id) => api.delete(`/orders/${id}`),
 };
 
 export const usersAPI = {

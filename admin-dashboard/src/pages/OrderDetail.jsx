@@ -23,8 +23,10 @@ import {
   DialogActions,
   TextField,
   Alert,
+  Paper,
+  alpha,
 } from '@mui/material';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
+import { ArrowBack as BackIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../services/api';
 import ImageDisplay from '../components/ImageDisplay';
@@ -46,6 +48,7 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [deleteDialog, setDeleteDialog] = useState(false);
   const [statusError, setStatusError] = useState('');
 
   useEffect(() => {
@@ -93,6 +96,17 @@ export default function OrderDetail() {
     setCancelDialog(false);
   };
 
+  const handleDelete = async () => {
+    setStatusError('');
+    try {
+      await ordersAPI.delete(id);
+      navigate('/orders');
+    } catch (err) {
+      setStatusError(err.response?.data?.message || 'فشل حذف الطلب');
+      setDeleteDialog(false);
+    }
+  };
+
   const format = (v) => (v ? `${Number(v).toLocaleString('ar-IQ')} د.ع` : '0 د.ع');
 
   if (loading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
@@ -104,13 +118,19 @@ export default function OrderDetail() {
 
   return (
     <Box sx={{ direction: 'rtl' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-        <Button startIcon={<BackIcon sx={{ transform: 'scaleX(-1)' }} />} onClick={() => navigate('/orders')}>
-          رجوع
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Button startIcon={<BackIcon sx={{ transform: 'scaleX(-1)' }} />} onClick={() => navigate('/orders')}>
+            رجوع
+          </Button>
+          <Typography variant="h5" fontWeight={700}>
+            طلب #{order.id}
+          </Typography>
+          <Chip label={getOrderStatusLabel(order.status)} color={getOrderStatusColor(order.status)} />
+        </Box>
+        <Button color="error" variant="outlined" startIcon={<DeleteIcon />} onClick={() => setDeleteDialog(true)}>
+          حذف الطلب
         </Button>
-        <Typography variant="h5" fontWeight={600}>
-          تفاصيل الطلب #{order.id}
-        </Typography>
       </Box>
 
       {statusError && <Alert severity="error" sx={{ mb: 2 }}>{statusError}</Alert>}
@@ -190,9 +210,11 @@ export default function OrderDetail() {
           )}
         </Grid>
         <Grid item xs={12} md={4}>
-          <Card>
+          <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden' }}>
+            <Box sx={{ p: 2, bgcolor: alpha('#E85D7A', 0.08), borderBottom: '1px solid', borderColor: 'grey.200' }}>
+              <Typography variant="h6" fontWeight={700}>ملخص الطلب</Typography>
+            </Box>
             <CardContent>
-              <Typography variant="h6" gutterBottom fontWeight={600}>معلومات الطلب</Typography>
               <Box sx={{ '& > p': { mb: 1 }, '& > div': { mb: 2 } }}>
                 <Typography>
                   <strong>الحالة:</strong>{' '}
@@ -234,7 +256,7 @@ export default function OrderDetail() {
                 </Box>
               )}
             </CardContent>
-          </Card>
+          </Paper>
         </Grid>
       </Grid>
       {order.customer_name && (
@@ -266,6 +288,21 @@ export default function OrderDetail() {
         <DialogActions>
           <Button onClick={() => setCancelDialog(false)}>تراجع</Button>
           <Button variant="contained" color="error" onClick={handleConfirmCancel}>تأكيد الإلغاء</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ color: 'error.main' }}>حذف الطلب #{order.id}</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>هذا الإجراء نهائي ولا يمكن التراجع عنه.</Alert>
+          <Typography variant="body2" color="text.secondary">
+            {['pending', 'preparing_shipping'].includes(displayStatus)
+              ? 'سيتم إرجاع الكميات للمخزون تلقائياً.'
+              : 'لن يتم تعديل المخزون (الطلب مُسلّم أو ملغي).'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog(false)}>تراجع</Button>
+          <Button variant="contained" color="error" onClick={handleDelete}>حذف نهائياً</Button>
         </DialogActions>
       </Dialog>
     </Box>

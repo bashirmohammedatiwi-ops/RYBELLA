@@ -226,3 +226,59 @@ exports.updateStatus = async (req, res) => {
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };
+
+const STOCK_RESTORE_STATUSES = new Set([
+  'pending', 'preparing_shipping', 'confirmed', 'processing', 'shipped',
+]);
+
+async function restoreOrderStock(orderId) {
+  const [items] = await db.query(
+    'SELECT variant_id, quantity FROM order_items WHERE order_id = ?',
+    [orderId]
+  );
+  for (const item of items) {
+    await db.query(
+      'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
+      [item.quantity, item.variant_id]
+    );
+  }
+
+  const [bundles] = await db.query(
+    'SELECT id, quantity FROM order_bundles WHERE order_id = ?',
+    [orderId]
+  );
+  for (const bundle of bundles) {
+    const [lines] = await db.query(
+      'SELECT variant_id FROM order_bundle_items WHERE order_bundle_id = ?',
+      [bundle.id]
+    );
+    const qty = parseInt(bundle.quantity, 10) || 1;
+    for (const line of lines) {
+      await db.query(
+        'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
+        [qty, line.variant_id]
+      );
+    }
+  }
+}
+
+exports.delete = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const [orders] = await db.query('SELECT id, status FROM orders WHERE id = ?', [orderId]);
+    if (orders.length === 0) {
+      return res.status(404).json({ message: 'الطلب غير موجود' });
+    }
+
+    const order = orders[0];
+    if (STOCK_RESTORE_STATUSES.has(order.status)) {
+      await restoreOrderStock(orderId);
+    }
+
+    await db.query('DELETE FROM orders WHERE id = ?', [orderId]);
+    res.json({ message: 'تم حذف الطلب بنجاح' });
+  } catch (error) {
+    console.error('Delete order error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
