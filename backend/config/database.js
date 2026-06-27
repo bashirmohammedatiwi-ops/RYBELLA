@@ -448,7 +448,7 @@ const initDb = async () => {
   } catch (e) {
     console.error('Inventory sync migration:', e.message);
   }
-  // Migration: orders.cancel_reason + normalize legacy statuses
+  // Migration: orders.cancel_reason + normalize legacy statuses + fix CHECK constraint
   try {
     const orderInfo = db.exec('PRAGMA table_info(orders)');
     const orderCols = (orderInfo[0]?.values || []).map((r) => r[1]);
@@ -459,6 +459,48 @@ const initDb = async () => {
     db.run(`UPDATE orders SET status = 'preparing_shipping'
       WHERE status IN ('confirmed', 'processing', 'shipped')`);
     saveDb();
+
+    const schemaRow = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='orders'");
+    const createSql = schemaRow[0]?.values[0]?.[0] || '';
+    if (createSql && !createSql.includes('preparing_shipping')) {
+      console.log('[migration] Rebuilding orders table to allow preparing_shipping status...');
+      db.exec(`CREATE TABLE orders_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        total_price REAL NOT NULL,
+        delivery_fee REAL DEFAULT 0,
+        discount REAL DEFAULT 0,
+        final_price REAL NOT NULL,
+        status TEXT DEFAULT 'pending',
+        payment_method TEXT DEFAULT 'cash',
+        address TEXT NOT NULL,
+        city TEXT NOT NULL,
+        phone TEXT,
+        notes TEXT,
+        coupon_code TEXT,
+        cancel_reason TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`);
+      db.exec(`INSERT INTO orders_new
+        SELECT id, user_id, total_price, delivery_fee, discount, final_price,
+          CASE status
+            WHEN 'confirmed' THEN 'preparing_shipping'
+            WHEN 'processing' THEN 'preparing_shipping'
+            WHEN 'shipped' THEN 'preparing_shipping'
+            ELSE status
+          END,
+          payment_method, address, city, phone, notes, coupon_code, cancel_reason,
+          created_at, updated_at
+        FROM orders`);
+      db.exec('DROP TABLE orders');
+      db.exec('ALTER TABLE orders_new RENAME TO orders');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id)');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)');
+      saveDb();
+      console.log('[migration] orders table updated — preparing_shipping enabled');
+    }
   } catch (e) {
     console.error('Orders status migration:', e.message);
   }

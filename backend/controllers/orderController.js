@@ -223,6 +223,12 @@ exports.updateStatus = async (req, res) => {
     res.json({ message: 'تم تحديث حالة الطلب بنجاح', status, cancel_reason: status === 'cancelled' ? reason : null });
   } catch (error) {
     console.error('Update order status error:', error);
+    const msg = String(error.message || '');
+    if (msg.includes('CHECK constraint') || msg.includes('constraint failed')) {
+      return res.status(400).json({
+        message: 'تعذّر حفظ الحالة — أعد تشغيل الخادم لتطبيق تحديث قاعدة البيانات',
+      });
+    }
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };

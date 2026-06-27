@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   Table,
   TableBody,
@@ -13,9 +11,6 @@ import {
   Button,
   CircularProgress,
   Divider,
-  FormControl,
-  Select,
-  MenuItem,
   Grid,
   Dialog,
   DialogTitle,
@@ -25,15 +20,30 @@ import {
   Alert,
   Paper,
   alpha,
+  Snackbar,
+  Stack,
 } from '@mui/material';
-import { ArrowBack as BackIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  ArrowBack as BackIcon,
+  Delete as DeleteIcon,
+  LocalShipping as ShipIcon,
+  HourglassEmpty as PendingIcon,
+  CheckCircle as DoneIcon,
+  Cancel as CancelIcon,
+  Person as PersonIcon,
+  LocationOn as LocationIcon,
+  Payment as PaymentIcon,
+  Receipt as ReceiptIcon,
+  Phone as PhoneIcon,
+  Notes as NotesIcon,
+} from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../services/api';
 import ImageDisplay from '../components/ImageDisplay';
+import ImageLightbox from '../components/ImageLightbox';
 import { getOrderLineImage } from '../utils/orderImages';
 import {
   ORDER_STATUSES,
-  ORDER_STATUS_LABELS,
   getOrderStatusLabel,
   getOrderStatusColor,
   normalizeOrderStatus,
@@ -41,15 +51,155 @@ import {
 
 const paymentLabels = { cash: 'الدفع عند الاستلام', card: 'بطاقة', transfer: 'تحويل' };
 
+const FLOW_STEPS = [
+  { key: 'pending', label: 'قيد الانتظار', icon: PendingIcon, color: '#ed6c02' },
+  { key: 'preparing_shipping', label: 'قيد التجهيز والشحن', icon: ShipIcon, color: '#0288d1' },
+  { key: 'delivered', label: 'تم التسليم', icon: DoneIcon, color: '#2e7d32' },
+];
+
+function formatMoney(v) {
+  return `${Number(v || 0).toLocaleString('ar-IQ')} د.ع`;
+}
+
+function formatDate(iso) {
+  try {
+    return new Date(iso).toLocaleString('ar-IQ', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso || '—';
+  }
+}
+
+function SectionCard({ title, icon: Icon, children, accent = '#E85D7A' }) {
+  return (
+    <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden', mb: 2 }}>
+      <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(accent, 0.08), borderBottom: '1px solid', borderColor: 'grey.200', display: 'flex', alignItems: 'center', gap: 1 }}>
+        {Icon && <Icon sx={{ color: accent, fontSize: 22 }} />}
+        <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
+      </Box>
+      <Box sx={{ p: 2.5 }}>{children}</Box>
+    </Paper>
+  );
+}
+
+function InfoRow({ icon: Icon, label, value }) {
+  if (!value && value !== 0) return null;
+  return (
+    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 1.5 }}>
+      {Icon && <Icon sx={{ color: 'text.secondary', fontSize: 20, mt: 0.2 }} />}
+      <Box>
+        <Typography variant="caption" color="text.secondary" display="block">{label}</Typography>
+        <Typography variant="body2" fontWeight={500}>{value}</Typography>
+      </Box>
+    </Box>
+  );
+}
+
+function StatusStepper({ current, onSelect, disabled, updating }) {
+  const idx = FLOW_STEPS.findIndex((s) => s.key === current);
+
+  return (
+    <Box sx={{ py: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', position: 'relative' }}>
+        {FLOW_STEPS.map((step, i) => {
+          const StepIcon = step.icon;
+          const done = i < idx;
+          const active = i === idx;
+          const clickable = !disabled && !updating && onSelect;
+
+          return (
+            <Box key={step.key} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+              {i < FLOW_STEPS.length - 1 && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 22,
+                    left: '50%',
+                    width: '100%',
+                    height: 3,
+                    bgcolor: done || active ? step.color : 'grey.200',
+                    opacity: done ? 1 : active ? 0.5 : 0.4,
+                    transition: 'background 0.3s',
+                  }}
+                />
+              )}
+              <Box
+                onClick={() => clickable && onSelect(step.key)}
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: active ? step.color : done ? alpha(step.color, 0.15) : 'grey.100',
+                  color: active ? 'white' : done ? step.color : 'grey.500',
+                  border: '3px solid',
+                  borderColor: active ? step.color : done ? alpha(step.color, 0.4) : 'grey.300',
+                  cursor: clickable ? 'pointer' : 'default',
+                  transition: 'all 0.2s',
+                  '&:hover': clickable ? { transform: 'scale(1.08)', boxShadow: 3 } : {},
+                }}
+              >
+                {updating && active ? (
+                  <CircularProgress size={22} sx={{ color: 'white' }} />
+                ) : (
+                  <StepIcon sx={{ fontSize: 22 }} />
+                )}
+              </Box>
+              <Typography
+                variant="caption"
+                align="center"
+                sx={{
+                  mt: 1,
+                  fontWeight: active ? 700 : 500,
+                  color: active ? step.color : 'text.secondary',
+                  maxWidth: 100,
+                  lineHeight: 1.3,
+                }}
+              >
+                {step.label}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
+function ProductImage({ line, onZoom }) {
+  const src = getOrderLineImage(line);
+  const label = [line.product_name, line.shade_name].filter(Boolean).join(' — ');
+  return (
+    <ImageDisplay
+      src={src}
+      size="sm"
+      width={52}
+      height={52}
+      alt={label}
+      onClick={src ? () => onZoom({ open: true, src, alt: label, title: label }) : undefined}
+    />
+  );
+}
+
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [statusError, setStatusError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [lightbox, setLightbox] = useState({ open: false, src: '', alt: '', title: '' });
 
   useEffect(() => {
     const load = async () => {
@@ -67,17 +217,26 @@ export default function OrderDetail() {
 
   const applyStatusUpdate = async (status, cancel_reason = null) => {
     setStatusError('');
+    setStatusUpdating(true);
     try {
       const payload = { status };
       if (status === 'cancelled') payload.cancel_reason = cancel_reason;
-      await ordersAPI.updateStatus(id, payload);
-      setOrder((o) => (o ? { ...o, status, cancel_reason: status === 'cancelled' ? cancel_reason : null } : null));
+      const { data } = await ordersAPI.updateStatus(id, payload);
+      setOrder((o) => (o ? {
+        ...o,
+        status: data.status || status,
+        cancel_reason: status === 'cancelled' ? cancel_reason : null,
+      } : null));
+      setSuccessMsg(`تم تحديث الحالة إلى: ${getOrderStatusLabel(status)}`);
     } catch (err) {
       setStatusError(err.response?.data?.message || 'فشل تحديث الحالة');
+    } finally {
+      setStatusUpdating(false);
     }
   };
 
   const handleStatusChange = async (status) => {
+    if (status === normalizeOrderStatus(order?.status)) return;
     if (status === 'cancelled') {
       setCancelReason('');
       setCancelDialog(true);
@@ -107,50 +266,130 @@ export default function OrderDetail() {
     }
   };
 
-  const format = (v) => (v ? `${Number(v).toLocaleString('ar-IQ')} د.ع` : '0 د.ع');
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 320 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  if (loading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
-  if (!order) return <Typography color="error">الطلب غير موجود</Typography>;
+  if (!order) {
+    return (
+      <Alert severity="error">الطلب غير موجود</Alert>
+    );
+  }
 
   const displayStatus = normalizeOrderStatus(order.status);
   const canChangeStatus = displayStatus !== 'cancelled' && displayStatus !== 'delivered';
   const bundles = order.bundles || [];
+  const items = order.items || [];
+  const isCancelled = displayStatus === 'cancelled';
 
   return (
     <Box sx={{ direction: 'rtl' }}>
+      {/* header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button startIcon={<BackIcon sx={{ transform: 'scaleX(-1)' }} />} onClick={() => navigate('/orders')}>
-            رجوع
+          <Button
+            startIcon={<BackIcon sx={{ transform: 'scaleX(-1)' }} />}
+            onClick={() => navigate('/orders')}
+            sx={{ borderRadius: 2 }}
+          >
+            رجوع للطلبات
           </Button>
-          <Typography variant="h5" fontWeight={700}>
-            طلب #{order.id}
-          </Typography>
-          <Chip label={getOrderStatusLabel(order.status)} color={getOrderStatusColor(order.status)} />
+          <Box>
+            <Typography variant="h5" fontWeight={800}>طلب #{order.id}</Typography>
+            <Typography variant="body2" color="text.secondary">{formatDate(order.created_at)}</Typography>
+          </Box>
+          <Chip
+            label={getOrderStatusLabel(order.status)}
+            color={getOrderStatusColor(order.status)}
+            sx={{ fontWeight: 600, px: 1 }}
+          />
         </Box>
-        <Button color="error" variant="outlined" startIcon={<DeleteIcon />} onClick={() => setDeleteDialog(true)}>
+        <Button
+          color="error"
+          variant="outlined"
+          startIcon={<DeleteIcon />}
+          onClick={() => setDeleteDialog(true)}
+          sx={{ borderRadius: 2 }}
+        >
           حذف الطلب
         </Button>
       </Box>
 
-      {statusError && <Alert severity="error" sx={{ mb: 2 }}>{statusError}</Alert>}
+      {statusError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setStatusError('')}>{statusError}</Alert>}
+
+      {/* شريط الحالات */}
+      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'grey.200' }}>
+        <Typography variant="subtitle1" fontWeight={700} gutterBottom>مسار الطلب</Typography>
+        {isCancelled ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, px: 2, borderRadius: 2, bgcolor: alpha('#d32f2f', 0.08), border: '1px solid', borderColor: alpha('#d32f2f', 0.3) }}>
+            <CancelIcon sx={{ color: 'error.main' }} />
+            <Box>
+              <Typography fontWeight={700} color="error.main">تم إلغاء الطلب</Typography>
+              {order.cancel_reason && (
+                <Typography variant="body2" color="text.secondary">{order.cancel_reason}</Typography>
+              )}
+            </Box>
+          </Box>
+        ) : (
+          <>
+            <StatusStepper
+              current={ORDER_STATUSES.includes(displayStatus) ? displayStatus : 'pending'}
+              onSelect={canChangeStatus ? handleStatusChange : undefined}
+              disabled={!canChangeStatus}
+              updating={statusUpdating}
+            />
+            {canChangeStatus && (
+              <Stack direction="row" spacing={1} sx={{ mt: 2 }} flexWrap="wrap">
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<CancelIcon />}
+                  onClick={() => handleStatusChange('cancelled')}
+                  disabled={statusUpdating}
+                  sx={{ borderRadius: 2 }}
+                >
+                  إلغاء الطلب
+                </Button>
+              </Stack>
+            )}
+          </>
+        )}
+      </Paper>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        {/* المنتجات */}
+        <Grid item xs={12} lg={8}>
           {bundles.length > 0 && (
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom fontWeight={600}>الباكجات الحصرية</Typography>
-              {(order.bundles || []).map((bundle) => (
-                <Box key={bundle.id} sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: 'rgba(232,93,122,0.06)', border: '1px solid rgba(232,93,122,0.15)' }}>
-                  <Typography fontWeight={700} sx={{ mb: 1 }}>
-                    {bundle.offer_title} × {bundle.quantity}
-                    {bundle.discount_percent > 0 && ` (خصم ${bundle.discount_percent}%)`}
-                  </Typography>
+            <SectionCard title="الباكجات الحصرية" accent="#E85D7A">
+              {bundles.map((bundle) => (
+                <Box
+                  key={bundle.id}
+                  sx={{
+                    mb: 2,
+                    '&:last-child': { mb: 0 },
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: alpha('#E85D7A', 0.04),
+                    border: '1px solid',
+                    borderColor: alpha('#E85D7A', 0.2),
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+                    <Typography fontWeight={700}>
+                      {bundle.offer_title} × {bundle.quantity}
+                    </Typography>
+                    {bundle.discount_percent > 0 && (
+                      <Chip size="small" label={`خصم ${bundle.discount_percent}%`} color="primary" />
+                    )}
+                  </Box>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell width={56} />
+                        <TableCell width={64} />
                         <TableCell>المنتج / الظل</TableCell>
                         <TableCell align="center">الكمية</TableCell>
                         <TableCell align="left">السعر</TableCell>
@@ -160,31 +399,29 @@ export default function OrderDetail() {
                       {(bundle.items || []).map((line) => (
                         <TableRow key={line.id}>
                           <TableCell>
-                            <ImageDisplay src={getOrderLineImage(line)} size="sm" width={44} height={44} alt={line.product_name || ''} />
+                            <ProductImage line={line} onZoom={setLightbox} />
                           </TableCell>
                           <TableCell>{line.product_name} {line.shade_name && `- ${line.shade_name}`}</TableCell>
                           <TableCell align="center">{line.quantity}</TableCell>
-                          <TableCell align="left">{format(line.price)}</TableCell>
+                          <TableCell align="left">{formatMoney(line.price)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                  <Typography fontWeight={600} color="primary" sx={{ mt: 1 }}>
-                    إجمالي الباكج: {format(bundle.total_price)}
+                  <Typography fontWeight={700} color="primary" sx={{ mt: 1.5 }}>
+                    إجمالي الباكج: {formatMoney(bundle.total_price)}
                   </Typography>
                 </Box>
               ))}
-            </CardContent>
-          </Card>
+            </SectionCard>
           )}
-          {(order.items || []).length > 0 && (
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom fontWeight={600}>منتجات منفصلة</Typography>
+
+          {items.length > 0 && (
+            <SectionCard title="المنتجات" accent="#5e35b1">
               <Table size="small">
                 <TableHead>
-                  <TableRow>
-                    <TableCell width={56} />
+                  <TableRow sx={{ '& th': { fontWeight: 700, color: 'text.secondary' } }}>
+                    <TableCell width={64} />
                     <TableCell>المنتج / الظل</TableCell>
                     <TableCell align="center">الكمية</TableCell>
                     <TableCell align="left">السعر</TableCell>
@@ -192,82 +429,91 @@ export default function OrderDetail() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {(order.items || []).map((item) => (
-                    <TableRow key={item.id}>
+                  {items.map((item) => (
+                    <TableRow key={item.id} hover>
                       <TableCell>
-                        <ImageDisplay src={getOrderLineImage(item)} size="sm" width={44} height={44} alt={item.product_name || ''} />
+                        <ProductImage line={item} onZoom={setLightbox} />
                       </TableCell>
-                      <TableCell>{item.product_name} {item.shade_name && ` - ${item.shade_name}`}</TableCell>
+                      <TableCell>
+                        <Typography fontWeight={600}>{item.product_name}</Typography>
+                        {item.shade_name && (
+                          <Typography variant="caption" color="text.secondary">{item.shade_name}</Typography>
+                        )}
+                      </TableCell>
                       <TableCell align="center">{item.quantity}</TableCell>
-                      <TableCell align="left">{format(item.price)}</TableCell>
-                      <TableCell align="left">{format((item.price || 0) * (item.quantity || 0))}</TableCell>
+                      <TableCell align="left">{formatMoney(item.price)}</TableCell>
+                      <TableCell align="left" sx={{ fontWeight: 600 }}>{formatMoney((item.price || 0) * (item.quantity || 0))}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
+            </SectionCard>
+          )}
+
+          {bundles.length === 0 && items.length === 0 && (
+            <Alert severity="info">لا توجد منتجات في هذا الطلب</Alert>
           )}
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden' }}>
-            <Box sx={{ p: 2, bgcolor: alpha('#E85D7A', 0.08), borderBottom: '1px solid', borderColor: 'grey.200' }}>
-              <Typography variant="h6" fontWeight={700}>ملخص الطلب</Typography>
-            </Box>
-            <CardContent>
-              <Box sx={{ '& > p': { mb: 1 }, '& > div': { mb: 2 } }}>
-                <Typography>
-                  <strong>الحالة:</strong>{' '}
-                  <Chip label={getOrderStatusLabel(order.status)} color={getOrderStatusColor(order.status)} size="small" />
-                </Typography>
-                {order.cancel_reason && (
-                  <Alert severity="warning" sx={{ mt: 1, mb: 1 }}>
-                    <strong>سبب الإلغاء:</strong> {order.cancel_reason}
-                  </Alert>
-                )}
-                <Typography><strong>طريقة الدفع:</strong> {paymentLabels[order.payment_method] || order.payment_method}</Typography>
-                <Typography><strong>تاريخ الطلب:</strong> {new Date(order.created_at).toLocaleString('ar-IQ')}</Typography>
-                {order.coupon_code && <Typography><strong>كوبون:</strong> {order.coupon_code}</Typography>}
+
+        {/* الشريط الجانبي */}
+        <Grid item xs={12} lg={4}>
+          <SectionCard title="ملخص المبالغ" icon={ReceiptIcon} accent="#5e35b1">
+            <Stack spacing={1}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography color="text.secondary">المجموع</Typography>
+                <Typography fontWeight={600}>{formatMoney(order.total_price)}</Typography>
               </Box>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" gutterBottom fontWeight={600}>العنوان</Typography>
-              <Typography>{order.address}</Typography>
-              <Typography>{order.city}</Typography>
-              {order.phone && <Typography><strong>الهاتف:</strong> {order.phone}</Typography>}
-              {order.notes && <Typography sx={{ mt: 1 }}><strong>ملاحظات:</strong> {order.notes}</Typography>}
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" gutterBottom fontWeight={600}>المبالغ</Typography>
-              <Typography>المجموع: {format(order.total_price)}</Typography>
-              <Typography>رسوم التوصيل: {format(order.delivery_fee)}</Typography>
-              {(order.discount || 0) > 0 && <Typography>الخصم: -{format(order.discount)}</Typography>}
-              <Typography fontWeight={700} color="primary" sx={{ mt: 1 }}>الإجمالي النهائي: {format(order.final_price)}</Typography>
-              {canChangeStatus && (
-                <Box sx={{ mt: 2 }}>
-                  <FormControl size="small" fullWidth>
-                    <Select
-                      value={ORDER_STATUSES.includes(displayStatus) ? displayStatus : 'pending'}
-                      onChange={(e) => handleStatusChange(e.target.value)}
-                    >
-                      {ORDER_STATUSES.map((k) => (
-                        <MenuItem key={k} value={k}>{ORDER_STATUS_LABELS[k]}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography color="text.secondary">رسوم التوصيل</Typography>
+                <Typography fontWeight={600}>{formatMoney(order.delivery_fee)}</Typography>
+              </Box>
+              {(order.discount || 0) > 0 && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary">الخصم</Typography>
+                  <Typography fontWeight={600} color="success.main">-{formatMoney(order.discount)}</Typography>
                 </Box>
               )}
-            </CardContent>
-          </Paper>
+              {order.coupon_code && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary">كوبون</Typography>
+                  <Chip size="small" label={order.coupon_code} />
+                </Box>
+              )}
+              <Divider sx={{ my: 0.5 }} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography fontWeight={700}>الإجمالي النهائي</Typography>
+                <Typography variant="h6" fontWeight={800} color="primary.main">{formatMoney(order.final_price)}</Typography>
+              </Box>
+            </Stack>
+          </SectionCard>
+
+          <SectionCard title="معلومات التوصيل" icon={LocationIcon}>
+            <InfoRow icon={LocationIcon} label="العنوان" value={order.address} />
+            <InfoRow icon={LocationIcon} label="المحافظة / المدينة" value={order.city} />
+            <InfoRow icon={PhoneIcon} label="هاتف التوصيل" value={order.phone} />
+            {order.notes && <InfoRow icon={NotesIcon} label="ملاحظات" value={order.notes} />}
+          </SectionCard>
+
+          <SectionCard title="الدفع" icon={PaymentIcon}>
+            <InfoRow label="طريقة الدفع" value={paymentLabels[order.payment_method] || order.payment_method} />
+          </SectionCard>
+
+          {(order.customer_name || order.customer_phone) && (
+            <SectionCard title="العميل" icon={PersonIcon}>
+              <InfoRow icon={PersonIcon} label="الاسم" value={order.customer_name} />
+              <InfoRow icon={PhoneIcon} label="الهاتف" value={order.customer_phone} />
+            </SectionCard>
+          )}
         </Grid>
       </Grid>
-      {order.customer_name && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom fontWeight={600}>معلومات العميل</Typography>
-            <Typography><strong>الاسم:</strong> {order.customer_name}</Typography>
-            {order.customer_phone && <Typography><strong>الهاتف:</strong> {order.customer_phone}</Typography>}
-          </CardContent>
-        </Card>
-      )}
+
+      <ImageLightbox
+        open={lightbox.open}
+        src={lightbox.src}
+        alt={lightbox.alt}
+        title={lightbox.title}
+        onClose={() => setLightbox((p) => ({ ...p, open: false }))}
+      />
 
       <Dialog open={cancelDialog} onClose={() => setCancelDialog(false)} fullWidth maxWidth="sm">
         <DialogTitle>إلغاء الطلب</DialogTitle>
@@ -287,9 +533,12 @@ export default function OrderDetail() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCancelDialog(false)}>تراجع</Button>
-          <Button variant="contained" color="error" onClick={handleConfirmCancel}>تأكيد الإلغاء</Button>
+          <Button variant="contained" color="error" onClick={handleConfirmCancel} disabled={statusUpdating}>
+            تأكيد الإلغاء
+          </Button>
         </DialogActions>
       </Dialog>
+
       <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} fullWidth maxWidth="sm">
         <DialogTitle sx={{ color: 'error.main' }}>حذف الطلب #{order.id}</DialogTitle>
         <DialogContent>
@@ -305,6 +554,14 @@ export default function OrderDetail() {
           <Button variant="contained" color="error" onClick={handleDelete}>حذف نهائياً</Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={!!successMsg}
+        autoHideDuration={4000}
+        onClose={() => setSuccessMsg('')}
+        message={successMsg}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }
