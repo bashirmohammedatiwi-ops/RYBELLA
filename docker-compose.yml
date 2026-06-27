@@ -46,7 +46,7 @@ services:
     container_name: rybella-web
     restart: unless-stopped
     ports:
-      - "${HTTP_PORT:-4000}:80"
+      - "127.0.0.1:${HTTP_PORT:-4000}:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -62,7 +62,7 @@ services:
     container_name: rybella-webstore
     restart: unless-stopped
     ports:
-      - "${WEBSTORE_PORT:-4003}:80"
+      - "127.0.0.1:${WEBSTORE_PORT:-4003}:80"
     depends_on:
       backend:
         condition: service_healthy
