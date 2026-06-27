@@ -20,7 +20,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-RybellaChangeThisSecretInEnv}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - API_URL=${API_URL:-http://localhost:4000}
-      - UPLOAD_PATH=./uploads
+      - UPLOAD_PATH=/app/uploads
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-5242880}
       - EXTERNAL_INVENTORY_API_URL=${EXTERNAL_INVENTORY_API_URL:-}
       - EXTERNAL_INVENTORY_API_EMAIL=${EXTERNAL_INVENTORY_API_EMAIL:-}

@@ -4,10 +4,22 @@ const fs = require('fs');
 const archiver = require('archiver');
 const { flushDb, getDbPath } = require('../config/database');
 
-const backupsDir = process.env.BACKUP_PATH || path.join(__dirname, '../backups');
-const uploadsDir = path.isAbsolute(process.env.UPLOAD_PATH || '')
-  ? process.env.UPLOAD_PATH
-  : path.join(__dirname, '..', process.env.UPLOAD_PATH || 'uploads');
+function resolveBackupsDir() {
+  const raw = process.env.BACKUP_PATH;
+  if (raw) {
+    return path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
+  }
+  return path.resolve(__dirname, '../backups');
+}
+
+function resolveUploadsDir() {
+  const raw = process.env.UPLOAD_PATH || 'uploads';
+  if (path.isAbsolute(raw)) return raw;
+  return path.resolve(process.cwd(), raw);
+}
+
+const backupsDir = resolveBackupsDir();
+const uploadsDir = resolveUploadsDir();
 const MAX_BACKUPS = Math.max(1, parseInt(process.env.BACKUP_MAX_COUNT || '15', 10));
 const TOKEN_TTL_MS = 10 * 60 * 1000;
 
@@ -15,7 +27,9 @@ const TOKEN_TTL_MS = 10 * 60 * 1000;
 const downloadTokens = new Map();
 
 function ensureBackupsDir() {
-  if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+  }
 }
 
 function formatBytes(bytes) {
@@ -26,7 +40,7 @@ function formatBytes(bytes) {
 }
 
 function isSafeBackupFilename(name) {
-  return /^rybella-backup-\d{8}-\d{6}\.zip$/.test(name);
+  return /^rybella-backup-.+\.zip$/i.test(name) && !name.includes('..') && !name.includes('/');
 }
 
 function formatBackupName() {
@@ -48,10 +62,20 @@ function getBackupInfo(filename) {
 
 function listBackups() {
   ensureBackupsDir();
-  return fs.readdirSync(backupsDir)
-    .filter(isSafeBackupFilename)
-    .map((filename) => getBackupInfo(filename))
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const entries = fs.readdirSync(backupsDir, { withFileTypes: true });
+  const backups = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    if (!isSafeBackupFilename(entry.name)) continue;
+    try {
+      backups.push(getBackupInfo(entry.name));
+    } catch (err) {
+      console.warn('[backup] skip unreadable file:', entry.name, err.message);
+    }
+  }
+
+  return backups.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 async function pruneOldBackups() {
@@ -77,13 +101,21 @@ async function createBackup() {
     output.on('close', resolve);
     output.on('error', reject);
     archive.on('error', reject);
+    archive.on('warning', (err) => {
+      if (err.code === 'ENOENT') console.warn('[backup] archive warning:', err.message);
+      else reject(err);
+    });
     archive.pipe(output);
 
     if (fs.existsSync(dbPath)) {
       archive.file(dbPath, { name: 'rybella.db' });
+    } else {
+      console.warn('[backup] database file missing at', dbPath);
     }
     if (fs.existsSync(uploadsDir)) {
       archive.directory(uploadsDir, 'uploads');
+    } else {
+      console.warn('[backup] uploads dir missing at', uploadsDir);
     }
     archive.append(
       JSON.stringify(
@@ -91,6 +123,9 @@ async function createBackup() {
           created_at: new Date().toISOString(),
           app: 'rybella-iraq',
           includes: ['database', 'uploads'],
+          backupsDir,
+          dbPath,
+          uploadsDir,
         },
         null,
         2
@@ -100,7 +135,17 @@ async function createBackup() {
     archive.finalize();
   });
 
+  if (!fs.existsSync(filepath)) {
+    throw new Error('Backup file was not created');
+  }
+  const stat = fs.statSync(filepath);
+  if (stat.size < 100) {
+    fs.unlinkSync(filepath);
+    throw new Error('Backup file is empty or corrupt');
+  }
+
   await pruneOldBackups();
+  console.log('[backup] created', filename, formatBytes(stat.size), 'at', backupsDir);
   return getBackupInfo(filename);
 }
 
@@ -160,6 +205,10 @@ function streamBackupFile(filename, res) {
   fs.createReadStream(filepath).pipe(res);
 }
 
+function getBackupsDir() {
+  return backupsDir;
+}
+
 module.exports = {
   createBackup,
   listBackups,
@@ -169,4 +218,5 @@ module.exports = {
   resolveDownloadToken,
   streamBackupFile,
   formatBytes,
+  getBackupsDir,
 };

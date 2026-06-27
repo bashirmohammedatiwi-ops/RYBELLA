@@ -15,10 +15,11 @@ services:
       - NODE_ENV=production
       - PORT=4000
       - DB_PATH=/app/data/rybella.db
+      - BACKUP_PATH=/app/backups
+      - UPLOAD_PATH=/app/uploads
       - JWT_SECRET=${JWT_SECRET:-RybellaChangeThisSecretInEnv}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - API_URL=${API_URL:-http://localhost:4000}
-      - UPLOAD_PATH=./uploads
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-5242880}
       - EXTERNAL_INVENTORY_API_URL=${EXTERNAL_INVENTORY_API_URL:-}
       - EXTERNAL_INVENTORY_API_EMAIL=${EXTERNAL_INVENTORY_API_EMAIL:-}
@@ -28,6 +29,7 @@ services:
     volumes:
       - backend_data:/app/data
       - backend_uploads:/app/uploads
+      - backend_backups:/app/backups
     networks:
       - rybella-network
     healthcheck:
@@ -74,6 +76,8 @@ volumes:
     name: rybella_backend_data
   backend_uploads:
     name: rybella_backend_uploads
+  backend_backups:
+    name: rybella_backend_backups
 
 networks:
   rybella-network:

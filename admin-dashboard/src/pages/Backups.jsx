@@ -46,8 +46,9 @@ export default function Backups() {
     setError('');
     try {
       const res = await backupAPI.list();
-      setBackups(res.data?.backups || []);
+      setBackups(Array.isArray(res.data?.backups) ? res.data.backups : []);
     } catch (e) {
+      console.error('backup list error', e);
       setError(e.response?.data?.message || 'تعذّر تحميل قائمة النسخ الاحتياطية');
     } finally {
       setLoading(false);
@@ -64,7 +65,14 @@ export default function Backups() {
     setMsg('');
     try {
       const res = await backupAPI.create();
-      setMsg(res.data?.message || 'تم إنشاء النسخة الاحتياطية');
+      const created = res.data?.backup;
+      if (created?.filename) {
+        setBackups((prev) => {
+          const without = prev.filter((b) => b.filename !== created.filename);
+          return [created, ...without];
+        });
+      }
+      setMsg(res.data?.message || 'تم إنشاء النسخة الاحتياطية بنجاح');
       await load();
     } catch (e) {
       setError(e.response?.data?.message || 'فشل إنشاء النسخة الاحتياطية');

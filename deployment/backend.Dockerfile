@@ -12,8 +12,8 @@ COPY database/ /database/
 # Install production dependencies only
 RUN npm ci --omit=dev
 
-# Create uploads and data directories
-RUN mkdir -p uploads database data
+# Create uploads, data, and backups directories
+RUN mkdir -p uploads database data backups
 
 # Backend runs on port 4000 (avoid conflict with port 3000)
 ENV PORT=4000

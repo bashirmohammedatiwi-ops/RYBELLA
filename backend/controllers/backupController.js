@@ -3,7 +3,7 @@ const backupService = require('../services/backupService');
 exports.list = async (req, res) => {
   try {
     const backups = backupService.listBackups();
-    res.json({ backups });
+    res.json({ backups, dir: backupService.getBackupsDir() });
   } catch (error) {
     console.error('List backups error:', error);
     res.status(500).json({ message: 'تعذّر جلب قائمة النسخ الاحتياطية' });

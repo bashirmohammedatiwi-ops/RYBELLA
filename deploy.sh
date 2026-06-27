@@ -87,11 +87,13 @@ fi
 migrate_docker_volumes_if_needed() {
   # عند تغيير مجلد التشغيل (deployment/ → جذر المشروع) يُنشئ Docker volumes جديدة فارغة.
   # ننسخ البيانات من الأسماء القديمة إن وُجدت.
-  local pairs=(
+  local     pairs=(
     "deployment_backend_data:rybella_backend_data"
     "deployment_backend_uploads:rybella_backend_uploads"
+    "deployment_backend_backups:rybella_backend_backups"
     "rybella_backend_data:rybella_backend_data"
     "rybella_backend_uploads:rybella_backend_uploads"
+    "rybella_backend_backups:rybella_backend_backups"
   )
   for pair in "${pairs[@]}"; do
     local from="${pair%%:*}"
