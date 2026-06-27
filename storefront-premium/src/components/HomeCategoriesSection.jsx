@@ -10,46 +10,37 @@ function CategoryStripItem({ category, index }) {
   return (
     <Link
       to={`/explore?category=${category.id}`}
-      className="hc-pill"
+      className="hc-orbit-item"
       style={{ '--ring-a': toneA, '--ring-b': toneB }}
     >
-      <span className="hc-pill-icon">
-        <CategoryIconVisual category={category} />
+      <span className="hc-orbit-ring">
+        <span className="hc-orbit-icon">
+          <CategoryIconVisual category={category} />
+        </span>
       </span>
-      <span className="hc-pill-name">{category.name}</span>
+      <span className="hc-orbit-name">{category.name}</span>
     </Link>
   )
 }
 
-function CategoryImageCard({ category, index }) {
+function CategoryRow({ category, index }) {
   const imageUrl = category.image ? `${IMG_BASE}${category.image}` : null
-  const label = category.overlay_text?.trim() || category.name
 
   return (
     <Link
       to={`/explore?category=${category.id}`}
-      className={`hc-card${imageUrl ? ' hc-card--has-image' : ''}`}
+      className={`hc-row${imageUrl ? ' hc-row--has-image' : ''}`}
       style={{ '--hc-i': index }}
     >
-      <span className="hc-card-media">
-        {imageUrl ? (
-          <img src={imageUrl} alt={category.name} loading="lazy" draggable={false} />
-        ) : (
-          <span className="hc-card-fallback" aria-hidden="true">
-            {category.name?.slice(0, 1) || 'R'}
-          </span>
-        )}
-        <span className="hc-card-overlay" aria-hidden="true" />
-        <span className="hc-card-shine" aria-hidden="true" />
-      </span>
-      <span className="hc-card-body">
-        <span className="hc-card-name">{label}</span>
-        {category.overlay_text?.trim() && category.overlay_text.trim() !== category.name && (
-          <span className="hc-card-sub">{category.name}</span>
-        )}
-      </span>
-      <span className="hc-card-arrow" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      {imageUrl && (
+        <span className="hc-row-bg" aria-hidden="true">
+          <img src={imageUrl} alt="" loading="lazy" draggable={false} />
+        </span>
+      )}
+      <span className="hc-row-overlay" aria-hidden="true" />
+      <span className="hc-row-name">{category.name}</span>
+      <span className="hc-row-arrow" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
       </span>
@@ -62,23 +53,25 @@ export default function HomeCategoriesSection({ categories = [], variant = 'sect
 
   if (variant === 'strip') {
     return (
-      <section className="hc-quick" aria-label="الأقسام">
-        <div className="hc-quick-panel">
-          <div className="hc-quick-track-wrap">
-            <div className="hc-quick-track">
+      <section className="hc-orbit" aria-label="الأقسام">
+        <div className="hc-orbit-shell">
+          <div className="hc-orbit-track-wrap">
+            <div className="hc-orbit-track">
               {categories.map((c, i) => (
                 <CategoryStripItem key={c.id} category={c} index={i} />
               ))}
-              <Link to="/categories" className="hc-pill hc-pill--all">
-                <span className="hc-pill-icon hc-pill-icon--all">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                    <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                  </svg>
+              <Link to="/categories" className="hc-orbit-item hc-orbit-item--all">
+                <span className="hc-orbit-ring hc-orbit-ring--all">
+                  <span className="hc-orbit-icon hc-orbit-icon--all">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                    </svg>
+                  </span>
                 </span>
-                <span className="hc-pill-name">كل الأقسام</span>
+                <span className="hc-orbit-name">الكل</span>
               </Link>
             </div>
           </div>
@@ -94,9 +87,9 @@ export default function HomeCategoriesSection({ categories = [], variant = 'sect
         <Link to="/categories" className="hc-section-link">عرض الكل</Link>
       </header>
 
-      <div className="hc-grid">
+      <div className="hc-list">
         {categories.map((c, i) => (
-          <CategoryImageCard key={c.id} category={c} index={i} />
+          <CategoryRow key={c.id} category={c} index={i} />
         ))}
       </div>
     </section>

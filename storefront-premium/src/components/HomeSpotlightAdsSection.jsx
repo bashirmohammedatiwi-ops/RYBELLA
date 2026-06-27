@@ -91,44 +91,57 @@ function ImageGallery({ images, frontIdx, onChange, slideVisible, inView }) {
   }
 
   return (
-    <div className="sg-gallery" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div className="sg-viewport">
-        {images.map((src, i) => (
-          <img
-            key={src}
-            src={`${IMG_BASE}${src}`}
-            alt=""
-            className={`sg-photo${i === frontIdx ? ' is-active' : ''}`}
-            loading={i === 0 ? 'eager' : 'lazy'}
-            draggable={false}
-          />
-        ))}
+    <div className="sg-stage" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="sg-hero">
+        <div className="sg-hero-frame">
+          {images.map((src, i) => (
+            <img
+              key={src}
+              src={`${IMG_BASE}${src}`}
+              alt=""
+              className={`sg-hero-img${i === frontIdx ? ' is-active' : ''}`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              draggable={false}
+            />
+          ))}
+        </div>
 
         {count > 1 && (
-          <span className="sg-photo-count">{frontIdx + 1} / {count}</span>
+          <>
+            <div className="sg-hero-badge">{frontIdx + 1}/{count}</div>
+            <div className="sg-hero-bars" aria-hidden="true">
+              {images.map((src, i) => (
+                <span
+                  key={src}
+                  className={`sg-hero-bar${i === frontIdx ? ' is-active' : ''}${i < frontIdx ? ' is-done' : ''}`}
+                >
+                  {i === frontIdx && (
+                    <span
+                      key={`fill-${frontIdx}`}
+                      className="sg-hero-bar-fill"
+                      style={{ animationDuration: `${IMAGE_CYCLE_MS}ms` }}
+                    />
+                  )}
+                </span>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       {count > 1 && (
-        <div className="sg-thumbs" role="tablist" aria-label="صور المنتج">
+        <div className="sg-rail" role="tablist" aria-label="صور المنتج">
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
               role="tab"
               aria-selected={i === frontIdx}
-              className={`sg-thumb${i === frontIdx ? ' is-active' : ''}`}
+              className={`sg-rail-item${i === frontIdx ? ' is-active' : ''}`}
               onClick={() => onChange(i)}
               aria-label={`صورة ${i + 1}`}
             >
               <img src={`${IMG_BASE}${src}`} alt="" loading="lazy" draggable={false} />
-              {i === frontIdx && (
-                <span
-                  key={`timer-${frontIdx}`}
-                  className="sg-thumb-timer"
-                  style={{ animationDuration: `${IMAGE_CYCLE_MS}ms` }}
-                />
-              )}
             </button>
           ))}
         </div>
@@ -137,7 +150,7 @@ function ImageGallery({ images, frontIdx, onChange, slideVisible, inView }) {
   )
 }
 
-function ProductSlide({ product, isActive, inView, index }) {
+function ProductSlide({ product, isActive, inView }) {
   const slideRef = useRef(null)
   const images = getProductImages(product)
   const [frontIdx, setFrontIdx] = useState(0)
@@ -170,18 +183,20 @@ function ProductSlide({ product, isActive, inView, index }) {
         />
 
         <Link to={`/products/${product.id}`} className="sg-info">
-          <div className="sg-info-body">
+          <div className="sg-info-main">
             {(product.brand_name || product.category_name) && (
               <span className="sg-brand">{product.brand_name || product.category_name}</span>
             )}
             <h3 className="sg-name">{product.name}</h3>
-            <span className="sg-price">{formatPrice(getMinPrice(product))}</span>
           </div>
-          <span className="sg-cta" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </span>
+          <div className="sg-info-end">
+            <span className="sg-price">{formatPrice(getMinPrice(product))}</span>
+            <span className="sg-cta" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </span>
+          </div>
         </Link>
       </div>
     </article>
@@ -291,58 +306,60 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
 
   return (
     <section ref={sectionRef} className="sg-section" aria-label="معرض الصور">
-      <header className="sg-head">
-        <h2 className="sg-title">معرض الصور</h2>
-        {items.length > 1 && (
-          <div className="sg-head-actions">
-            <span className="sg-head-count">{activeIdx + 1} / {items.length}</span>
-            <div className="sg-head-btns">
-              <button
-                type="button"
-                className="sg-nav-btn"
-                onClick={() => scrollTo((activeIdx - 1 + items.length) % items.length)}
-                aria-label="المنتج السابق"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                className="sg-nav-btn"
-                onClick={() => scrollTo((activeIdx + 1) % items.length)}
-                aria-label="المنتج التالي"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </button>
+      <div className="sg-section-frame">
+        <header className="sg-head">
+          <h2 className="sg-title">معرض الصور</h2>
+          {items.length > 1 && (
+            <div className="sg-head-actions">
+              <span className="sg-head-count">{activeIdx + 1} / {items.length}</span>
+              <div className="sg-head-btns">
+                <button
+                  type="button"
+                  className="sg-nav-btn"
+                  onClick={() => scrollTo((activeIdx - 1 + items.length) % items.length)}
+                  aria-label="المنتج السابق"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="sg-nav-btn"
+                  onClick={() => scrollTo((activeIdx + 1) % items.length)}
+                  aria-label="المنتج التالي"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </header>
+          )}
+        </header>
 
-      <div className="sg-track" ref={trackRef} onScroll={onTrackScroll}>
-        {items.map((p, i) => (
-          <ProductSlide key={p.id} product={p} isActive={i === activeIdx} inView={inView} index={i} />
-        ))}
-      </div>
-
-      {items.length > 1 && (
-        <div className="sg-dots" role="tablist" aria-label="المنتجات">
+        <div className="sg-track" ref={trackRef} onScroll={onTrackScroll}>
           {items.map((p, i) => (
-            <button
-              key={p.id}
-              type="button"
-              role="tab"
-              aria-selected={i === activeIdx}
-              className={`sg-dot${i === activeIdx ? ' is-on' : ''}`}
-              onClick={() => scrollTo(i)}
-              aria-label={`منتج ${i + 1}`}
-            />
+            <ProductSlide key={p.id} product={p} isActive={i === activeIdx} inView={inView} />
           ))}
         </div>
-      )}
+
+        {items.length > 1 && (
+          <div className="sg-dots" role="tablist" aria-label="المنتجات">
+            {items.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                role="tab"
+                aria-selected={i === activeIdx}
+                className={`sg-dot${i === activeIdx ? ' is-on' : ''}`}
+                onClick={() => scrollTo(i)}
+                aria-label={`منتج ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   )
 }
