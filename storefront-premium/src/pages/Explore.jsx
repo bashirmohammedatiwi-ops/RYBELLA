@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { productsAPI, categoriesAPI, subcategoriesAPI, wishlistAPI } from '../services/api'
+import { isBarcodeLikeQuery } from '../utils/barcode'
 import { useAuth } from '../context/AuthContext'
 import ProductCard from '../components/ProductCard'
 import MobileHeader from '../components/MobileHeader'
@@ -33,6 +34,8 @@ function setLayoutRailVars(layoutEl, { scrollFade, open, pinned }) {
 
 export default function Explore() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const [searchInput, setSearchInput] = useState('')
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
@@ -60,6 +63,7 @@ export default function Explore() {
   const featured = searchParams.get('featured')
 
   useEffect(() => {
+    setSearchInput(searchParams.get('search') || '')
     setSortBy(searchParams.get('sort') || '')
   }, [searchParams])
 
@@ -136,6 +140,32 @@ export default function Explore() {
       else p.set(k, v)
     })
     return '/explore' + (p.toString() ? '?' + p.toString() : '')
+  }
+
+  const handleExploreSearch = async (e) => {
+    e?.preventDefault?.()
+    const q = searchInput.trim()
+    if (!q) {
+      const p = new URLSearchParams(searchParams)
+      p.delete('search')
+      setSearchParams(p)
+      return
+    }
+    if (isBarcodeLikeQuery(q)) {
+      try {
+        const { data } = await productsAPI.getAll({ search: q })
+        const list = Array.isArray(data) ? data : []
+        if (list.length === 1) {
+          navigate(`/products/${list[0].id}`)
+          return
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    const p = new URLSearchParams(searchParams)
+    p.set('search', q)
+    setSearchParams(p)
   }
 
   const runRailTransition = useCallback((nextVisible) => {
@@ -285,6 +315,22 @@ export default function Explore() {
               )}
             </div>
 
+            <form className="premium-explore-search" onSubmit={handleExploreSearch}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="ابحثي بالاسم، الوصف، البراند، الدرجة، أو الباركود..."
+                inputMode="search"
+                autoComplete="off"
+              />
+              <button type="submit">بحث</button>
+            </form>
+
             <div className="premium-explore-header">
               <p className="premium-explore-count">
                 {loading ? '...' : `${products.length} منتج`}
@@ -310,7 +356,9 @@ export default function Explore() {
             {loading ? (
               <div className="premium-loading">جاري التحميل...</div>
             ) : products.length === 0 ? (
-              <div className="premium-empty">لا توجد منتجات.</div>
+              <div className="premium-empty">
+                {search ? `لا توجد نتائج لـ "${search}"` : 'لا توجد منتجات.'}
+              </div>
             ) : (
               <div className="premium-products-grid">
                 {products.map((p) => (

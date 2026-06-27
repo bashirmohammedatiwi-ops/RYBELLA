@@ -28,6 +28,8 @@ import {
 import { Search as SearchIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../services/api';
+import ImageDisplay from '../components/ImageDisplay';
+import { collectOrderProductLines } from '../utils/orderImages';
 import {
   ORDER_STATUSES,
   ORDER_STATUS_LABELS,
@@ -144,6 +146,7 @@ export default function Orders() {
           <TableHead>
             <TableRow>
               <TableCell>#</TableCell>
+              <TableCell>المنتجات</TableCell>
               <TableCell>المبلغ النهائي</TableCell>
               <TableCell>الحالة</TableCell>
               <TableCell>طريقة الدفع</TableCell>
@@ -155,9 +158,51 @@ export default function Orders() {
           <TableBody>
             {paginated.map((order) => {
               const displayStatus = normalizeOrderStatus(order.status);
+              const productLines = collectOrderProductLines(order);
+              const visibleLines = productLines.slice(0, 4);
+              const extraCount = productLines.length - visibleLines.length;
               return (
                 <TableRow key={order.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/orders/${order.id}`)}>
                   <TableCell>{order.id}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {productLines.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">—</Typography>
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', maxWidth: 220 }}>
+                        {visibleLines.map((line) => (
+                          <ImageDisplay
+                            key={line.key}
+                            src={line.image}
+                            size="sm"
+                            width={44}
+                            height={44}
+                            alt={line.name || 'منتج'}
+                            sx={{ borderRadius: 1.5 }}
+                          />
+                        ))}
+                        {extraCount > 0 && (
+                          <Box
+                            sx={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 1.5,
+                              bgcolor: 'grey.100',
+                              border: '1px solid',
+                              borderColor: 'grey.200',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: 'text.secondary',
+                            }}
+                          >
+                            +{extraCount}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                  </TableCell>
                   <TableCell>{Number(order.final_price).toLocaleString('ar-IQ')} د.ع</TableCell>
                   <TableCell>
                     <Chip

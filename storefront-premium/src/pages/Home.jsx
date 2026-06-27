@@ -10,6 +10,7 @@ import HomeSpotlightAdsSection from '../components/HomeSpotlightAdsSection'
 import HomeCategoriesSection from '../components/HomeCategoriesSection'
 import StoriesBar from '../components/StoriesBar'
 import { formatCount, formatPercent } from '../utils/format'
+import { isBarcodeLikeQuery } from '../utils/barcode'
 import './Home.css'
 
 export default function Home() {
@@ -72,9 +73,26 @@ export default function Home() {
     }
   }
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e?.preventDefault?.()
-    navigate(search ? `/explore?search=${encodeURIComponent(search)}` : '/explore')
+    const q = search.trim()
+    if (!q) {
+      navigate('/explore')
+      return
+    }
+    if (isBarcodeLikeQuery(q)) {
+      try {
+        const { data } = await productsAPI.getAll({ search: q })
+        const list = Array.isArray(data) ? data : []
+        if (list.length === 1) {
+          navigate(`/products/${list[0].id}`)
+          return
+        }
+      } catch {
+        /* fall through to explore */
+      }
+    }
+    navigate(`/explore?search=${encodeURIComponent(q)}`)
   }
 
   const heroTitle = settings?.hero_title || 'Rybella'
@@ -120,7 +138,9 @@ export default function Home() {
           </svg>
           <input
             type="text"
-            placeholder="ابحثي عن منتج أو درجة..."
+            placeholder="ابحثي بالاسم، الوصف، البراند، الدرجة، أو الباركود..."
+            inputMode="search"
+            autoComplete="off"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

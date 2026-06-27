@@ -1,7 +1,13 @@
 const db = require('../config/database');
 const { enrichProductPricing } = require('../services/inventorySyncService');
+const {
+  isBarcodeLikeSearch,
+  buildBarcodeSearchClause,
+  buildSmartSearchClause,
+  rankSearchResults,
+} = require('../services/productSearch');
 
-const VARIANT_PUBLIC_FIELDS = 'id, shade_name, color_code, price, original_price, discount_percent, stock, image, expiration_date';
+const VARIANT_PUBLIC_FIELDS = 'id, shade_name, color_code, price, original_price, discount_percent, stock, image, expiration_date, barcode, sku';
 
 exports.getAll = async (req, res) => {
   try {
@@ -46,15 +52,20 @@ exports.getAll = async (req, res) => {
         query += ' AND 1=0';
       }
     }
+    let searchMeta = null;
     if (search) {
       const searchVal = String(search).trim();
-      const isBarcode = /^\d+$/.test(searchVal);
-      if (isBarcode) {
-        query += ' AND (p.barcode = ? OR EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND pv.barcode = ?))';
-        params.push(searchVal, searchVal);
+      if (isBarcodeLikeSearch(searchVal)) {
+        const barcodeSearch = buildBarcodeSearchClause(searchVal);
+        query += barcodeSearch.clause;
+        params.push(...barcodeSearch.params);
       } else {
-        query += ' AND (p.name LIKE ? OR p.description LIKE ? OR p.tags LIKE ?)';
-        params.push(`%${searchVal}%`, `%${searchVal}%`, `%${searchVal}%`);
+        const smartSearch = buildSmartSearchClause(searchVal);
+        if (smartSearch) {
+          query += smartSearch.clause;
+          params.push(...smartSearch.params);
+          searchMeta = smartSearch.meta;
+        }
       }
     }
     if (tags) {
@@ -75,7 +86,8 @@ exports.getAll = async (req, res) => {
       price_desc: '(SELECT MAX(price) FROM product_variants WHERE product_id = p.id) DESC',
       newest: 'p.created_at DESC',
     };
-    const orderClause = orderMap[sort_by] || 'p.sort_order ASC, p.name ASC';
+    const useRelevanceSort = searchMeta && !sort_by;
+    const orderClause = useRelevanceSort ? 'p.sort_order ASC, p.name ASC' : (orderMap[sort_by] || 'p.sort_order ASC, p.name ASC');
     query += ' ORDER BY ' + orderClause;
 
     const [products] = await db.query(query, params);
@@ -103,6 +115,10 @@ exports.getAll = async (req, res) => {
       if (product.tags && typeof product.tags === 'string') {
         product.tags = product.tags.split(',').map((t) => t.trim()).filter(Boolean);
       }
+    }
+
+    if (searchMeta && !sort_by) {
+      filteredProducts = rankSearchResults(filteredProducts, searchMeta);
     }
 
     res.json(filteredProducts);

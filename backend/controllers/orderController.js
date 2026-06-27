@@ -4,10 +4,27 @@ const { ORDER_STATUSES, isValidOrderStatus } = require('../utils/orderStatus');
 const { validateBundleLines } = require('../services/bundleService');
 const { roundSalePrice } = require('../utils/pricing');
 
+const ORDER_ITEMS_SELECT = `
+  SELECT oi.*, pv.shade_name, pv.barcode, pv.image as variant_image,
+    p.name as product_name, p.main_image as product_image, p.id as product_id
+  FROM order_items oi
+  JOIN product_variants pv ON oi.variant_id = pv.id
+  JOIN products p ON pv.product_id = p.id
+  WHERE oi.order_id = ?
+`;
+
+const ORDER_BUNDLE_ITEMS_SELECT = `
+  SELECT obi.*, pv.image as variant_image, p.main_image as product_image, p.id as product_id
+  FROM order_bundle_items obi
+  LEFT JOIN product_variants pv ON obi.variant_id = pv.id
+  LEFT JOIN products p ON pv.product_id = p.id
+  WHERE obi.order_bundle_id = ?
+`;
+
 async function attachOrderBundles(order) {
   const [bundles] = await db.query('SELECT * FROM order_bundles WHERE order_id = ?', [order.id]);
   for (const bundle of bundles) {
-    const [lines] = await db.query('SELECT * FROM order_bundle_items WHERE order_bundle_id = ?', [bundle.id]);
+    const [lines] = await db.query(ORDER_BUNDLE_ITEMS_SELECT, [bundle.id]);
     bundle.items = lines;
   }
   order.bundles = bundles;
@@ -29,13 +46,7 @@ exports.getById = async (req, res) => {
     if (req.user.role !== 'admin' && order.user_id !== req.user.id) {
       return res.status(403).json({ message: 'غير مصرح' });
     }
-    const [items] = await db.query(`
-      SELECT oi.*, pv.shade_name, pv.barcode, p.name as product_name
-      FROM order_items oi
-      JOIN product_variants pv ON oi.variant_id = pv.id
-      JOIN products p ON pv.product_id = p.id
-      WHERE oi.order_id = ?
-    `, [order.id]);
+    const [items] = await db.query(ORDER_ITEMS_SELECT, [order.id]);
     order.items = items;
     await attachOrderBundles(order);
     res.json(order);
@@ -62,13 +73,7 @@ exports.getAll = async (req, res) => {
     const [orders] = await db.query(query, params);
 
     for (const order of orders) {
-      const [items] = await db.query(`
-        SELECT oi.*, pv.shade_name, pv.barcode, p.name as product_name
-        FROM order_items oi
-        JOIN product_variants pv ON oi.variant_id = pv.id
-        JOIN products p ON pv.product_id = p.id
-        WHERE oi.order_id = ?
-      `, [order.id]);
+      const [items] = await db.query(ORDER_ITEMS_SELECT, [order.id]);
       order.items = items;
       await attachOrderBundles(order);
     }

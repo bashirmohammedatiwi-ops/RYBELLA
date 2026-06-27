@@ -27,6 +27,8 @@ import {
 import { ArrowBack as BackIcon } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../services/api';
+import ImageDisplay from '../components/ImageDisplay';
+import { getOrderLineImage } from '../utils/orderImages';
 import {
   ORDER_STATUSES,
   ORDER_STATUS_LABELS,
@@ -126,9 +128,20 @@ export default function OrderDetail() {
                     {bundle.discount_percent > 0 && ` (خصم ${bundle.discount_percent}%)`}
                   </Typography>
                   <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell width={56} />
+                        <TableCell>المنتج / الظل</TableCell>
+                        <TableCell align="center">الكمية</TableCell>
+                        <TableCell align="left">السعر</TableCell>
+                      </TableRow>
+                    </TableHead>
                     <TableBody>
                       {(bundle.items || []).map((line) => (
                         <TableRow key={line.id}>
+                          <TableCell>
+                            <ImageDisplay src={getOrderLineImage(line)} size="sm" width={44} height={44} alt={line.product_name || ''} />
+                          </TableCell>
                           <TableCell>{line.product_name} {line.shade_name && `- ${line.shade_name}`}</TableCell>
                           <TableCell align="center">{line.quantity}</TableCell>
                           <TableCell align="left">{format(line.price)}</TableCell>
@@ -151,6 +164,7 @@ export default function OrderDetail() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
+                    <TableCell width={56} />
                     <TableCell>المنتج / الظل</TableCell>
                     <TableCell align="center">الكمية</TableCell>
                     <TableCell align="left">السعر</TableCell>
@@ -160,6 +174,9 @@ export default function OrderDetail() {
                 <TableBody>
                   {(order.items || []).map((item) => (
                     <TableRow key={item.id}>
+                      <TableCell>
+                        <ImageDisplay src={getOrderLineImage(item)} size="sm" width={44} height={44} alt={item.product_name || ''} />
+                      </TableCell>
                       <TableCell>{item.product_name} {item.shade_name && ` - ${item.shade_name}`}</TableCell>
                       <TableCell align="center">{item.quantity}</TableCell>
                       <TableCell align="left">{format(item.price)}</TableCell>

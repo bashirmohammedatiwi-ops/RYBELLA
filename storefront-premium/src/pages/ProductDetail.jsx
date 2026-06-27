@@ -203,6 +203,7 @@ export default function ProductDetail() {
   }
 
   const selectedPricing = getSelectedVariantPricing(selectedVariant, product)
+  const displayBarcode = selectedVariant?.barcode || product.barcode
 
   return (
     <div className="pd-page">
@@ -352,6 +353,13 @@ export default function ProductDetail() {
             </button>
           )}
         </div>
+
+        {displayBarcode && (
+          <div className="pd-barcode">
+            <span className="pd-barcode-label">الباركود</span>
+            <code className="pd-barcode-value">{displayBarcode}</code>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -54,9 +54,6 @@ export default function HomeCategoriesSection({ categories = [], variant = 'sect
     return (
       <section className="hc-top" aria-label="الأقسام">
         <div className="hc-top-scroll">
-          {categories.map((c, i) => (
-            <CategoryStripItem key={c.id} category={c} index={i} />
-          ))}
           <Link to="/categories" className="hc-top-item hc-top-item--all">
             <span className="hc-top-icon hc-top-icon--all">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -68,6 +65,9 @@ export default function HomeCategoriesSection({ categories = [], variant = 'sect
             </span>
             <span className="hc-top-label">الكل</span>
           </Link>
+          {categories.map((c, i) => (
+            <CategoryStripItem key={c.id} category={c} index={i} />
+          ))}
         </div>
       </section>
     )

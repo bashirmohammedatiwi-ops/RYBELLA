@@ -634,6 +634,34 @@
   background: var(--primary-soft);
 }
 
+.pd-barcode {
+  margin-top: 24px;
+  padding: 14px 16px;
+  background: #fafafa;
+  border: 1px dashed #e0e0e0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pd-barcode-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #888;
+}
+
+.pd-barcode-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 0.04em;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .pd-hero {
