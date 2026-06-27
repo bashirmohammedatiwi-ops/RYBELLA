@@ -358,11 +358,14 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
 
   return (
     <section ref={sectionRef} className="pk-section" aria-label="منتجات مميزة">
-      {items.length > 1 && (
-        <header className="pk-head">
-          <span className="pk-head-count">{activeIdx + 1} / {items.length}</span>
-        </header>
-      )}
+      <header className="pk-head">
+        <div>
+          <span className="pk-eyebrow">معرض الصور</span>
+          <h2 className="pk-title">منتجات بصور متعددة</h2>
+          <p className="pk-desc">اختيارات تتغير صورها تلقائياً لتشاهدي تفاصيل أكثر.</p>
+        </div>
+        {items.length > 1 && <span className="pk-head-count">{activeIdx + 1} / {items.length}</span>}
+      </header>
 
       <div className="pk-track" ref={trackRef} onScroll={onTrackScroll}>
         {items.map((p, i) => (

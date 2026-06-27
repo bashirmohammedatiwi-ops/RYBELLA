@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
-import HomeCategoriesSection from '../components/HomeCategoriesSection'
 import HomeOffersSection from '../components/HomeOffersSection'
 import HomeSpotlightAdsSection from '../components/HomeSpotlightAdsSection'
 import StoriesBar from '../components/StoriesBar'
@@ -91,55 +90,47 @@ export default function Home() {
   return (
     <div className="home">
       <header className="home-header">
-        <Link to="/" className="home-logo">
-          <span className="home-logo-mark" aria-hidden="true">R</span>
-          {heroTitle}
-        </Link>
+        <div className="home-header-top">
+          <Link to="/" className="home-logo" aria-label={heroTitle}>
+            <img src="/assets/rybella-logo.png" alt={heroTitle} />
+          </Link>
+
+          <div className="home-actions">
+            <Link to="/categories" className="home-action-btn" aria-label="الفئات">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            </Link>
+            <Link to="/cart" className="home-action-btn home-cart" aria-label="السلة">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 01-8 0" />
+              </svg>
+              {formatCount(totalCount) && <span className="home-cart-badge">{formatCount(totalCount)}</span>}
+            </Link>
+          </div>
+        </div>
+
         <form className="home-search" onSubmit={handleSearch}>
+          <svg className="home-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
           <input
             type="text"
-            placeholder="ابحثي عن منتج..."
+            placeholder="ابحثي عن منتج أو درجة..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button type="submit" aria-label="بحث">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-          </button>
+          <button type="submit">بحث</button>
         </form>
-        <div className="home-actions">
-          <Link to="/categories" className="home-action-btn" aria-label="الفئات">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
-          </Link>
-          <Link to="/cart" className="home-action-btn home-cart" aria-label="السلة">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <path d="M16 10a4 4 0 01-8 0" />
-            </svg>
-            {formatCount(totalCount) && <span className="home-cart-badge">{formatCount(totalCount)}</span>}
-          </Link>
-        </div>
       </header>
 
       <main className="home-main">
-        <section className="home-intro">
-          <span>Rybella Iraq</span>
-          <h1>{heroSubtitle}</h1>
-          <p>منتجات جمال مختارة بعناية، تجربة تسوق هادئة، وأقسام واضحة بدون تعقيد.</p>
-          <div className="home-intro-actions">
-            <Link to="/explore" className="home-primary-cta">تسوقي الآن</Link>
-            {showOffers && <Link to={`/offers/${offers[0].id}`} className="home-secondary-cta">عرض اليوم</Link>}
-          </div>
-        </section>
-
         {banners.length > 0 ? (
           <section className="home-banners-section" aria-label="بنرات العروض">
             <div
@@ -235,7 +226,35 @@ export default function Home() {
           <Link to="/explore?sort_by=newest">وصل حديثاً</Link>
         </nav>
 
-        <HomeCategoriesSection categories={categories} />
+        {categories.length > 0 && (
+          <section className="home-section home-main-categories">
+            <div className="home-section-header">
+              <div>
+                <span className="home-section-eyebrow">الأقسام</span>
+                <h2 className="home-section-title">الأقسام الرئيسية</h2>
+                <p className="home-section-desc">كل الأقسام الرئيسية بصورها لسهولة الوصول.</p>
+              </div>
+              <Link to="/categories" className="home-section-link">عرض الكل</Link>
+            </div>
+
+            <div className="home-category-grid">
+              {categories.map((c) => (
+                <Link key={c.id} to={`/explore?category=${c.id}`} className="home-category-card">
+                  <span className="home-category-card-media">
+                    {c.image ? (
+                      <img src={`${IMG_BASE}${c.image}`} alt={c.name} loading="lazy" />
+                    ) : (
+                      <span className="home-category-card-fallback">{c.name?.slice(0, 1) || 'R'}</span>
+                    )}
+                  </span>
+                  <span className="home-category-card-overlay" />
+                  <span className="home-category-card-name">{c.overlay_text || c.name}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
         <StoriesBar />
 
         {subcategories.length > 0 && (
