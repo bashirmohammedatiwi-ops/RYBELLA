@@ -66,17 +66,25 @@ function buildSpotlightProducts(products, featured, bestSellers, rotationBucket 
 function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
   const touchRef = useRef({ x: 0, y: 0 })
   const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
+  const isActiveRef = useRef(isActive)
+  const inViewRef = useRef(inView)
   const count = images.length
-  const canCycle = isActive && inView && count > 1
+
+  onChangeRef.current = onChange
+  isActiveRef.current = isActive
+  inViewRef.current = inView
 
   useEffect(() => {
-    if (!canCycle) return undefined
-    const t = window.setInterval(() => {
+    if (count <= 1) return undefined
+
+    const tick = () => {
+      if (!isActiveRef.current || !inViewRef.current) return
       onChangeRef.current((prev) => (prev + 1) % count)
-    }, IMAGE_CYCLE_MS)
+    }
+
+    const t = window.setInterval(tick, IMAGE_CYCLE_MS)
     return () => window.clearInterval(t)
-  }, [canCycle, count])
+  }, [count, isActive, inView])
 
   const onTouchStart = (e) => {
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -90,39 +98,22 @@ function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
     onChange((prev) => ((prev + (dx < 0 ? 1 : -1)) % count + count) % count)
   }
 
+  const canAnimate = isActive && inView && count > 1
+
   return (
-    <div className="sg-lookbook">
-      <div
-        className="sg-lookbook-stage"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-        <div className="sg-lookbook-accent" aria-hidden="true" />
-
-        <div className="sg-lookbook-frame">
-          {images.map((src, i) => (
-            <img
-              key={src}
-              src={`${IMG_BASE}${src}`}
-              alt=""
-              className={`sg-lookbook-img${i === frontIdx ? ' is-active' : ''}`}
-              loading={i === 0 ? 'eager' : 'lazy'}
-              draggable={false}
-            />
-          ))}
-        </div>
-
+    <div className="sg-gallery">
+      <div className="sg-gallery-stage" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {count > 1 && (
-          <div className="sg-lookbook-stories" aria-hidden="true">
+          <div className="sg-gallery-bars" aria-hidden="true">
             {images.map((src, i) => (
               <span
                 key={src}
-                className={`sg-lookbook-story${i === frontIdx ? ' is-active' : ''}${i < frontIdx ? ' is-done' : ''}`}
+                className={`sg-gallery-bar${i === frontIdx ? ' is-active' : ''}${i < frontIdx ? ' is-done' : ''}`}
               >
-                {i === frontIdx && canCycle && (
+                {i === frontIdx && canAnimate && (
                   <span
-                    key={`fill-${frontIdx}-${isActive}`}
-                    className="sg-lookbook-story-fill"
+                    key={`fill-${frontIdx}`}
+                    className="sg-gallery-bar-fill"
                     style={{ animationDuration: `${IMAGE_CYCLE_MS}ms` }}
                   />
                 )}
@@ -131,25 +122,37 @@ function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
           </div>
         )}
 
+        <div className="sg-gallery-frame">
+          {images.map((src, i) => (
+            <img
+              key={src}
+              src={`${IMG_BASE}${src}`}
+              alt=""
+              className={`sg-gallery-img${i === frontIdx ? ' is-active' : ''}`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              draggable={false}
+            />
+          ))}
+        </div>
+
         {count > 1 && (
-          <span className="sg-lookbook-counter">
-            {String(frontIdx + 1).padStart(2, '0')}
-            <small> / {String(count).padStart(2, '0')}</small>
-          </span>
+          <span className="sg-gallery-count">{frontIdx + 1} / {count}</span>
         )}
       </div>
 
       {count > 1 && (
-        <div className="sg-lookbook-film" role="tablist" aria-label="صور المنتج">
+        <div className="sg-gallery-thumbs" role="tablist" aria-label="صور المنتج">
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
               role="tab"
               aria-selected={i === frontIdx}
-              className={`sg-lookbook-polaroid${i === frontIdx ? ' is-active' : ''}`}
-              style={{ '--film-i': i - frontIdx }}
-              onClick={() => onChange(i)}
+              className={`sg-gallery-thumb${i === frontIdx ? ' is-active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault()
+                onChange(i)
+              }}
               aria-label={`صورة ${i + 1}`}
             >
               <img src={`${IMG_BASE}${src}`} alt="" loading="lazy" draggable={false} />
@@ -169,13 +172,9 @@ function ProductSlide({ product, isActive, inView }) {
     setFrontIdx(0)
   }, [product.id])
 
-  useEffect(() => {
-    if (!isActive) setFrontIdx(0)
-  }, [isActive])
-
   return (
     <article className={`sg-slide${isActive ? ' is-active' : ''}`}>
-      <div className="sg-card">
+      <Link to={`/products/${product.id}`} className="sg-card">
         <ImageGallery
           images={images}
           frontIdx={frontIdx}
@@ -184,23 +183,23 @@ function ProductSlide({ product, isActive, inView }) {
           inView={inView}
         />
 
-        <Link to={`/products/${product.id}`} className="sg-info">
-          <div className="sg-info-main">
+        <div className="sg-meta">
+          <div className="sg-meta-text">
             {(product.brand_name || product.category_name) && (
-              <span className="sg-brand">{product.brand_name || product.category_name}</span>
+              <span className="sg-meta-brand">{product.brand_name || product.category_name}</span>
             )}
-            <h3 className="sg-name">{product.name}</h3>
+            <h3 className="sg-meta-name">{product.name}</h3>
           </div>
-          <div className="sg-info-end">
-            <span className="sg-price">{formatPrice(getMinPrice(product))}</span>
-            <span className="sg-cta" aria-hidden="true">
+          <div className="sg-meta-end">
+            <span className="sg-meta-price">{formatPrice(getMinPrice(product))}</span>
+            <span className="sg-meta-arrow" aria-hidden="true">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </span>
           </div>
-        </Link>
-      </div>
+        </div>
+      </Link>
     </article>
   )
 }
@@ -279,7 +278,10 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
   useEffect(() => {
     const el = sectionRef.current
     if (!el) return
-    const obs = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.12 })
+    const obs = new IntersectionObserver(
+      ([e]) => setInView(e.isIntersecting),
+      { threshold: 0.08, rootMargin: '0px 0px -5% 0px' }
+    )
     obs.observe(el)
     return () => obs.disconnect()
   }, [])

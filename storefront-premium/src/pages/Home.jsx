@@ -90,7 +90,7 @@ export default function Home() {
       <header className="home-header">
         <div className="home-header-top">
           <Link to="/" className="home-logo" aria-label={heroTitle}>
-            <img src="/assets/rybella-logo.png" alt={heroTitle} fetchPriority="high" />
+            <img src="/assets/rybella-logo.png?v=4" alt={heroTitle} fetchPriority="high" />
           </Link>
 
           <div className="home-actions">

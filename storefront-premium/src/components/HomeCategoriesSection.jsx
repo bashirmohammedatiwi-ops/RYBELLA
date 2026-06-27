@@ -1,11 +1,18 @@
 import { Link } from 'react-router-dom'
 import { IMG_BASE } from '../services/api'
 import CategoryIconVisual from './CategoryIconVisual'
+import { CATEGORY_RING_TONES } from '../utils/categoryIcon'
 import './HomeCategoriesSection.css'
 
-function CategoryStripItem({ category }) {
+function CategoryStripItem({ category, index }) {
+  const [toneA, toneB] = CATEGORY_RING_TONES[index % CATEGORY_RING_TONES.length]
+
   return (
-    <Link to={`/explore?category=${category.id}`} className="hc-top-item">
+    <Link
+      to={`/explore?category=${category.id}`}
+      className="hc-top-item"
+      style={{ '--glow-a': toneA, '--glow-b': toneB }}
+    >
       <span className="hc-top-icon">
         <CategoryIconVisual category={category} />
       </span>
@@ -18,17 +25,8 @@ function CategoryRow({ category }) {
   const imageUrl = category.image ? `${IMG_BASE}${category.image}` : null
 
   return (
-    <Link to={`/explore?category=${category.id}`} className="hc-bottom-row">
-      <span className="hc-bottom-text">
-        <span className="hc-bottom-name">{category.name}</span>
-        <span className="hc-bottom-go" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </span>
-      </span>
-
-      <span className="hc-bottom-media">
+    <Link to={`/explore?category=${category.id}`} className="hc-bottom-card">
+      <span className="hc-bottom-visual">
         {imageUrl ? (
           <img src={imageUrl} alt="" loading="lazy" draggable={false} />
         ) : (
@@ -36,6 +34,15 @@ function CategoryRow({ category }) {
             <CategoryIconVisual category={category} />
           </span>
         )}
+      </span>
+
+      <span className="hc-bottom-footer">
+        <span className="hc-bottom-name">{category.name}</span>
+        <span className="hc-bottom-arrow" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </span>
       </span>
     </Link>
   )
@@ -48,8 +55,8 @@ export default function HomeCategoriesSection({ categories = [], variant = 'sect
     return (
       <section className="hc-top" aria-label="الأقسام">
         <div className="hc-top-scroll">
-          {categories.map((c) => (
-            <CategoryStripItem key={c.id} category={c} />
+          {categories.map((c, i) => (
+            <CategoryStripItem key={c.id} category={c} index={i} />
           ))}
           <Link to="/categories" className="hc-top-item hc-top-item--all">
             <span className="hc-top-icon hc-top-icon--all">
