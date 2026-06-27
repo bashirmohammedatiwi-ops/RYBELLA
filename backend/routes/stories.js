@@ -44,6 +44,14 @@ router.post('/highlights', auth, adminAuth, (req, res, next) => {
   });
 }, storyController.createHighlight);
 
+router.put('/:id', auth, adminAuth, (req, res, next) => {
+  storyUpload(req, res, (err) => {
+    if (err) return handleMulterError(err, req, res, next);
+    next();
+  });
+}, storyController.update);
+
+router.post('/:id/republish', auth, adminAuth, storyController.republish);
 router.delete('/highlights/:id', auth, adminAuth, storyController.deleteHighlight);
 router.delete('/:id', auth, adminAuth, storyController.delete);
 

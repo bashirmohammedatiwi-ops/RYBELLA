@@ -199,6 +199,7 @@ CREATE TABLE IF NOT EXISTS story_groups (
     avatar TEXT,
     publisher_name TEXT,
     duration_seconds INTEGER DEFAULT 5,
+    published_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS story_slides (

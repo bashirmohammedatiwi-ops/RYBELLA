@@ -205,7 +205,9 @@ export const bannersAPI = {
 export const storiesAPI = {
   getAll: () => api.get('/stories/admin'),
   create: (formData) => api.post('/stories', formData, formData instanceof FormData ? { transformRequest: [(d) => d] } : {}),
+  update: (id, formData) => api.put(`/stories/${id}`, formData, formData instanceof FormData ? { transformRequest: [(d) => d] } : {}),
   delete: (id) => api.delete(`/stories/${id}`),
+  republish: (id) => api.post(`/stories/${id}/republish`),
   createHighlight: (formData) => api.post('/stories/highlights', formData, formData instanceof FormData ? { transformRequest: [(d) => d] } : {}),
   deleteHighlight: (id) => api.delete(`/stories/highlights/${id}`),
 };

@@ -7,6 +7,20 @@ const SWIPE_THRESHOLD = 50
 const HOLD_TO_PAUSE_MS = 150
 const VIEWED_KEY = 'rybella_stories_viewed_v2'
 
+function storyViewKey(g) {
+  return `${g.id}_${g.published_at || g.created_at || ''}`
+}
+
+function playVideoWithSound(video) {
+  if (!video) return
+  video.muted = false
+  video.volume = 1
+  video.play().catch(() => {
+    video.muted = true
+    video.play().catch(() => {})
+  })
+}
+
 function StoryCircle({ item, viewed, isHighlight, onClick }) {
   const label = isHighlight ? item.title : (item.publisher_name || 'يومية')
   const cover = item.cover || item.avatar
@@ -51,13 +65,20 @@ function StoryViewer({
   const touchStart = useRef({ x: 0, y: 0 })
   const rafRef = useRef(null)
 
+  const imageTimerRef = useRef(null)
+  const imageStartRef = useRef(0)
+  const imageElapsedRef = useRef(0)
+
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isMuted, setIsMuted] = useState(false)
 
   const currentGroup = groups[groupIndex]
   const slides = currentGroup?.slides || []
   const currentSlide = slides[slideIndex]
+  const isVideo = currentSlide?.media_type === 'video'
+  const imageDurationMs = (currentGroup?.duration_seconds ?? 5) * 1000
   const hasPrev = slideIndex > 0 || groupIndex > 0
   const hasNext = slideIndex < slides.length - 1 || groupIndex < groups.length - 1
 
@@ -72,27 +93,34 @@ function StoryViewer({
 
   useEffect(() => {
     resetProgress()
+    setIsMuted(false)
   }, [groupIndex, slideIndex, resetProgress])
 
   useEffect(() => {
     const v = videoRef.current
-    if (!v || !currentSlide) return
+    if (!v || !currentSlide || !isVideo) return
 
     if (isPaused) {
       v.pause()
       return
     }
 
-    v.play().catch(() => {})
-  }, [isPaused, currentSlide, groupIndex, slideIndex])
+    if (!isMuted) playVideoWithSound(v)
+    else v.play().catch(() => {})
+  }, [isPaused, currentSlide, isVideo, groupIndex, slideIndex, isMuted])
 
   useEffect(() => {
     const v = videoRef.current
-    if (!v) return
+    if (!v || !isVideo) return
+    v.muted = isMuted
+    if (!isMuted) v.volume = 1
 
     const onLoaded = () => {
       setIsLoading(false)
-      if (!isPaused) v.play().catch(() => {})
+      if (!isPaused) {
+        if (!isMuted) playVideoWithSound(v)
+        else v.play().catch(() => {})
+      }
     }
     const onEnded = () => { if (!isPaused) onNext() }
 
@@ -102,10 +130,10 @@ function StoryViewer({
       v.removeEventListener('loadeddata', onLoaded)
       v.removeEventListener('ended', onEnded)
     }
-  }, [currentSlide, isPaused, onNext, groupIndex, slideIndex])
+  }, [currentSlide, isPaused, onNext, groupIndex, slideIndex, isVideo, isMuted])
 
   useEffect(() => {
-    if (isPaused) {
+    if (!isVideo || isPaused) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       return
     }
@@ -120,7 +148,36 @@ function StoryViewer({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [isPaused, groupIndex, slideIndex])
+  }, [isPaused, groupIndex, slideIndex, isVideo])
+
+  useEffect(() => {
+    if (!currentSlide || isVideo) return
+    setIsLoading(true)
+    imageElapsedRef.current = 0
+    imageStartRef.current = 0
+  }, [currentSlide, groupIndex, slideIndex, isVideo])
+
+  useEffect(() => {
+    if (!currentSlide || isVideo || isPaused) {
+      if (imageTimerRef.current) cancelAnimationFrame(imageTimerRef.current)
+      return
+    }
+    imageStartRef.current = performance.now() - imageElapsedRef.current
+    const tick = (now) => {
+      imageElapsedRef.current = now - imageStartRef.current
+      const pct = Math.min(100, (imageElapsedRef.current / imageDurationMs) * 100)
+      setProgress(pct)
+      if (pct >= 100) {
+        onNext()
+        return
+      }
+      imageTimerRef.current = requestAnimationFrame(tick)
+    }
+    imageTimerRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (imageTimerRef.current) cancelAnimationFrame(imageTimerRef.current)
+    }
+  }, [currentSlide, isVideo, isPaused, imageDurationMs, onNext, groupIndex, slideIndex])
 
   useEffect(() => {
     if (!currentSlide) return
@@ -172,7 +229,8 @@ function StoryViewer({
 
   if (!currentSlide) return null
 
-  const videoSrc = `${IMG_BASE}${currentSlide.video || currentSlide.image}`
+  const mediaSrc = `${IMG_BASE}${currentSlide.video || currentSlide.image}`
+  const nextIsVideo = nextSlide?.media_type === 'video'
 
   return (
     <div className="story-viewer-overlay" onClick={onClose} role="dialog" aria-modal="true">
@@ -218,24 +276,35 @@ function StoryViewer({
           <button type="button" className="story-viewer-nav story-viewer-prev" onClick={onPrev} aria-label="السابق" tabIndex={-1} />
           <div className="story-viewer-media">
             {isLoading && <div className="story-viewer-loader" aria-hidden="true" />}
-            <video
-              key={videoSrc}
-              ref={videoRef}
-              className={`story-viewer-video ${isLoading ? 'loading' : ''}`}
-              src={videoSrc}
-              playsInline
-              muted
-              preload="auto"
-            />
-            {nextSlide && (
-              <video
-                ref={preloadRef}
-                src={`${IMG_BASE}${nextSlide.video || nextSlide.image}`}
-                preload="auto"
-                muted
-                playsInline
-                className="story-viewer-preload"
-                aria-hidden="true"
+            {isVideo ? (
+              <>
+                <video
+                  key={mediaSrc}
+                  ref={videoRef}
+                  className={`story-viewer-video ${isLoading ? 'loading' : ''}`}
+                  src={mediaSrc}
+                  playsInline
+                  preload="auto"
+                />
+                {nextSlide && nextIsVideo && (
+                  <video
+                    ref={preloadRef}
+                    src={`${IMG_BASE}${nextSlide.video || nextSlide.image}`}
+                    preload="auto"
+                    muted
+                    playsInline
+                    className="story-viewer-preload"
+                    aria-hidden="true"
+                  />
+                )}
+              </>
+            ) : (
+              <img
+                key={mediaSrc}
+                className={`story-viewer-image ${isLoading ? 'loading' : ''}`}
+                src={mediaSrc}
+                alt=""
+                onLoad={() => setIsLoading(false)}
               />
             )}
           </div>
@@ -260,6 +329,43 @@ function StoryViewer({
             </svg>
             عرض التفاصيل
           </Link>
+        )}
+
+        {isVideo && (
+          <button
+            type="button"
+            className="story-viewer-mute"
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsMuted((m) => {
+                const next = !m
+                const v = videoRef.current
+                if (v) {
+                  v.muted = next
+                  if (!next) {
+                    v.volume = 1
+                    v.play().catch(() => {})
+                  }
+                }
+                return next
+              })
+            }}
+            aria-label={isMuted ? 'تشغيل الصوت' : 'كتم الصوت'}
+          >
+            {isMuted ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+            )}
+          </button>
         )}
 
         <button type="button" className="story-viewer-close" onClick={onClose} aria-label="إغلاق">
@@ -300,10 +406,12 @@ export default function StoriesBar() {
     })
   }, [])
 
-  const saveViewed = useCallback((id) => {
+  const saveViewed = useCallback((group) => {
+    if (!group) return
+    const key = storyViewKey(group)
     setViewedIds((prev) => {
       const next = new Set(prev)
-      next.add(String(id))
+      next.add(key)
       try { localStorage.setItem(VIEWED_KEY, JSON.stringify([...next])) } catch {}
       return next
     })
@@ -312,7 +420,7 @@ export default function StoriesBar() {
   const openViewer = (type, groupIdx) => {
     const groups = type === 'highlight' ? highlights : storyGroups
     setViewer({ type, groupIdx, slideIdx: 0 })
-    if (type === 'story') saveViewed(groups[groupIdx]?.id)
+    if (type === 'story') saveViewed(groups[groupIdx])
   }
 
   const closeViewer = () => setViewer(null)
@@ -329,7 +437,7 @@ export default function StoriesBar() {
       } else if (viewer.groupIdx < groups.length - 1) {
         const nextIdx = viewer.groupIdx + 1
         setViewer({ ...viewer, groupIdx: nextIdx, slideIdx: 0 })
-        if (viewer.type === 'story') saveViewed(groups[nextIdx]?.id)
+        if (viewer.type === 'story') saveViewed(groups[nextIdx])
       } else {
         closeViewer()
       }
@@ -373,7 +481,7 @@ export default function StoriesBar() {
                 <StoryCircle
                   key={g.id}
                   item={g}
-                  viewed={viewedIds.has(String(g.id))}
+                  viewed={viewedIds.has(storyViewKey(g))}
                   onClick={() => openViewer('story', i)}
                 />
               ))}

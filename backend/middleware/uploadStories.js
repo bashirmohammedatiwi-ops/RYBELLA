@@ -43,8 +43,8 @@ const fileFilter = (req, file, cb) => {
     return cb(new Error('صورة الغلاف يجب أن تكون jpg أو png أو webp'), false);
   }
   if (field === 'videos' || field === 'images') {
-    if (isVideoFile(file)) return cb(null, true);
-    return cb(new Error('اليوميات تدعم فيديو فقط: mp4, webm, mov'), false);
+    if (isVideoFile(file) || isImageFile(file)) return cb(null, true);
+    return cb(new Error('استخدم صورة (jpg, png, webp) أو فيديو (mp4, webm, mov)'), false);
   }
   if (isVideoFile(file) || isImageFile(file)) return cb(null, true);
   cb(new Error('نوع الملف غير مدعوم'), false);

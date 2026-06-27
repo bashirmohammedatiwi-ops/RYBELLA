@@ -367,6 +367,11 @@ const initDb = async () => {
       db.run('ALTER TABLE story_groups ADD COLUMN duration_seconds INTEGER DEFAULT 5');
       saveDb();
     }
+    if (!sgCols.includes('published_at')) {
+      db.run('ALTER TABLE story_groups ADD COLUMN published_at DATETIME');
+      db.run('UPDATE story_groups SET published_at = created_at WHERE published_at IS NULL');
+      saveDb();
+    }
   } catch (e) {}
   // Migration: story_highlights (هايلايت مثل انستغرام - فيديوهات دائمة)
   try {
