@@ -4,14 +4,6 @@ import { IMG_BASE } from '../services/api'
 import { formatPrice } from '../utils/format'
 import './HomeSpotlightAdsSection.css'
 
-const STACK_LAYOUT = [
-  { rot: -2, x: 0, y: -4, w: 224, h: 264, scale: 1, shape: 'round', z: 10 },
-  { rot: -14, x: -102, y: 52, w: 184, h: 184, scale: 1, shape: 'circle', z: 8 },
-  { rot: 12, x: 104, y: 44, w: 178, h: 178, scale: 1, shape: 'round', z: 9 },
-  { rot: -17, x: -76, y: -76, w: 170, h: 170, scale: 1, shape: 'circle', z: 6 },
-  { rot: 15, x: 80, y: -72, w: 162, h: 162, scale: 1, shape: 'round', z: 7 },
-]
-
 const ROTATION_MS = 15 * 60 * 1000
 const IMAGE_CYCLE_MS = 3000
 const MIN_ADDITIONAL_IMAGES = 2
@@ -71,30 +63,10 @@ function buildSpotlightProducts(products, featured, bestSellers, rotationBucket 
   return picked
 }
 
-function getStackCards(images, frontIdx) {
-  if (images.length <= 1) return []
-  const slotCount = Math.min(images.length - 1, STACK_LAYOUT.length - 1)
-  const n = images.length
-  return STACK_LAYOUT.slice(1, 1 + slotCount)
-    .map((layout, i) => {
-      const depth = i + 1
-      const imgIdx = (frontIdx + depth) % n
-      return {
-        src: images[imgIdx],
-        imgIdx,
-        depth,
-        layout,
-      }
-    })
-    .sort((a, b) => b.depth - a.depth)
-}
-
-function ImageStack({ images, frontIdx, onChange, isActive, inView, slideVisible }) {
+function ImageGallery({ images, frontIdx, onChange, slideVisible, inView }) {
   const touchRef = useRef({ x: 0, y: 0 })
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
-  const backCards = getStackCards(images, frontIdx)
-  const frontLayout = STACK_LAYOUT[0]
   const canCycle = inView && slideVisible && images.length > 1
 
   useEffect(() => {
@@ -120,84 +92,52 @@ function ImageStack({ images, frontIdx, onChange, isActive, inView, slideVisible
 
   return (
     <div
-      className={`pk-stack${isActive ? ' is-live' : ''}`}
+      className="sg-gallery"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <div className="pk-stack-bg" aria-hidden="true" />
-      <div className="pk-stack-shadow" aria-hidden="true" />
-
-      <div className="pk-stack-cards">
-        {backCards.map(({ src, imgIdx, depth, layout }) => (
-          <button
-            key={`back-${imgIdx}-${depth}`}
-            type="button"
-            className={`pk-card pk-card--${layout.shape} is-back`}
-            style={{
-              '--pk-x': `${layout.x}px`,
-              '--pk-y': `${layout.y}px`,
-              '--pk-w': `${layout.w}px`,
-              '--pk-h': `${layout.h}px`,
-              '--pk-rot': `${layout.rot}deg`,
-              '--pk-scale': layout.scale,
-              zIndex: layout.z,
-            }}
-            onClick={() => onChange(imgIdx)}
-            aria-label={`صورة ${imgIdx + 1}`}
-          >
-            <span className="pk-card-media">
-              <img
-                src={`${IMG_BASE}${src}`}
-                alt=""
-                loading="lazy"
-                draggable={false}
-              />
-            </span>
-          </button>
+      <div className="sg-main">
+        {images.map((src, i) => (
+          <img
+            key={src}
+            src={`${IMG_BASE}${src}`}
+            alt=""
+            className={`sg-main-img${i === frontIdx ? ' is-active' : ''}`}
+            loading={i === 0 ? 'eager' : 'lazy'}
+            draggable={false}
+          />
         ))}
-
-        <button
-          key={`front-${frontIdx}`}
-          type="button"
-          className={`pk-card pk-card--${frontLayout.shape} is-front`}
-          style={{
-            '--pk-x': `${frontLayout.x}px`,
-            '--pk-y': `${frontLayout.y}px`,
-            '--pk-w': `${frontLayout.w}px`,
-            '--pk-h': `${frontLayout.h}px`,
-            '--pk-rot': `${frontLayout.rot}deg`,
-            '--pk-scale': frontLayout.scale,
-            zIndex: frontLayout.z,
-          }}
-          onClick={() => onChange((frontIdx + 1) % images.length)}
-          aria-label={`صورة ${frontIdx + 1}`}
-        >
-          <span className="pk-card-media">
-            <img
-              src={`${IMG_BASE}${images[frontIdx]}`}
-              alt=""
-              loading="eager"
-              draggable={false}
-            />
-          </span>
-        </button>
+        {images.length > 1 && (
+          <span className="sg-counter">{frontIdx + 1} / {images.length}</span>
+        )}
       </div>
 
       {images.length > 1 && (
-        <div className="pk-stack-ui">
-          <span className="pk-stack-count">{frontIdx + 1} / {images.length}</span>
-          <div className="pk-stack-dots">
+        <>
+          <div className="sg-thumbs" role="tablist" aria-label="صور المنتج">
             {images.map((src, i) => (
               <button
                 key={src}
                 type="button"
-                className={`pk-stack-dot${i === frontIdx ? ' is-on' : ''}`}
+                role="tab"
+                aria-selected={i === frontIdx}
+                className={`sg-thumb${i === frontIdx ? ' is-active' : ''}`}
                 onClick={() => onChange(i)}
                 aria-label={`صورة ${i + 1}`}
-              />
+              >
+                <img src={`${IMG_BASE}${src}`} alt="" loading="lazy" draggable={false} />
+              </button>
             ))}
           </div>
-        </div>
+          <div className="sg-progress" aria-hidden="true">
+            <span
+              className="sg-progress-fill"
+              style={{
+                width: `${((frontIdx + 1) / images.length) * 100}%`,
+              }}
+            />
+          </div>
+        </>
       )}
     </div>
   )
@@ -225,27 +165,26 @@ function ProductSlide({ product, isActive, inView }) {
   }, [product.id])
 
   return (
-    <article ref={slideRef} className={`pk-slide${isActive ? ' is-active' : ''}`}>
-      <ImageStack
+    <article ref={slideRef} className={`sg-slide${isActive ? ' is-active' : ''}`}>
+      <ImageGallery
         images={images}
         frontIdx={frontIdx}
         onChange={setFrontIdx}
-        isActive={isActive}
-        inView={inView}
         slideVisible={slideVisible}
+        inView={inView}
       />
 
-      <Link to={`/products/${product.id}`} className="pk-info">
-        <div className="pk-info-text">
+      <Link to={`/products/${product.id}`} className="sg-info">
+        <div className="sg-info-text">
           {(product.brand_name || product.category_name) && (
-            <span className="pk-brand">{product.brand_name || product.category_name}</span>
+            <span className="sg-brand">{product.brand_name || product.category_name}</span>
           )}
-          <h3 className="pk-name">{product.name}</h3>
+          <h3 className="sg-name">{product.name}</h3>
         </div>
-        <div className="pk-info-action">
-          <span className="pk-price">{formatPrice(getMinPrice(product))}</span>
-          <span className="pk-arrow" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <div className="sg-info-action">
+          <span className="sg-price">{formatPrice(getMinPrice(product))}</span>
+          <span className="sg-arrow" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </span>
@@ -357,29 +296,31 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
   if (!items.length) return null
 
   return (
-    <section ref={sectionRef} className="pk-section" aria-label="منتجات مميزة">
-      <header className="pk-head">
+    <section ref={sectionRef} className="sg-section" aria-label="معرض الصور">
+      <header className="sg-head">
         <div>
-          <span className="pk-eyebrow">معرض الصور</span>
-          <h2 className="pk-title">منتجات بصور متعددة</h2>
-          <p className="pk-desc">اختيارات تتغير صورها تلقائياً لتشاهدي تفاصيل أكثر.</p>
+          <span className="sg-eyebrow">معرض الصور</span>
+          <h2 className="sg-title">اكتشفي التفاصيل</h2>
+          <p className="sg-desc">منتجات مختارة بصور متعددة تتغير كل ثوانٍ.</p>
         </div>
-        {items.length > 1 && <span className="pk-head-count">{activeIdx + 1} / {items.length}</span>}
+        {items.length > 1 && (
+          <span className="sg-head-count">{activeIdx + 1} / {items.length}</span>
+        )}
       </header>
 
-      <div className="pk-track" ref={trackRef} onScroll={onTrackScroll}>
+      <div className="sg-track" ref={trackRef} onScroll={onTrackScroll}>
         {items.map((p, i) => (
           <ProductSlide key={p.id} product={p} isActive={i === activeIdx} inView={inView} />
         ))}
       </div>
 
       {items.length > 1 && (
-        <div className="pk-dots">
+        <div className="sg-dots">
           {items.map((p, i) => (
             <button
               key={p.id}
               type="button"
-              className={`pk-dot${i === activeIdx ? ' is-on' : ''}`}
+              className={`sg-dot${i === activeIdx ? ' is-on' : ''}`}
               onClick={() => scrollTo(i)}
               aria-label={`منتج ${i + 1}`}
             />

@@ -696,7 +696,7 @@
 /* Component simplification overrides */
 .home .home-cats,
 .home .ho-section,
-.home .pk-section {
+.home .sg-section {
   max-width: 1180px;
   margin-inline: auto;
   padding-block: 0;
@@ -723,7 +723,7 @@
 }
 
 .home .ho-card,
-.home .pk-slide,
+.home .sg-slide,
 .home .premium-product-card {
   border-color: rgba(232, 93, 122, 0.12);
   box-shadow: 0 14px 30px rgba(92, 37, 52, 0.08);

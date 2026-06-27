@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { productsAPI, categoriesAPI, subcategoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, IMG_BASE } from '../services/api'
+import { productsAPI, categoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
@@ -14,7 +14,6 @@ import './Home.css'
 export default function Home() {
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState([])
-  const [subcategories, setSubcategories] = useState([])
   const [banners, setBanners] = useState([])
   const [offers, setOffers] = useState([])
   const [featured, setFeatured] = useState([])
@@ -34,14 +33,12 @@ export default function Home() {
     const toArr = (d) => (Array.isArray(d) ? d : d?.data && Array.isArray(d.data) ? d.data : [])
     Promise.all([
       categoriesAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      subcategoriesAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       bannersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       offersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       productsAPI.getAll({ featured: '1' }).then((r) => toArr(r?.data)).catch(() => []),
       productsAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-    ]).then(([cats, subcats, bns, offs, feat, pop]) => {
+    ]).then(([cats, bns, offs, feat, pop]) => {
       setCategories(cats)
-      setSubcategories(subcats)
       setBanners(bns)
       setOffers(offs)
       setFeatured(feat.slice(0, 10))
@@ -256,32 +253,6 @@ export default function Home() {
         )}
 
         <StoriesBar />
-
-        {subcategories.length > 0 && (
-          <section className="home-section">
-            <div className="home-section-header">
-              <div>
-                <span className="home-section-eyebrow">حسب النوع</span>
-                <h2 className="home-section-title">اختاري القسم المناسب</h2>
-              </div>
-              <Link to="/explore" className="home-section-link">الكل</Link>
-            </div>
-            <div className="home-subcategories">
-              {subcategories.slice(0, 10).map((sc) => (
-                <Link key={sc.id} to={`/explore?subcategory=${sc.id}`} className="home-subcategory">
-                  <div className="home-subcategory-image">
-                    {sc.image ? (
-                      <img src={`${IMG_BASE}${sc.image}`} alt={sc.name} />
-                    ) : (
-                      <span>R</span>
-                    )}
-                  </div>
-                  <span>{sc.name}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
 
         <HomeSpotlightAdsSection
           products={popular}
