@@ -63,12 +63,12 @@ function buildSpotlightProducts(products, featured, bestSellers, rotationBucket 
   return picked
 }
 
-function ImageGallery({ images, frontIdx, onChange, slideVisible, inView }) {
+function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
   const touchRef = useRef({ x: 0, y: 0 })
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
-  const canCycle = inView && slideVisible && images.length > 1
   const count = images.length
+  const canCycle = isActive && inView && count > 1
 
   useEffect(() => {
     if (!canCycle) return undefined
@@ -91,15 +91,15 @@ function ImageGallery({ images, frontIdx, onChange, slideVisible, inView }) {
   }
 
   return (
-    <div className="sg-stage" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div className="sg-hero">
-        <div className="sg-hero-frame">
+    <div className="sg-visual" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="sg-main">
+        <div className="sg-main-frame">
           {images.map((src, i) => (
             <img
               key={src}
               src={`${IMG_BASE}${src}`}
               alt=""
-              className={`sg-hero-img${i === frontIdx ? ' is-active' : ''}`}
+              className={`sg-main-img${i === frontIdx ? ' is-active' : ''}`}
               loading={i === 0 ? 'eager' : 'lazy'}
               draggable={false}
             />
@@ -108,17 +108,17 @@ function ImageGallery({ images, frontIdx, onChange, slideVisible, inView }) {
 
         {count > 1 && (
           <>
-            <div className="sg-hero-badge">{frontIdx + 1}/{count}</div>
-            <div className="sg-hero-bars" aria-hidden="true">
+            <span className="sg-main-badge">{frontIdx + 1} / {count}</span>
+            <div className="sg-main-bars" aria-hidden="true">
               {images.map((src, i) => (
                 <span
                   key={src}
-                  className={`sg-hero-bar${i === frontIdx ? ' is-active' : ''}${i < frontIdx ? ' is-done' : ''}`}
+                  className={`sg-main-bar${i === frontIdx ? ' is-active' : ''}${i < frontIdx ? ' is-done' : ''}`}
                 >
-                  {i === frontIdx && (
+                  {i === frontIdx && canCycle && (
                     <span
-                      key={`fill-${frontIdx}`}
-                      className="sg-hero-bar-fill"
+                      key={`fill-${frontIdx}-${isActive}`}
+                      className="sg-main-bar-fill"
                       style={{ animationDuration: `${IMAGE_CYCLE_MS}ms` }}
                     />
                   )}
@@ -130,14 +130,14 @@ function ImageGallery({ images, frontIdx, onChange, slideVisible, inView }) {
       </div>
 
       {count > 1 && (
-        <div className="sg-rail" role="tablist" aria-label="صور المنتج">
+        <div className="sg-thumbs" role="tablist" aria-label="صور المنتج">
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
               role="tab"
               aria-selected={i === frontIdx}
-              className={`sg-rail-item${i === frontIdx ? ' is-active' : ''}`}
+              className={`sg-thumb${i === frontIdx ? ' is-active' : ''}`}
               onClick={() => onChange(i)}
               aria-label={`صورة ${i + 1}`}
             >
@@ -151,34 +151,25 @@ function ImageGallery({ images, frontIdx, onChange, slideVisible, inView }) {
 }
 
 function ProductSlide({ product, isActive, inView }) {
-  const slideRef = useRef(null)
   const images = getProductImages(product)
   const [frontIdx, setFrontIdx] = useState(0)
-  const [slideVisible, setSlideVisible] = useState(false)
 
   useEffect(() => {
     setFrontIdx(0)
   }, [product.id])
 
   useEffect(() => {
-    const el = slideRef.current
-    if (!el) return undefined
-    const obs = new IntersectionObserver(
-      ([entry]) => setSlideVisible(entry.isIntersecting && entry.intersectionRatio >= 0.45),
-      { threshold: [0, 0.45, 0.65, 0.85, 1] }
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [product.id])
+    if (!isActive) setFrontIdx(0)
+  }, [isActive])
 
   return (
-    <article ref={slideRef} className={`sg-slide${isActive ? ' is-active' : ''}`}>
+    <article className={`sg-slide${isActive ? ' is-active' : ''}`}>
       <div className="sg-card">
         <ImageGallery
           images={images}
           frontIdx={frontIdx}
           onChange={setFrontIdx}
-          slideVisible={slideVisible}
+          isActive={isActive}
           inView={inView}
         />
 
@@ -277,7 +268,7 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
   useEffect(() => {
     const el = sectionRef.current
     if (!el) return
-    const obs = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.15 })
+    const obs = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.12 })
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
@@ -306,7 +297,7 @@ export default function HomeSpotlightAdsSection({ products = [], featured = [], 
 
   return (
     <section ref={sectionRef} className="sg-section" aria-label="معرض الصور">
-      <div className="sg-section-frame">
+      <div className="sg-shell">
         <header className="sg-head">
           <h2 className="sg-title">معرض الصور</h2>
           {items.length > 1 && (
