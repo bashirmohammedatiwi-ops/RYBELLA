@@ -637,8 +637,8 @@
 }
 
 /* Component simplification overrides */
-.home .hc-strip,
-.home .hc-section {
+.home .hc-top,
+.home .hc-bottom {
   max-width: none;
   width: 100%;
   margin-inline: 0;
@@ -650,17 +650,6 @@
   max-width: 1180px;
   margin-inline: auto;
   padding-block: 0;
-}
-
-.home .hc-section-head {
-  padding-inline: 14px;
-}
-
-.home .hc-section-title {
-  color: #26141a;
-  font-size: clamp(1.35rem, 5vw, 2rem);
-  font-weight: 800;
-  letter-spacing: -0.035em;
 }
 
 .home .premium-product-card {
