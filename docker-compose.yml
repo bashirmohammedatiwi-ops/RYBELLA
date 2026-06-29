@@ -10,9 +10,10 @@ services:
       context: .
       dockerfile: deployment/backend.Dockerfile
     container_name: rybella-backend
-    restart: unless-stopped
+    restart: always
     environment:
       - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=512
       - PORT=4000
       - DB_PATH=/app/data/rybella.db
       - BACKUP_PATH=/app/backups
@@ -25,13 +26,24 @@ services:
       - EXTERNAL_INVENTORY_API_EMAIL=${EXTERNAL_INVENTORY_API_EMAIL:-}
       - EXTERNAL_INVENTORY_API_PASSWORD=${EXTERNAL_INVENTORY_API_PASSWORD:-}
       - EXTERNAL_INVENTORY_API_TOKEN=${EXTERNAL_INVENTORY_API_TOKEN:-}
-      - INVENTORY_SYNC_INTERVAL_MIN=${INVENTORY_SYNC_INTERVAL_MIN:-5}
+      - INVENTORY_SYNC_INTERVAL_MIN=${INVENTORY_SYNC_INTERVAL_MIN:-15}
     volumes:
       - backend_data:/app/data
       - backend_uploads:/app/uploads
       - backend_backups:/app/backups
     networks:
       - rybella-network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/api/health"]
       interval: 30s
@@ -46,7 +58,7 @@ services:
       args:
         - VITE_API_URL=/api
     container_name: rybella-web
-    restart: unless-stopped
+    restart: always
     ports:
       - "127.0.0.1:${HTTP_PORT:-4000}:80"
     depends_on:
@@ -54,6 +66,17 @@ services:
         condition: service_healthy
     networks:
       - rybella-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   webstore:
     build:
@@ -62,7 +85,7 @@ services:
       args:
         - VITE_API_URL=
     container_name: rybella-webstore
-    restart: unless-stopped
+    restart: always
     ports:
       - "127.0.0.1:${WEBSTORE_PORT:-4003}:80"
     depends_on:
@@ -70,6 +93,17 @@ services:
         condition: service_healthy
     networks:
       - rybella-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
 volumes:
   backend_data:

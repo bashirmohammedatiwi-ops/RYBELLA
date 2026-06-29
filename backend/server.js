@@ -52,8 +52,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -83,19 +83,35 @@ app.use('/api/backups', backupRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Rybella Iraq API is running' });
+  const mem = process.memoryUsage();
+  res.json({
+    status: 'ok',
+    message: 'Rybella Iraq API is running',
+    uptime: Math.floor(process.uptime()),
+    memory: {
+      rssMb: Math.round(mem.rss / 1024 / 1024),
+      heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
+    },
+  });
 });
 
 app.get('/api/health/backups', require('./controllers/backupController').health);
 
+let syncJobRunning = false;
+
 function startInventorySyncJob() {
-  const intervalMin = parseInt(process.env.INVENTORY_SYNC_INTERVAL_MIN || '5', 10);
+  const intervalMin = parseInt(process.env.INVENTORY_SYNC_INTERVAL_MIN || '15', 10);
   if (!process.env.EXTERNAL_INVENTORY_API_URL) {
     console.log('Inventory auto-sync: EXTERNAL_INVENTORY_API_URL not set — bulk POS sync only');
     return;
   }
   const inventorySync = require('./services/inventorySyncService');
   const run = async () => {
+    if (syncJobRunning) {
+      console.warn('Inventory sync skipped: previous run still in progress');
+      return;
+    }
+    syncJobRunning = true;
     try {
       const stats = await inventorySync.refreshAllFromExternal();
       if (!stats.authConfigured) {
@@ -104,8 +120,11 @@ function startInventorySyncJob() {
       }
       console.log(`Inventory sync: ${stats.synced}/${stats.total} fetched, ${stats.linked} variants updated, ${stats.failed} failed`);
       if (stats.lastError) console.warn('Inventory sync last error:', stats.lastError);
+      await require('./config/database').flushDb();
     } catch (e) {
       console.error('Inventory sync job error:', e.message);
+    } finally {
+      syncJobRunning = false;
     }
   };
   inventorySync.getSyncStatus().then((s) => {
@@ -146,19 +165,40 @@ app.use((err, req, res, next) => {
   });
 });
 
-// بدء التشغيل - الاستماع على جميع الواجهات (0.0.0.0) للسماح للأجهزة الأخرى بالاتصال
-app.listen(PORT, '0.0.0.0', () => {
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  require('./config/database').flushDb()
+    .catch(() => {})
+    .finally(() => process.exit(1));
+});
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Rybella Iraq API running on http://localhost:${PORT}`);
   console.log(`Health: http://localhost:${PORT}/api/health`);
   require('./config/database').query('SELECT 1').catch((e) => console.error('DB init:', e.message));
   startInventorySyncJob();
-}).on('error', (err) => {
+});
+
+server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error('\nالمنفذ 5000 مشغول. أغلق نافذة Backend السابقة أو نفّذ:');
-    console.error('  netstat -ano | findstr :5000');
-    console.error('  taskkill /F /PID <الرقم_المعروض>\n');
+    console.error(`\nالمنفذ ${PORT} مشغول. أغلق العملية السابقة أو غيّر PORT في .env\n`);
   }
   throw err;
+});
+
+['SIGTERM', 'SIGINT'].forEach((sig) => {
+  process.on(sig, () => {
+    console.log(`${sig} received — flushing database...`);
+    require('./config/database').flushDb()
+      .catch(() => {})
+      .finally(() => {
+        server.close(() => process.exit(0));
+      });
+  });
 });
 
 module.exports = app;

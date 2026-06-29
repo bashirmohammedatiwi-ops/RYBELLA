@@ -13,12 +13,31 @@ const dbPath = process.env.DB_PATH || path.join(dbDir, 'rybella.db');
 
 let db = null;
 let SQL = null;
+let saveTimer = null;
 
-const saveDb = () => {
-  if (db) {
-    const data = db.export();
-    fs.writeFileSync(dbPath, Buffer.from(data));
+/** حفظ فوري — للنسخ الاحتياطي وإيقاف التشغيل */
+const flushDbToDisk = () => {
+  if (!db) return;
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
   }
+  const data = db.export();
+  fs.writeFileSync(dbPath, Buffer.from(data));
+};
+
+/** حفظ مؤجّل — يقلّل ضغط الذاكرة عند المزامنة الجماعية */
+const saveDb = () => {
+  if (!db) return;
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    try {
+      flushDbToDisk();
+    } catch (e) {
+      console.error('saveDb error:', e.message);
+    }
+  }, 1500);
 };
 
 const initDb = async () => {
@@ -51,20 +70,20 @@ const initDb = async () => {
     }
     saveDb();
     console.log('Database initialized. Admin: admin@rybella.iq / Admin@123');
-  } else {
-    // إعادة تعيين كلمة مرور المدير عند كل تشغيل (للتطوير المحلي)
+  } else if (process.env.NODE_ENV !== 'production') {
+    // تطوير محلي فقط — لا تُعاد كلمة المرور في الإنتاج
     const bcrypt = require('bcrypt');
     const adminPass = bcrypt.hashSync('Admin@123', 10);
     try {
       const check = db.exec("SELECT id FROM users WHERE email = 'admin@rybella.iq'");
       if (check.length && check[0].values.length > 0) {
         db.run('UPDATE users SET password = ?, role = ?, name = ? WHERE email = ?', [adminPass, 'admin', 'مدير النظام', 'admin@rybella.iq']);
-        saveDb();
-        console.log('Admin password reset. Login: admin@rybella.iq / Admin@123');
+        flushDbToDisk();
+        console.log('Admin password reset (dev). Login: admin@rybella.iq / Admin@123');
       } else {
         db.run('INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)', ['مدير النظام', 'admin@rybella.iq', adminPass, '07701234567', 'admin']);
-        saveDb();
-        console.log('Admin created. Login: admin@rybella.iq / Admin@123');
+        flushDbToDisk();
+        console.log('Admin created (dev). Login: admin@rybella.iq / Admin@123');
       }
     } catch (e) {
       console.error('Admin init:', e.message);
@@ -611,4 +630,8 @@ const query = (sql, params = []) => {
   });
 };
 
-module.exports = { query, flushDb: async () => { await initDb(); saveDb(); }, getDbPath: () => dbPath };
+module.exports = {
+  query,
+  flushDb: async () => { await initDb(); flushDbToDisk(); },
+  getDbPath: () => dbPath,
+};

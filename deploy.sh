@@ -79,7 +79,7 @@ if ! grep -q '^EXTERNAL_INVENTORY_API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
 EXTERNAL_INVENTORY_API_URL=http://187.127.88.146/api/v1
 EXTERNAL_INVENTORY_API_EMAIL=admin@alhayaa.com
 EXTERNAL_INVENTORY_API_PASSWORD=Admin@12345
-INVENTORY_SYNC_INTERVAL_MIN=5
+INVENTORY_SYNC_INTERVAL_MIN=15
 EOF
   echo "Added Alhayaa inventory sync defaults to $ENV_FILE — verify email/password."
 fi
@@ -178,7 +178,8 @@ post_deploy_checks() {
   echo "  المتجر:        https://rybellairaq.com"
   echo "  لوحة التحكم:   https://admin.rybellairaq.com"
   echo "  النسخ الاحتياطية: سجّل دخول → النسخ الاحتياطية → نسخة جديدة"
-  echo "  (لا حاجة لأي token يدوي — تسجيل الدخول في اللوحة يكفي)"
+  echo "  استقرار السيرفر:   sudo bash deployment/setup-swap.sh"
+  echo "                     sudo bash deployment/install-watchdog.sh"
   echo "============================================"
 }
 
