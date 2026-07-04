@@ -11,3 +11,25 @@ export function isBarcodeLikeQuery(value) {
   if (raw.includes(' ')) return false
   return /^[A-Za-z0-9\-_]{5,24}$/.test(raw)
 }
+
+/** يجد ظل المنتج المطابق للباركود أو SKU */
+export function findVariantByBarcode(product, rawCode) {
+  const normalized = normalizeBarcode(rawCode)
+  const raw = String(rawCode || '').trim()
+  if (!normalized || !product?.variants?.length) return null
+
+  return product.variants.find((variant) => {
+    const barcode = normalizeBarcode(variant.barcode)
+    const sku = normalizeBarcode(variant.sku)
+    return (
+      (barcode && barcode === normalized)
+      || (sku && sku === normalized)
+      || (variant.barcode && variant.barcode === raw)
+      || (variant.sku && variant.sku === raw)
+    )
+  }) || null
+}
+
+export function findVariantIdByBarcode(product, rawCode) {
+  return findVariantByBarcode(product, rawCode)?.id ?? null
+}

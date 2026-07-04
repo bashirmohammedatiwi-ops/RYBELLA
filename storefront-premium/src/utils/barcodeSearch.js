@@ -1,5 +1,5 @@
 import { productsAPI } from '../services/api'
-import { normalizeBarcode } from './barcode'
+import { normalizeBarcode, findVariantIdByBarcode } from './barcode'
 
 /** يبحث بالباركود ويوجّه لصفحة المنتج أو نتائج البحث */
 export async function searchByBarcode(navigate, rawCode, options = {}) {
@@ -10,7 +10,10 @@ export async function searchByBarcode(navigate, rawCode, options = {}) {
     const { data } = await productsAPI.getAll({ search: q })
     const list = Array.isArray(data) ? data : []
     if (list.length === 1) {
-      navigate(`/products/${list[0].id}`)
+      const product = list[0]
+      const variantId = findVariantIdByBarcode(product, rawCode)
+      const variantQuery = variantId ? `?variant=${variantId}` : ''
+      navigate(`/products/${product.id}${variantQuery}`)
       return true
     }
   } catch {

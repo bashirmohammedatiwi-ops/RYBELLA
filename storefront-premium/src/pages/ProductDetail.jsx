@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -9,6 +9,30 @@ import { getSelectedVariantPricing, roundDisplayPrice } from '../utils/pricing'
 import { getVariantColor, isMetallicShade } from '../utils/variantColor'
 import MobileHeader from '../components/MobileHeader'
 import './ProductDetail.css'
+
+function getVariantGallerySlideIndex(product, variantId) {
+  if (!product || variantId == null) return null
+
+  const variants = product.variants || []
+  const productImages = [
+    ...(product.main_image ? [product.main_image] : []),
+    ...(product.images || []).filter((u) => u !== product.main_image),
+  ].filter(Boolean)
+
+  let slideIndex = productImages.length
+
+  for (const variant of variants) {
+    const url = variant.image || product.main_image || product.images?.[0]
+    if (url || product.main_image || product.images?.[0]) {
+      if (String(variant.id) === String(variantId)) {
+        return slideIndex
+      }
+      slideIndex += 1
+    }
+  }
+
+  return null
+}
 
 function DescriptionContent({ text }) {
   const blocks = String(text || '').trim().split(/\n{2,}/)
@@ -25,6 +49,8 @@ function DescriptionContent({ text }) {
 
 export default function ProductDetail() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
+  const variantFromUrl = searchParams.get('variant')
   const galleryRef = useRef(null)
   const [product, setProduct] = useState(null)
   const [selectedVariant, setSelectedVariant] = useState(null)
@@ -39,17 +65,40 @@ export default function ProductDetail() {
 
   useEffect(() => {
     addProduct(Number(id))
+    setLoading(true)
     productsAPI.getById(id).then((r) => {
       const p = r?.data
       setProduct(p)
       if (p?.variants?.length) {
+        const fromBarcode = variantFromUrl
+          ? p.variants.find((v) => String(v.id) === String(variantFromUrl))
+          : null
         const first = p.variants.find((v) => v.stock > 0) || p.variants[0]
-        setSelectedVariant(first)
+        setSelectedVariant(fromBarcode || first)
       } else {
         setSelectedVariant(null)
       }
     }).catch(() => setProduct(null)).finally(() => setLoading(false))
-  }, [id])
+  }, [id, variantFromUrl])
+
+  useEffect(() => {
+    if (!product || !variantFromUrl || !selectedVariant) return
+    if (String(selectedVariant.id) !== String(variantFromUrl)) return
+
+    const slideIdx = getVariantGallerySlideIndex(product, variantFromUrl)
+    if (slideIdx == null) return
+
+    const timer = window.setTimeout(() => {
+      const track = galleryRef.current?.querySelector('.pd-gallery-track')
+      const slide = track?.children[slideIdx]
+      if (slide) {
+        slide.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'start' })
+        setGalleryIdx(slideIdx)
+      }
+    }, 100)
+
+    return () => window.clearTimeout(timer)
+  }, [product, selectedVariant, variantFromUrl])
 
   useEffect(() => {
     if (!user || !product) return
