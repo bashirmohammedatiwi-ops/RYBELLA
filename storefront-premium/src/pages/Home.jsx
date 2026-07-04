@@ -11,6 +11,9 @@ import HomeCategoriesSection from '../components/HomeCategoriesSection'
 import StoriesBar from '../components/StoriesBar'
 import { formatCount, formatPercent } from '../utils/format'
 import { isBarcodeLikeQuery } from '../utils/barcode'
+import { searchByBarcode } from '../utils/barcodeSearch'
+import BarcodeScanner from '../components/BarcodeScanner'
+import BarcodeScanButton from '../components/BarcodeScanButton'
 import './Home.css'
 
 export default function Home() {
@@ -26,6 +29,7 @@ export default function Home() {
   const [recentProducts, setRecentProducts] = useState([])
   const [bannerIdx, setBannerIdx] = useState(0)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [scannerOpen, setScannerOpen] = useState(false)
   const bannerRef = useRef(null)
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -88,18 +92,16 @@ export default function Home() {
       return
     }
     if (isBarcodeLikeQuery(q)) {
-      try {
-        const { data } = await productsAPI.getAll({ search: q })
-        const list = Array.isArray(data) ? data : []
-        if (list.length === 1) {
-          navigate(`/products/${list[0].id}`)
-          return
-        }
-      } catch {
-        /* fall through to explore */
-      }
+      await searchByBarcode(navigate, q)
+      return
     }
     navigate(`/explore?search=${encodeURIComponent(q)}`)
+  }
+
+  const handleBarcodeDetected = async (code) => {
+    setScannerOpen(false)
+    setSearch(code)
+    await searchByBarcode(navigate, code)
   }
 
   const heroTitle = settings?.hero_title || 'Rybella'
@@ -162,9 +164,16 @@ export default function Home() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <BarcodeScanButton onClick={() => setScannerOpen(true)} />
           <button type="submit">بحث</button>
         </form>
       </header>
+
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onDetected={handleBarcodeDetected}
+      />
 
       <main className="home-main">
         <StoriesBar />

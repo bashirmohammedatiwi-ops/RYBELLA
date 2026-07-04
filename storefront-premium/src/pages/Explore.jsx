@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { productsAPI, categoriesAPI, subcategoriesAPI, wishlistAPI } from '../services/api'
 import { isBarcodeLikeQuery } from '../utils/barcode'
+import { searchByBarcode } from '../utils/barcodeSearch'
+import BarcodeScanner from '../components/BarcodeScanner'
+import BarcodeScanButton from '../components/BarcodeScanButton'
 import { useAuth } from '../context/AuthContext'
 import ProductCard from '../components/ProductCard'
 import MobileHeader from '../components/MobileHeader'
@@ -44,6 +47,7 @@ export default function Explore() {
   const [sortBy, setSortBy] = useState('')
   const [sidebarVisible, setSidebarVisible] = useState(loadSidebarVisible)
   const [railPinned, setRailPinned] = useState(false)
+  const [scannerOpen, setScannerOpen] = useState(false)
   const layoutRef = useRef(null)
   const mainScrollRef = useRef(null)
   const scrollFadeRef = useRef(1)
@@ -152,20 +156,30 @@ export default function Explore() {
       return
     }
     if (isBarcodeLikeQuery(q)) {
-      try {
-        const { data } = await productsAPI.getAll({ search: q })
-        const list = Array.isArray(data) ? data : []
-        if (list.length === 1) {
-          navigate(`/products/${list[0].id}`)
-          return
-        }
-      } catch {
-        /* fall through */
-      }
+      await searchByBarcode(navigate, q, {
+        onExploreSearch: (code) => {
+          const p = new URLSearchParams(searchParams)
+          p.set('search', code)
+          setSearchParams(p)
+        },
+      })
+      return
     }
     const p = new URLSearchParams(searchParams)
     p.set('search', q)
     setSearchParams(p)
+  }
+
+  const handleBarcodeDetected = async (code) => {
+    setScannerOpen(false)
+    setSearchInput(code)
+    await searchByBarcode(navigate, code, {
+      onExploreSearch: (value) => {
+        const p = new URLSearchParams(searchParams)
+        p.set('search', value)
+        setSearchParams(p)
+      },
+    })
   }
 
   const runRailTransition = useCallback((nextVisible) => {
@@ -328,8 +342,15 @@ export default function Explore() {
                 inputMode="search"
                 autoComplete="off"
               />
+              <BarcodeScanButton className="barcode-scan-btn--explore" onClick={() => setScannerOpen(true)} />
               <button type="submit">بحث</button>
             </form>
+
+            <BarcodeScanner
+              open={scannerOpen}
+              onClose={() => setScannerOpen(false)}
+              onDetected={handleBarcodeDetected}
+            />
 
             <div className="premium-explore-header">
               <p className="premium-explore-count">
