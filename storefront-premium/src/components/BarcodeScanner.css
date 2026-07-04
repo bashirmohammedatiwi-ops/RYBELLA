@@ -139,7 +139,7 @@
 }
 
 .barcode-scanner-error {
-  margin: 12px 0 0;
+  margin: 0;
   padding: 10px 12px;
   border-radius: 12px;
   color: #8f1d3f;
@@ -147,6 +147,24 @@
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.5;
+}
+
+.barcode-scanner-error-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.barcode-scanner-retry {
+  min-height: 40px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary, #e85d7a), #c31477);
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
 }
 
 .barcode-scanner-cancel {

@@ -1,96 +1,140 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import './BarcodeScanner.css'
+
+const CAMERA_CONSTRAINTS = [
+  { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+  { video: { facingMode: 'environment' } },
+  { video: { facingMode: { ideal: 'user' } } },
+  { video: true },
+]
+
+function mapCameraError(error) {
+  const name = error?.name || ''
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+    return 'يُرجى السماح بالوصول إلى الكاميرا من إعدادات المتصفح ثم أعيدي المحاولة.'
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
+    return 'لا توجد كاميرا متاحة على هذا الجهاز.'
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return 'الكاميرا مستخدمة من تطبيق آخر. أغلقيه ثم أعيدي المحاولة.'
+  }
+  if (!window.isSecureContext) {
+    return 'الكاميرا تعمل فقط عبر HTTPS. افتحي الموقع من rybellairaq.com'
+  }
+  return 'تعذّر تشغيل الكاميرا. أعيدي المحاولة أو أدخلي الباركود يدوياً.'
+}
 
 export default function BarcodeScanner({ open, onClose, onDetected }) {
   const videoRef = useRef(null)
   const controlsRef = useRef(null)
+  const readerRef = useRef(null)
   const detectedRef = useRef(false)
   const onDetectedRef = useRef(onDetected)
   const [error, setError] = useState('')
   const [starting, setStarting] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     onDetectedRef.current = onDetected
   }, [onDetected])
 
-  useEffect(() => {
-    if (!open) return undefined
+  const stop = useCallback(() => {
+    controlsRef.current?.stop()
+    controlsRef.current = null
+    const stream = videoRef.current?.srcObject
+    if (stream instanceof MediaStream) {
+      stream.getTracks().forEach((track) => track.stop())
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+  }, [])
+
+  const startCamera = useCallback(async () => {
+    if (!videoRef.current) return
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError(mapCameraError({ name: 'NotFoundError' }))
+      setStarting(false)
+      return
+    }
+
+    if (!window.isSecureContext) {
+      setError(mapCameraError({ name: 'SecurityError' }))
+      setStarting(false)
+      return
+    }
 
     detectedRef.current = false
     setError('')
     setStarting(true)
+    stop()
 
     const reader = new BrowserMultiFormatReader()
-    let cancelled = false
+    readerRef.current = reader
 
-    const stop = () => {
-      controlsRef.current?.stop()
-      controlsRef.current = null
-      const stream = videoRef.current?.srcObject
-      if (stream instanceof MediaStream) {
-        stream.getTracks().forEach((track) => track.stop())
+    const onResult = (result, err) => {
+      if (detectedRef.current) return
+      if (result) {
+        detectedRef.current = true
+        const code = result.getText()?.trim()
+        if (code) {
+          stop()
+          onDetectedRef.current?.(code)
+        }
+        return
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null
+      if (err && err.name !== 'NotFoundException') {
+        /* ignore frame misses */
       }
     }
 
-    const start = async () => {
+    let lastError = null
+
+    for (const constraints of CAMERA_CONSTRAINTS) {
       try {
-        const devices = await BrowserMultiFormatReader.listVideoInputDevices()
-        const backCamera = devices.find((d) => /back|rear|environment/i.test(d.label))
-        const deviceId = backCamera?.deviceId || devices[0]?.deviceId
-
-        if (!deviceId) {
-          setError('لم يتم العثور على كاميرا على هذا الجهاز.')
-          setStarting(false)
-          return
-        }
-
-        if (cancelled) return
-
-        controlsRef.current = await reader.decodeFromVideoDevice(
-          deviceId,
+        controlsRef.current = await reader.decodeFromConstraints(
+          constraints,
           videoRef.current,
-          (result, err) => {
-            if (cancelled || detectedRef.current) return
-            if (result) {
-              detectedRef.current = true
-              const code = result.getText()?.trim()
-              if (code) {
-                stop()
-                onDetectedRef.current?.(code)
-              }
-              return
-            }
-            if (err && err.name !== 'NotFoundException') {
-              /* ignore frame misses */
-            }
-          },
+          onResult,
         )
         setStarting(false)
+        return
       } catch (e) {
-        if (cancelled) return
-        const name = e?.name || ''
-        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          setError('يُرجى السماح بالوصول إلى الكاميرا لمسح الباركود.')
-        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-          setError('لا توجد كاميرا متاحة على هذا الجهاز.')
-        } else {
-          setError('تعذّر تشغيل الكاميرا. حاولي مرة أخرى.')
-        }
-        setStarting(false)
+        lastError = e
       }
     }
 
-    start()
+    try {
+      controlsRef.current = await reader.decodeFromVideoDevice(
+        undefined,
+        videoRef.current,
+        onResult,
+      )
+      setStarting(false)
+      return
+    } catch (e) {
+      lastError = e
+    }
+
+    setError(mapCameraError(lastError))
+    setStarting(false)
+  }, [stop])
+
+  useEffect(() => {
+    if (!open) {
+      stop()
+      return undefined
+    }
+
+    startCamera()
 
     return () => {
-      cancelled = true
       stop()
     }
-  }, [open])
+  }, [open, attempt, startCamera, stop])
 
   if (!open) return null
 
@@ -120,7 +164,14 @@ export default function BarcodeScanner({ open, onClose, onDetected }) {
           {starting && <div className="barcode-scanner-loading">جاري تشغيل الكاميرا...</div>}
         </div>
 
-        {error && <p className="barcode-scanner-error">{error}</p>}
+        {error && (
+          <div className="barcode-scanner-error-wrap">
+            <p className="barcode-scanner-error">{error}</p>
+            <button type="button" className="barcode-scanner-retry" onClick={() => setAttempt((n) => n + 1)}>
+              إعادة المحاولة
+            </button>
+          </div>
+        )}
 
         <button type="button" className="barcode-scanner-cancel" onClick={onClose}>
           إلغاء

@@ -186,9 +186,8 @@ export default function Home() {
             >
               <div className="home-banners-slider">
                 {banners.slice(0, 5).map((b) => {
-                  const posX = b.image_pos_x != null ? b.image_pos_x : 78
-                  const posY = b.image_pos_y != null ? b.image_pos_y : 70
-                  const displaySize = b.image_size > 0 ? b.image_size : 58
+                  const posX = b.image_pos_x != null ? b.image_pos_x : 80
+                  const displaySize = (b.image_size > 0 ? b.image_size : 62) * 1.08
                   const bgColor = b.background_color || '#fff1f5'
                   const borderColor = b.border_color || '#f4b7c4'
                   const hasLightBg = !b.background_image && ['#fff', '#ffffff', '#f5f5f5'].includes(bgColor.toLowerCase())
@@ -199,9 +198,8 @@ export default function Home() {
                       key={b.id}
                       to={bannerLink}
                       className="home-banner-slide"
-                      style={{ borderColor }}
                     >
-                      <div className="home-banner-clip">
+                      <div className="home-banner-card" style={{ borderColor }}>
                         <div className="home-banner-bg" style={{ background: bgColor }}>
                           {b.background_image && <img src={`${IMG_BASE}${b.background_image}`} alt="" />}
                         </div>
@@ -221,20 +219,19 @@ export default function Home() {
                             خصم {formatPercent(b.discount_percent)}
                           </span>
                         )}
-
-                        {b.image && (
-                          <div
-                            className="home-banner-figure"
-                            style={{
-                              left: `${posX}%`,
-                              bottom: `${Math.max(0, 100 - posY)}%`,
-                              width: `${displaySize}%`,
-                            }}
-                          >
-                            <img src={`${IMG_BASE}${b.image}`} alt={b.title || ''} />
-                          </div>
-                        )}
                       </div>
+
+                      {b.image && (
+                        <div
+                          className="home-banner-figure"
+                          style={{
+                            left: `${posX}%`,
+                            width: `${displaySize}%`,
+                          }}
+                        >
+                          <img src={`${IMG_BASE}${b.image}`} alt={b.title || ''} />
+                        </div>
+                      )}
                     </Link>
                   )
                 })}
