@@ -83,10 +83,19 @@ if ! grep -qE '^POSTGRES_PASSWORD=.{4,}' "$ENV_FILE" 2>/dev/null; then
 POSTGRES_DB=rybella
 POSTGRES_USER=rybella
 POSTGRES_PASSWORD=$PG_PASS
-PG_POOL_MAX=20
+PG_POOL_MAX=50
+WEB_CONCURRENCY=2
 EOF
   fi
   echo "POSTGRES_PASSWORD set in $ENV_FILE"
+fi
+
+if ! grep -q '^PG_POOL_MAX=' "$ENV_FILE" 2>/dev/null; then
+  echo "PG_POOL_MAX=50" >> "$ENV_FILE"
+fi
+
+if ! grep -q '^WEB_CONCURRENCY=' "$ENV_FILE" 2>/dev/null; then
+  echo "WEB_CONCURRENCY=2" >> "$ENV_FILE"
 fi
 
 if ! grep -q '^EXTERNAL_INVENTORY_API_URL=.\+' "$ENV_FILE" 2>/dev/null; then

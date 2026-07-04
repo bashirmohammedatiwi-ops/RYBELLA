@@ -16,9 +16,12 @@ function getPool() {
     if (!url) {
       throw new Error('DATABASE_URL is required (PostgreSQL). See deployment/.env.example');
     }
+    const webConcurrency = Math.max(1, parseInt(process.env.WEB_CONCURRENCY || '1', 10));
+    const poolCap = parseInt(process.env.PG_POOL_MAX || '50', 10);
+    const maxConnections = Math.max(5, Math.floor(poolCap / webConcurrency));
     pool = new Pool({
       connectionString: url,
-      max: parseInt(process.env.PG_POOL_MAX || '20', 10),
+      max: maxConnections,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 15000,
     });

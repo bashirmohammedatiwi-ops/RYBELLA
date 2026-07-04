@@ -7,6 +7,16 @@ services:
     image: postgres:16-alpine
     container_name: rybella-postgres
     restart: always
+    command:
+      - postgres
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=3GB
+      - -c
+      - max_connections=100
+      - -c
+      - work_mem=8MB
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-rybella}
       POSTGRES_USER: ${POSTGRES_USER:-rybella}
@@ -15,6 +25,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - rybella-network
+    deploy:
+      resources:
+        limits:
+          memory: 2560M
+        reservations:
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rybella} -d ${POSTGRES_DB:-rybella}"]
       interval: 10s
@@ -37,7 +53,8 @@ services:
       - NODE_ENV=production
       - PORT=4000
       - DATABASE_URL=postgresql://${POSTGRES_USER:-rybella}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-rybella}
-      - PG_POOL_MAX=${PG_POOL_MAX:-20}
+      - PG_POOL_MAX=${PG_POOL_MAX:-50}
+      - WEB_CONCURRENCY=${WEB_CONCURRENCY:-2}
       - SQLITE_PATH=/app/data/rybella.db
       - BACKUP_PATH=/app/backups
       - UPLOAD_PATH=/app/uploads
@@ -63,9 +80,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 2048M
         reservations:
-          memory: 128M
+          memory: 512M
     logging:
       driver: json-file
       options:
