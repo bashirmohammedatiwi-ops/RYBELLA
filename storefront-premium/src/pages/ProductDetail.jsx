@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
@@ -49,8 +49,10 @@ function DescriptionContent({ text }) {
 
 export default function ProductDetail() {
   const { id } = useParams()
-  const [searchParams] = useSearchParams()
-  const variantFromUrl = searchParams.get('variant')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialVariantIdRef = useRef(searchParams.get('variant'))
+  const initialGallerySyncedRef = useRef(false)
+  const userPickingVariantRef = useRef(false)
   const galleryRef = useRef(null)
   const [product, setProduct] = useState(null)
   const [selectedVariant, setSelectedVariant] = useState(null)
@@ -64,14 +66,18 @@ export default function ProductDetail() {
   const { addProduct } = useRecentlyViewed()
 
   useEffect(() => {
+    initialVariantIdRef.current = searchParams.get('variant')
+    initialGallerySyncedRef.current = false
+    userPickingVariantRef.current = false
     addProduct(Number(id))
     setLoading(true)
     productsAPI.getById(id).then((r) => {
       const p = r?.data
       setProduct(p)
       if (p?.variants?.length) {
-        const fromBarcode = variantFromUrl
-          ? p.variants.find((v) => String(v.id) === String(variantFromUrl))
+        const variantId = initialVariantIdRef.current
+        const fromBarcode = variantId
+          ? p.variants.find((v) => String(v.id) === String(variantId))
           : null
         const first = p.variants.find((v) => v.stock > 0) || p.variants[0]
         setSelectedVariant(fromBarcode || first)
@@ -79,14 +85,17 @@ export default function ProductDetail() {
         setSelectedVariant(null)
       }
     }).catch(() => setProduct(null)).finally(() => setLoading(false))
-  }, [id, variantFromUrl])
+  }, [id, addProduct])
 
   useEffect(() => {
-    if (!product || !variantFromUrl || !selectedVariant) return
-    if (String(selectedVariant.id) !== String(variantFromUrl)) return
+    const variantId = initialVariantIdRef.current
+    if (!product || !variantId || initialGallerySyncedRef.current) return
 
-    const slideIdx = getVariantGallerySlideIndex(product, variantFromUrl)
-    if (slideIdx == null) return
+    const slideIdx = getVariantGallerySlideIndex(product, variantId)
+    if (slideIdx == null) {
+      initialGallerySyncedRef.current = true
+      return
+    }
 
     const timer = window.setTimeout(() => {
       const track = galleryRef.current?.querySelector('.pd-gallery-track')
@@ -95,10 +104,18 @@ export default function ProductDetail() {
         slide.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'start' })
         setGalleryIdx(slideIdx)
       }
+      initialGallerySyncedRef.current = true
     }, 100)
 
     return () => window.clearTimeout(timer)
-  }, [product, selectedVariant, variantFromUrl])
+  }, [product])
+
+  const clearVariantFromUrl = useCallback(() => {
+    if (!searchParams.has('variant')) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('variant')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     if (!user || !product) return
@@ -133,6 +150,7 @@ export default function ProductDetail() {
         })
         if (best.idx >= 0) {
           setGalleryIdx(best.idx)
+          if (userPickingVariantRef.current) return
           const { gallerySlides: gs, product: prod } = galleryDataRef.current
           const slide = gs[best.idx]
           if (slide?.variantId && prod?.variants) {
@@ -190,6 +208,7 @@ export default function ProductDetail() {
       : Math.round(scrollLeft / w)
     const safeIdx = Math.max(0, Math.min(idx, slides.length - 1))
     setGalleryIdx(safeIdx)
+    if (userPickingVariantRef.current) return
     const slide = slides[safeIdx]
     if (slide?.variantId && prod?.variants) {
       const v = prod.variants.find((x) => x.id === slide.variantId)
@@ -244,10 +263,19 @@ export default function ProductDetail() {
   galleryDataRef.current = { gallerySlides, product }
 
   const handleSelectVariant = (v) => {
+    userPickingVariantRef.current = true
+    clearVariantFromUrl()
     setSelectedVariant(v)
     const slideIdx = variantIdToSlideIndex[v.id]
     if (slideIdx != null) {
-      requestAnimationFrame(() => goToSlide(slideIdx))
+      requestAnimationFrame(() => {
+        goToSlide(slideIdx)
+        window.setTimeout(() => {
+          userPickingVariantRef.current = false
+        }, 450)
+      })
+    } else {
+      userPickingVariantRef.current = false
     }
   }
 
