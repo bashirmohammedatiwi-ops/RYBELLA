@@ -18,7 +18,7 @@ RUN npm run build
 # Stage 2: Nginx with built app + reverse proxy config
 FROM nginx:alpine
 
-# Remove default nginx config
+RUN apk add --no-cache curl
 RUN rm /etc/nginx/conf.d/default.conf
 
 # Copy built React app

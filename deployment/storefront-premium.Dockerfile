@@ -18,6 +18,7 @@ RUN npm run build
 # Stage 2: Nginx with built app + reverse proxy
 FROM nginx:alpine
 
+RUN apk add --no-cache curl
 RUN rm /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY deployment/nginx-webstore.conf /etc/nginx/conf.d/default.conf
