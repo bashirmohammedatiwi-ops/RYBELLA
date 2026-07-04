@@ -28,16 +28,14 @@ echo ""
 echo "--- Health checks ---"
 for url in \
   "http://127.0.0.1:${HTTP_PORT}/api/health" \
-  "http://127.0.0.1:${HTTP_PORT}/" \
-  "http://127.0.0.1:${WEBSTORE_PORT}/"
+  "http://127.0.0.1:${HTTP_PORT}/api/health/db" \
+  "http://127.0.0.1:${WEBSTORE_PORT}/api/products?limit=1"
 do
+  body="$(curl -s --max-time 10 "$url" 2>/dev/null || echo ERR)"
   code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url" 2>/dev/null || echo ERR)"
   echo "$url → HTTP $code"
+  echo "  ${body:0:200}"
 done
-echo ""
-
-echo "--- Backend memory (from /api/health) ---"
-curl -s --max-time 10 "http://127.0.0.1:${HTTP_PORT}/api/health" 2>/dev/null || echo "unreachable"
 echo ""
 
 echo "--- Recent OOM kills (kernel) ---"
@@ -64,5 +62,6 @@ fi
 if ! swapon --show 2>/dev/null | grep -q .; then
   echo "⚠ No swap — run: sudo bash deployment/setup-swap.sh"
 fi
-echo "Install auto-restart: sudo bash deployment/install-watchdog.sh"
+echo "Restore DB:     sudo bash deployment/restore-db.sh"
+echo "Auto-restart:   sudo bash deployment/install-watchdog.sh"
 echo "============================================="

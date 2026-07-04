@@ -392,6 +392,7 @@ async function getAllCatalogBarcodes() {
 }
 
 async function refreshAllFromExternal() {
+  return db.runBulkWrite(async () => {
   const barcodes = await getAllCatalogBarcodes()
   const stats = {
     total: barcodes.length,
@@ -435,6 +436,7 @@ async function refreshAllFromExternal() {
   }
   stats.lastError = lastExternalFetchError
   return stats
+  });
 }
 
 async function refreshProduct(productId) {

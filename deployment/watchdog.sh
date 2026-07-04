@@ -49,12 +49,25 @@ STORE_OK=false
 
 if docker ps --format '{{.Names}}' | grep -q '^rybella-backend$'; then
   if docker exec rybella-backend wget -q --spider http://127.0.0.1:4000/api/health 2>/dev/null; then
-    BACKEND_OK=true
+    if docker exec rybella-backend wget -qO- http://127.0.0.1:4000/api/health 2>/dev/null | grep -q '"database":"connected"'; then
+      BACKEND_OK=true
+    else
+      echo "$LOG_TAG FAIL backend database unhealthy — restarting"
+      restart_container rybella-backend
+      sleep 12
+      if docker exec rybella-backend wget -qO- http://127.0.0.1:4000/api/health 2>/dev/null | grep -q '"database":"connected"'; then
+        BACKEND_OK=true
+      fi
+    fi
   fi
 fi
 
 if check_url "http://127.0.0.1:${HTTP_PORT}/api/health"; then
-  ADMIN_OK=true
+  if curl -sf --max-time 15 "http://127.0.0.1:${HTTP_PORT}/api/health" | grep -q '"database":"connected"'; then
+    ADMIN_OK=true
+  fi
+else
+  ADMIN_OK=false
 fi
 
 if check_url "http://127.0.0.1:${WEBSTORE_PORT}/"; then

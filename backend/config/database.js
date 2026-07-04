@@ -14,21 +14,94 @@ const dbPath = process.env.DB_PATH || path.join(dbDir, 'rybella.db');
 let db = null;
 let SQL = null;
 let saveTimer = null;
+let savePaused = 0;
+let migrationsDone = false;
 
-/** حفظ فوري — للنسخ الاحتياطي وإيقاف التشغيل */
+function getBackupsDir() {
+  const raw = process.env.BACKUP_PATH;
+  if (raw) return path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
+  return path.resolve(__dirname, '../backups');
+}
+
+function isCorruptionError(err) {
+  const msg = String(err?.message || err || '');
+  return /memory access out of bounds|database disk image is malformed|file is not a database|database corruption/i.test(msg);
+}
+
+function checkIntegrity() {
+  if (!db) return false;
+  try {
+    const result = db.exec('PRAGMA integrity_check');
+    const val = result?.[0]?.values?.[0]?.[0];
+    return val === 'ok';
+  } catch {
+    return false;
+  }
+}
+
+function findLatestBackupZip() {
+  const dir = getBackupsDir();
+  if (!fs.existsSync(dir)) return null;
+  const files = fs.readdirSync(dir)
+    .filter((f) => /^rybella-backup-.+\.zip$/i.test(f))
+    .map((f) => ({ name: f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime);
+  return files[0] ? path.join(dir, files[0].name) : null;
+}
+
+function restoreDbFromBackupZip(zipPath) {
+  const { execSync } = require('child_process');
+  const tmpPath = `${dbPath}.restore.tmp`;
+  console.log('[db] Restoring database from backup:', zipPath);
+  execSync(`unzip -p "${zipPath}" rybella.db > "${tmpPath}"`, { stdio: 'pipe' });
+  if (!fs.existsSync(tmpPath) || fs.statSync(tmpPath).size < 1024) {
+    throw new Error('Backup extract failed or database file too small');
+  }
+  if (fs.existsSync(dbPath)) {
+    fs.copyFileSync(dbPath, `${dbPath}.corrupt.${Date.now()}.bak`);
+  }
+  fs.renameSync(tmpPath, dbPath);
+  console.log('[db] Database restored from backup successfully');
+}
+
+function closeDb() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  if (db) {
+    try { db.close(); } catch (_) {}
+    db = null;
+  }
+}
+
+function loadDbFromDisk() {
+  if (!SQL) throw new Error('SQL engine not initialized');
+  closeDb();
+  if (!fs.existsSync(dbPath)) {
+    db = new SQL.Database();
+    return;
+  }
+  const buffer = fs.readFileSync(dbPath);
+  db = new SQL.Database(buffer);
+}
+
+/** حفظ فوري — كتابة ذرية لتجنب تلف الملف عند انقطاع الكهرباء أو OOM */
 const flushDbToDisk = () => {
   if (!db) return;
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
+  const tmpPath = `${dbPath}.tmp`;
   const data = db.export();
-  fs.writeFileSync(dbPath, Buffer.from(data));
+  fs.writeFileSync(tmpPath, Buffer.from(data));
+  fs.renameSync(tmpPath, dbPath);
 };
 
 /** حفظ مؤجّل — يقلّل ضغط الذاكرة عند المزامنة الجماعية */
 const saveDb = () => {
-  if (!db) return;
+  if (!db || savePaused > 0) return;
   if (saveTimer) return;
   saveTimer = setTimeout(() => {
     saveTimer = null;
@@ -40,13 +113,45 @@ const saveDb = () => {
   }, 1500);
 };
 
+/** تجميع عمليات الكتابة — حفظ واحد في النهاية */
+async function runBulkWrite(fn) {
+  savePaused += 1;
+  try {
+    return await fn();
+  } finally {
+    savePaused -= 1;
+    if (savePaused === 0) {
+      try { flushDbToDisk(); } catch (e) { console.error('bulk flush error:', e.message); }
+    }
+  }
+}
+
 const initDb = async () => {
-  if (db) return;
+  if (db && migrationsDone) return;
   SQL = await initSqlJs();
-  if (fs.existsSync(dbPath)) {
-    const buffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(buffer);
-  } else {
+
+  if (!db) {
+    try {
+      loadDbFromDisk();
+    } catch (e) {
+      console.error('[db] load failed:', e.message);
+    }
+  }
+
+  if (db && !checkIntegrity()) {
+    console.error('[db] integrity_check FAILED — attempting backup restore');
+    const zip = findLatestBackupZip();
+    if (zip) {
+      try {
+        restoreDbFromBackupZip(zip);
+        loadDbFromDisk();
+      } catch (restoreErr) {
+        console.error('[db] backup restore failed:', restoreErr.message);
+      }
+    }
+  }
+
+  if (!db) {
     db = new SQL.Database();
   }
   // Run schema if empty
@@ -601,28 +706,44 @@ const initDb = async () => {
   } catch (e) {
     console.error('Push tokens migration:', e.message);
   }
+  migrationsDone = true;
 };
 
 // Async query - returns [rows] for SELECT, [{ insertId }] for INSERT (mysql2 compatible)
+const runQueryOnce = (sql, params = []) => {
+  const p = Array.isArray(params) ? params : (params && typeof params === 'object' ? Object.values(params) : []);
+  const upper = sql.trim().toUpperCase();
+  if (upper.startsWith('SELECT') || upper.startsWith('PRAGMA')) {
+    const stmt = db.prepare(sql);
+    if (p.length > 0) stmt.bind(p);
+    const rows = [];
+    while (stmt.step()) rows.push(stmt.getAsObject());
+    stmt.free();
+    return [rows];
+  }
+  db.run(sql, p);
+  const idResult = db.exec('SELECT last_insert_rowid() as id');
+  const insertId = idResult.length && idResult[0].values[0] ? idResult[0].values[0][0] : 0;
+  saveDb();
+  return [{ insertId, affectedRows: db.getRowsModified() }];
+};
+
 const query = (sql, params = []) => {
   return new Promise(async (resolve, reject) => {
     try {
       await initDb();
-      const p = Array.isArray(params) ? params : (params && typeof params === 'object' ? Object.values(params) : []);
-      const upper = sql.trim().toUpperCase();
-      if (upper.startsWith('SELECT') || upper.startsWith('PRAGMA')) {
-        const stmt = db.prepare(sql);
-        if (p.length > 0) stmt.bind(p);
-        const rows = [];
-        while (stmt.step()) rows.push(stmt.getAsObject());
-        stmt.free();
-        resolve([rows]);
-      } else {
-        db.run(sql, p);
-        const idResult = db.exec("SELECT last_insert_rowid() as id");
-        const insertId = idResult.length && idResult[0].values[0] ? idResult[0].values[0][0] : 0;
-        saveDb();
-        resolve([{ insertId, affectedRows: db.getRowsModified() }]);
+      try {
+        resolve(runQueryOnce(sql, params));
+      } catch (err) {
+        if (!isCorruptionError(err)) throw err;
+        console.error('[db] corruption during query, reloading from disk:', err.message);
+        loadDbFromDisk();
+        if (!checkIntegrity()) {
+          const zip = findLatestBackupZip();
+          if (zip) restoreDbFromBackupZip(zip);
+          loadDbFromDisk();
+        }
+        resolve(runQueryOnce(sql, params));
       }
     } catch (err) {
       reject(err);
@@ -633,5 +754,7 @@ const query = (sql, params = []) => {
 module.exports = {
   query,
   flushDb: async () => { await initDb(); flushDbToDisk(); },
+  runBulkWrite,
+  checkIntegrity: async () => { await initDb(); return checkIntegrity(); },
   getDbPath: () => dbPath,
 };

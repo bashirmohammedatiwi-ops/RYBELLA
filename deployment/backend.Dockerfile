@@ -1,7 +1,7 @@
 # Rybella Backend - Node.js API
 FROM node:18-alpine
 
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget unzip
 
 WORKDIR /app
 

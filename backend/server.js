@@ -81,13 +81,25 @@ app.use('/api/web-settings', webSettingsRoutes);
 app.use('/api/sync', inventorySyncRoutes);
 app.use('/api/backups', backupRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
+// Health check — يفحص الذاكرة وقاعدة البيانات
+app.get('/api/health', async (req, res) => {
   const mem = process.memoryUsage();
-  res.json({
-    status: 'ok',
-    message: 'Rybella Iraq API is running',
+  let dbOk = false;
+  let dbError = null;
+  try {
+    const database = require('./config/database');
+    await database.query('SELECT 1');
+    dbOk = await database.checkIntegrity();
+  } catch (e) {
+    dbError = e.message;
+  }
+  const status = dbOk ? 'ok' : 'degraded';
+  res.status(dbOk ? 200 : 503).json({
+    status,
+    message: dbOk ? 'Rybella Iraq API is running' : 'API up but database unavailable',
     uptime: Math.floor(process.uptime()),
+    database: dbOk ? 'connected' : 'error',
+    dbError,
     memory: {
       rssMb: Math.round(mem.rss / 1024 / 1024),
       heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
@@ -100,7 +112,11 @@ app.get('/api/health/backups', require('./controllers/backupController').health)
 let syncJobRunning = false;
 
 function startInventorySyncJob() {
-  const intervalMin = parseInt(process.env.INVENTORY_SYNC_INTERVAL_MIN || '15', 10);
+  if (process.env.INVENTORY_AUTO_SYNC === '0' || process.env.INVENTORY_AUTO_SYNC === 'false') {
+    console.log('Inventory auto-sync: disabled (INVENTORY_AUTO_SYNC=0)');
+    return;
+  }
+  const intervalMin = parseInt(process.env.INVENTORY_SYNC_INTERVAL_MIN || '30', 10);
   if (!process.env.EXTERNAL_INVENTORY_API_URL) {
     console.log('Inventory auto-sync: EXTERNAL_INVENTORY_API_URL not set — bulk POS sync only');
     return;
