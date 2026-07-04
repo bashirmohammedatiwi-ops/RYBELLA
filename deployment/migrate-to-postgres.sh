@@ -17,8 +17,8 @@ if ! docker exec rybella-backend test -f /app/data/rybella.db 2>/dev/null; then
   exit 0
 fi
 
-echo "==> Migrating SQLite → PostgreSQL..."
-docker exec rybella-backend node scripts/migrate-sqlite-to-postgres.js
+echo "==> Migrating SQLite → PostgreSQL (FORCE_MIGRATE=1)..."
+docker exec -e FORCE_MIGRATE=1 rybella-backend node scripts/migrate-sqlite-to-postgres.js
 
 echo "==> Verifying..."
 docker exec rybella-backend wget -qO- http://127.0.0.1:4000/api/health/db

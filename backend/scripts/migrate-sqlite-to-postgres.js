@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
  * نقل البيانات من SQLite (rybella.db) إلى PostgreSQL
- * الاستخدام:
- *   SQLITE_PATH=/app/data/rybella.db DATABASE_URL=postgresql://... node scripts/migrate-sqlite-to-postgres.js
+ * FORCE_MIGRATE=1 لإعادة النقل بعد فشل جزئي
  */
 require('dotenv').config();
 const initSqlJs = require('sql.js');
@@ -12,6 +11,7 @@ const path = require('path');
 
 const SQLITE_PATH = process.env.SQLITE_PATH || path.join(__dirname, '../database/rybella.db');
 const DATABASE_URL = process.env.DATABASE_URL;
+const FORCE = process.env.FORCE_MIGRATE === '1' || process.env.FORCE_MIGRATE === 'true';
 
 const TABLE_ORDER = [
   'users', 'brands', 'categories', 'subcategories', 'products', 'product_variants',
@@ -56,16 +56,18 @@ async function main() {
   console.log('Applying PostgreSQL schema...');
   await pg.query(fs.readFileSync(schemaPath, 'utf8'));
 
-  try {
-    const countRes = await pg.query('SELECT COUNT(*)::int AS c FROM users');
-    if ((countRes.rows[0]?.c || 0) > 0) {
-      console.log('PostgreSQL already contains data — skipping migration');
-      await pg.end();
-      sqlite.close();
-      process.exit(0);
-    }
-  } catch (_) {
-    /* جدول users غير موجود بعد — تابع النقل */
+  if (!FORCE) {
+    try {
+      const countRes = await pg.query('SELECT COUNT(*)::int AS c FROM products');
+      if ((countRes.rows[0]?.c || 0) > 0) {
+        console.log('PostgreSQL already has products — skipping (use FORCE_MIGRATE=1 to redo)');
+        await pg.end();
+        sqlite.close();
+        process.exit(0);
+      }
+    } catch (_) {}
+  } else {
+    console.log('FORCE_MIGRATE=1 — clearing PostgreSQL tables...');
   }
 
   await pg.query(`
@@ -88,44 +90,54 @@ async function main() {
     (existingTables[0]?.values || []).map((r) => r[0])
   );
 
-  for (const table of TABLE_ORDER) {
-    if (!sqliteTables.has(table)) {
-      console.log(`  skip ${table} (not in sqlite)`);
-      continue;
-    }
+  const client = await pg.connect();
+  try {
+    await client.query('SET session_replication_role = replica');
 
-    const data = sqlite.exec(`SELECT * FROM ${table}`);
-    if (!data.length || !data[0].values.length) {
-      console.log(`  ${table}: 0 rows`);
-      continue;
-    }
-
-    const cols = data[0].columns;
-    const rows = data[0].values;
-    let inserted = 0;
-
-    for (const row of rows) {
-      const obj = {};
-      cols.forEach((c, i) => { obj[c] = normalizeValue(c, row[i]); });
-      const keys = Object.keys(obj);
-      const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
-      const values = keys.map((k) => obj[k]);
-      const sql = `INSERT INTO ${table} (${keys.map((k) => `"${k}"`).join(', ')}) VALUES (${placeholders})`;
-      try {
-        await pg.query(sql, values);
-        inserted += 1;
-      } catch (err) {
-        console.error(`  ${table} row error:`, err.message);
-        throw err;
+    for (const table of TABLE_ORDER) {
+      if (!sqliteTables.has(table)) {
+        console.log(`  skip ${table} (not in sqlite)`);
+        continue;
       }
+
+      const data = sqlite.exec(`SELECT * FROM ${table}`);
+      if (!data.length || !data[0].values.length) {
+        console.log(`  ${table}: 0 rows`);
+        continue;
+      }
+
+      const cols = data[0].columns;
+      const rows = data[0].values;
+      let inserted = 0;
+      let skipped = 0;
+
+      for (const row of rows) {
+        const obj = {};
+        cols.forEach((c, i) => { obj[c] = normalizeValue(c, row[i]); });
+        const keys = Object.keys(obj);
+        const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+        const values = keys.map((k) => obj[k]);
+        const sql = `INSERT INTO ${table} (${keys.map((k) => `"${k}"`).join(', ')}) VALUES (${placeholders})`;
+        try {
+          await client.query(sql, values);
+          inserted += 1;
+        } catch (err) {
+          console.warn(`  ${table} row skip:`, err.message);
+          skipped += 1;
+        }
+      }
+
+      await client.query(
+        `SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE((SELECT MAX(id) FROM ${table}), 1), true)`
+      ).catch(() => {});
+
+      const extra = skipped ? ` (${skipped} skipped)` : '';
+      console.log(`  ${table}: ${inserted} rows${extra}`);
     }
 
-    const seq = `${table}_id_seq`;
-    await pg.query(
-      `SELECT setval('${seq}', COALESCE((SELECT MAX(id) FROM ${table}), 1), true)`
-    ).catch(() => {});
-
-    console.log(`  ${table}: ${inserted} rows`);
+    await client.query('SET session_replication_role = DEFAULT');
+  } finally {
+    client.release();
   }
 
   await pg.end();

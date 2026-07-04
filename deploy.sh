@@ -72,9 +72,12 @@ if ! grep -q '^API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
   echo "API_URL=http://187.124.23.65:4000" >> "$ENV_FILE"
 fi
 
-if ! grep -q '^POSTGRES_PASSWORD=.\+' "$ENV_FILE" 2>/dev/null; then
+if ! grep -qE '^POSTGRES_PASSWORD=.{4,}' "$ENV_FILE" 2>/dev/null; then
   PG_PASS="$(openssl rand -base64 24 2>/dev/null | tr -dc 'a-zA-Z0-9' | head -c 24)"
-  cat >> "$ENV_FILE" <<EOF
+  if grep -q '^POSTGRES_PASSWORD=' "$ENV_FILE" 2>/dev/null; then
+    sed -i.bak "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$PG_PASS|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
+  else
+    cat >> "$ENV_FILE" <<EOF
 
 # PostgreSQL
 POSTGRES_DB=rybella
@@ -82,7 +85,8 @@ POSTGRES_USER=rybella
 POSTGRES_PASSWORD=$PG_PASS
 PG_POOL_MAX=20
 EOF
-  echo "POSTGRES_PASSWORD generated in $ENV_FILE"
+  fi
+  echo "POSTGRES_PASSWORD set in $ENV_FILE"
 fi
 
 if ! grep -q '^EXTERNAL_INVENTORY_API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
@@ -140,7 +144,7 @@ if docker ps --format '{{.Names}}' | grep -q '^rybella-backend$'; then
   if docker exec rybella-backend test -f /app/data/rybella.db 2>/dev/null; then
     echo "==> SQLite detected — migrating to PostgreSQL..."
     chmod +x deployment/migrate-to-postgres.sh
-    bash deployment/migrate-to-postgres.sh || echo "WARN: migration failed — run: bash deployment/migrate-to-postgres.sh"
+    docker exec -e FORCE_MIGRATE=1 rybella-backend node scripts/migrate-sqlite-to-postgres.js || echo "WARN: migration failed — run: bash deployment/migrate-to-postgres.sh"
   fi
 fi
 
@@ -217,7 +221,7 @@ post_deploy_checks || true
 
 echo ""
 echo "==> Status:"
-docker compose ps
+docker compose --env-file "$ENV_FILE" ps
 echo ""
 HTTP_PORT="$(grep -E '^HTTP_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo 4000)"
 WEBSTORE_PORT="$(grep -E '^WEBSTORE_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo 4003)"
