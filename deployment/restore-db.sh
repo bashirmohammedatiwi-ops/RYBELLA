@@ -1,45 +1,37 @@
 #!/usr/bin/env bash
-# استعادة قاعدة البيانات من أحدث نسخة احتياطية
+# استعادة PostgreSQL من أحدث نسخة احتياطية (rybella.sql داخل ZIP)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT}/deployment/.env"
+source <(grep -E '^POSTGRES_' "$ENV_FILE" | sed 's/^/export /')
 
-echo "==> Rybella — restore database from backup"
+echo "==> Rybella — restore PostgreSQL from backup"
 
-if ! docker ps --format '{{.Names}}' | grep -q '^rybella-backend$'; then
-  echo "ERROR: rybella-backend container not running"
-  exit 1
-fi
-
-BACKUP_DIR="/app/backups"
-LATEST="$(docker exec rybella-backend sh -c "ls -t ${BACKUP_DIR}/rybella-backup-*.zip 2>/dev/null | head -1" || true)"
-
+LATEST="$(docker exec rybella-backend sh -c 'ls -t /app/backups/rybella-backup-*.zip 2>/dev/null | head -1' || true)"
 if [ -z "$LATEST" ]; then
-  echo "ERROR: No backup zip found in ${BACKUP_DIR}"
+  echo "ERROR: No backup zip found"
   exit 1
 fi
 
-echo "Using backup: $LATEST"
+echo "Using: $LATEST"
+TMP="/tmp/rybella-restore-$$"
+mkdir -p "$TMP"
+docker cp "rybella-backend:$LATEST" "$TMP/backup.zip"
+unzip -o "$TMP/backup.zip" -d "$TMP"
 
-docker exec rybella-backend sh -c "
-  set -e
-  cp /app/data/rybella.db /app/data/rybella.db.bak.\$(date +%s) 2>/dev/null || true
-  unzip -p '$LATEST' rybella.db > /app/data/rybella.db.restore
-  mv /app/data/rybella.db.restore /app/data/rybella.db
-  echo 'Database file restored'
-"
-
-echo "==> Restarting backend..."
-docker restart rybella-backend
-sleep 10
-
-HEALTH="$(curl -sf --max-time 15 http://127.0.0.1:4000/api/health/db 2>/dev/null || docker exec rybella-backend wget -qO- http://127.0.0.1:4000/api/health/db 2>/dev/null || echo FAIL)"
-echo "DB health: $HEALTH"
-
-if echo "$HEALTH" | grep -q '"database":"connected"'; then
-  echo "SUCCESS — database restored and connected"
+if [ -f "$TMP/rybella.sql" ]; then
+  echo "Restoring rybella.sql..."
+  docker exec -i rybella-postgres psql -U "${POSTGRES_USER:-rybella}" -d "${POSTGRES_DB:-rybella}" < "$TMP/rybella.sql"
+elif [ -f "$TMP/rybella.db" ]; then
+  echo "Legacy SQLite backup — run: bash deployment/migrate-to-postgres.sh after copying db"
+  docker cp "$TMP/rybella.db" rybella-backend:/app/data/rybella.db
+  bash "$ROOT/deployment/migrate-to-postgres.sh"
 else
-  echo "WARN — check logs: docker logs rybella-backend --tail 50"
+  echo "ERROR: No rybella.sql or rybella.db in backup"
   exit 1
 fi
+
+rm -rf "$TMP"
+docker restart rybella-backend
+echo "Done."

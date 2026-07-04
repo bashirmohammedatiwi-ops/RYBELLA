@@ -42,7 +42,7 @@ exports.getAll = async (req, res) => {
       params.push(status);
     }
     if (featured === '1' || featured === 'true') {
-      query += ' AND p.is_featured = 1';
+      query += ' AND p.is_featured IS TRUE';
     }
     if (product_ids !== undefined && product_ids !== null) {
       const ids = String(product_ids).split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id));

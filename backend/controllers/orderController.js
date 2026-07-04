@@ -147,7 +147,7 @@ exports.create = async (req, res) => {
 
     if (coupon_code) {
       const [coupon] = await db.query(
-        "SELECT discount_percent FROM coupons WHERE code = ? AND active = 1 AND expiration_date > date('now')",
+        "SELECT discount_percent FROM coupons WHERE code = ? AND active IS TRUE AND expiration_date > CURRENT_DATE",
         [coupon_code]
       );
       if (coupon.length > 0) {

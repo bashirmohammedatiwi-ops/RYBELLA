@@ -2,7 +2,9 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const archiver = require('archiver');
-const { flushDb, getDbPath } = require('../config/database');
+const { flushDb } = require('../config/database');
+const { execSync } = require('child_process');
+const os = require('os');
 
 function resolveBackupsDir() {
   const raw = process.env.BACKUP_PATH;
@@ -92,7 +94,8 @@ async function createBackup() {
 
   const filename = formatBackupName();
   const filepath = path.join(backupsDir, filename);
-  const dbPath = getDbPath();
+  const databaseUrl = process.env.DATABASE_URL;
+  const tmpSql = path.join(os.tmpdir(), `rybella-${Date.now()}.sql`);
 
   await new Promise((resolve, reject) => {
     const output = fs.createWriteStream(filepath);
@@ -107,10 +110,18 @@ async function createBackup() {
     });
     archive.pipe(output);
 
-    if (fs.existsSync(dbPath)) {
-      archive.file(dbPath, { name: 'rybella.db' });
-    } else {
-      console.warn('[backup] database file missing at', dbPath);
+    if (databaseUrl) {
+      try {
+        execSync(`pg_dump "${databaseUrl.replace(/"/g, '\\"')}" --no-owner --no-acl -f "${tmpSql}"`, {
+          stdio: 'pipe',
+          env: process.env,
+        });
+        if (fs.existsSync(tmpSql)) {
+          archive.file(tmpSql, { name: 'rybella.sql' });
+        }
+      } catch (err) {
+        console.warn('[backup] pg_dump failed:', err.message);
+      }
     }
     if (fs.existsSync(uploadsDir)) {
       archive.directory(uploadsDir, 'uploads');
@@ -122,9 +133,9 @@ async function createBackup() {
         {
           created_at: new Date().toISOString(),
           app: 'rybella-iraq',
-          includes: ['database', 'uploads'],
+          includes: ['postgresql', 'uploads'],
           backupsDir,
-          dbPath,
+          databaseUrl: databaseUrl ? 'configured' : null,
           uploadsDir,
         },
         null,
@@ -134,6 +145,10 @@ async function createBackup() {
     );
     archive.finalize();
   });
+
+  if (fs.existsSync(tmpSql)) {
+    try { fs.unlinkSync(tmpSql); } catch (_) {}
+  }
 
   if (!fs.existsSync(filepath)) {
     throw new Error('Backup file was not created');

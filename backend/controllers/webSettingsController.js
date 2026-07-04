@@ -67,8 +67,8 @@ exports.update = async (req, res) => {
 
     for (const [key, value] of pairs) {
       await db.query(
-        'INSERT INTO web_settings (setting_key, setting_value, updated_at) VALUES (?, ?, datetime("now")) ON CONFLICT(setting_key) DO UPDATE SET setting_value = ?, updated_at = datetime("now")',
-        [key, String(value), String(value)]
+        'INSERT INTO web_settings (setting_key, setting_value, updated_at) VALUES (?, ?, NOW()) ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = NOW()',
+        [key, String(value)]
       );
     }
     res.json({ message: 'تم حفظ الإعدادات بنجاح' });

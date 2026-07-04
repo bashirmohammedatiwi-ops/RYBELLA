@@ -5,7 +5,7 @@ async function fanOutToCustomers(notificationId) {
   const [users] = await db.query("SELECT id FROM users WHERE role = 'customer'");
   for (const user of users) {
     await db.query(
-      'INSERT OR IGNORE INTO user_notifications (user_id, notification_id) VALUES (?, ?)',
+      'INSERT INTO user_notifications (user_id, notification_id) VALUES (?, ?) ON CONFLICT (user_id, notification_id) DO NOTHING',
       [user.id, notificationId]
     );
   }

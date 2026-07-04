@@ -3,7 +3,7 @@ const db = require('../config/database');
 exports.getAll = async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT * FROM offers WHERE active = 1 ORDER BY sort_order ASC, id ASC'
+      'SELECT * FROM offers WHERE active IS TRUE ORDER BY sort_order ASC, id ASC'
     );
     res.json(rows);
   } catch (error) {
@@ -15,7 +15,7 @@ exports.getAll = async (req, res) => {
 exports.getById = async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT * FROM offers WHERE id = ? AND active = 1',
+      'SELECT * FROM offers WHERE id = ? AND active IS TRUE',
       [req.params.id]
     );
     if (!rows || rows.length === 0) {

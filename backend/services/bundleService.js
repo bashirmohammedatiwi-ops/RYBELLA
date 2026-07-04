@@ -31,7 +31,7 @@ function calcBundleTotals(lines, discountPercent, quantity = 1) {
 }
 
 async function getOfferWithProducts(offerId) {
-  const [rows] = await db.query('SELECT * FROM offers WHERE id = ? AND active = 1', [offerId])
+  const [rows] = await db.query('SELECT * FROM offers WHERE id = ? AND active IS TRUE', [offerId])
   if (!rows.length) return null
   const offer = rows[0]
   const productIds = parseProductIds(offer.product_ids)

@@ -33,7 +33,7 @@ exports.apply = async (req, res) => {
     }
 
     const [coupons] = await db.query(
-      "SELECT * FROM coupons WHERE code = ? AND active = 1 AND (expiration_date IS NULL OR expiration_date > date('now'))",
+      "SELECT * FROM coupons WHERE code = ? AND active IS TRUE AND (expiration_date IS NULL OR expiration_date > CURRENT_DATE)",
       [code.toUpperCase()]
     );
 

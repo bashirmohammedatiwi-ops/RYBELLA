@@ -1,760 +1,128 @@
 /**
- * SQLite Database (sql.js) - Compatible with mysql2 query interface
- * Pure JavaScript - no native build required
+ * PostgreSQL — طبقة قاعدة البيانات للإنتاج
+ * واجهة متوافقة مع mysql2/sql.js: query(sql, [params]) → [rows] | [{ insertId, affectedRows }]
  */
 require('dotenv').config();
-const initSqlJs = require('sql.js');
-const path = require('path');
+const { Pool } = require('pg');
 const fs = require('fs');
+const path = require('path');
 
-const dbDir = path.join(__dirname, '../database');
-if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
-const dbPath = process.env.DB_PATH || path.join(dbDir, 'rybella.db');
+let pool = null;
+let schemaReady = false;
 
-let db = null;
-let SQL = null;
-let saveTimer = null;
-let savePaused = 0;
-let migrationsDone = false;
-
-function getBackupsDir() {
-  const raw = process.env.BACKUP_PATH;
-  if (raw) return path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
-  return path.resolve(__dirname, '../backups');
-}
-
-function isCorruptionError(err) {
-  const msg = String(err?.message || err || '');
-  return /memory access out of bounds|database disk image is malformed|file is not a database|database corruption/i.test(msg);
-}
-
-function checkIntegrity() {
-  if (!db) return false;
-  try {
-    const result = db.exec('PRAGMA integrity_check');
-    const val = result?.[0]?.values?.[0]?.[0];
-    return val === 'ok';
-  } catch {
-    return false;
-  }
-}
-
-function findLatestBackupZip() {
-  const dir = getBackupsDir();
-  if (!fs.existsSync(dir)) return null;
-  const files = fs.readdirSync(dir)
-    .filter((f) => /^rybella-backup-.+\.zip$/i.test(f))
-    .map((f) => ({ name: f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime);
-  return files[0] ? path.join(dir, files[0].name) : null;
-}
-
-function restoreDbFromBackupZip(zipPath) {
-  const { execSync } = require('child_process');
-  const tmpPath = `${dbPath}.restore.tmp`;
-  console.log('[db] Restoring database from backup:', zipPath);
-  execSync(`unzip -p "${zipPath}" rybella.db > "${tmpPath}"`, { stdio: 'pipe' });
-  if (!fs.existsSync(tmpPath) || fs.statSync(tmpPath).size < 1024) {
-    throw new Error('Backup extract failed or database file too small');
-  }
-  if (fs.existsSync(dbPath)) {
-    fs.copyFileSync(dbPath, `${dbPath}.corrupt.${Date.now()}.bak`);
-  }
-  fs.renameSync(tmpPath, dbPath);
-  console.log('[db] Database restored from backup successfully');
-}
-
-function closeDb() {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-    saveTimer = null;
-  }
-  if (db) {
-    try { db.close(); } catch (_) {}
-    db = null;
-  }
-}
-
-function loadDbFromDisk() {
-  if (!SQL) throw new Error('SQL engine not initialized');
-  closeDb();
-  if (!fs.existsSync(dbPath)) {
-    db = new SQL.Database();
-    return;
-  }
-  const buffer = fs.readFileSync(dbPath);
-  db = new SQL.Database(buffer);
-}
-
-/** حفظ فوري — كتابة ذرية لتجنب تلف الملف عند انقطاع الكهرباء أو OOM */
-const flushDbToDisk = () => {
-  if (!db) return;
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-    saveTimer = null;
-  }
-  const tmpPath = `${dbPath}.tmp`;
-  const data = db.export();
-  fs.writeFileSync(tmpPath, Buffer.from(data));
-  fs.renameSync(tmpPath, dbPath);
-};
-
-/** حفظ مؤجّل — يقلّل ضغط الذاكرة عند المزامنة الجماعية */
-const saveDb = () => {
-  if (!db || savePaused > 0) return;
-  if (saveTimer) return;
-  saveTimer = setTimeout(() => {
-    saveTimer = null;
-    try {
-      flushDbToDisk();
-    } catch (e) {
-      console.error('saveDb error:', e.message);
+function getPool() {
+  if (!pool) {
+    const url = process.env.DATABASE_URL;
+    if (!url) {
+      throw new Error('DATABASE_URL is required (PostgreSQL). See deployment/.env.example');
     }
-  }, 1500);
-};
+    pool = new Pool({
+      connectionString: url,
+      max: parseInt(process.env.PG_POOL_MAX || '20', 10),
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 15000,
+    });
+    pool.on('error', (err) => {
+      console.error('[pg] idle client error:', err.message);
+    });
+  }
+  return pool;
+}
 
-/** تجميع عمليات الكتابة — حفظ واحد في النهاية */
+function toPgSql(sql) {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
+}
+
+function normalizeParams(params) {
+  if (Array.isArray(params)) return params;
+  if (params && typeof params === 'object') return Object.values(params);
+  return [];
+}
+
+async function ensureSchema() {
+  if (schemaReady) return;
+  const schemaPath = path.join(__dirname, '../database/schema.postgresql.sql');
+  const sql = fs.readFileSync(schemaPath, 'utf8');
+  await getPool().query(sql);
+  schemaReady = true;
+  console.log('[pg] schema ready');
+}
+
+async function ensureDevAdmin() {
+  if (process.env.NODE_ENV === 'production') return;
+  const [rows] = await query('SELECT id FROM users WHERE email = ? LIMIT 1', ['admin@rybella.iq']);
+  if (rows.length) return;
+  const bcrypt = require('bcrypt');
+  const adminPass = bcrypt.hashSync('Admin@123', 10);
+  await query(
+    'INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
+    ['مدير النظام', 'admin@rybella.iq', adminPass, '07701234567', 'admin']
+  );
+  console.log('[pg] dev admin created: admin@rybella.iq / Admin@123');
+}
+
+async function query(sql, params = []) {
+  await ensureSchema();
+  const values = normalizeParams(params);
+  const trimmed = sql.trim();
+  const upper = trimmed.toUpperCase();
+  const isSelect = upper.startsWith('SELECT') || upper.startsWith('WITH');
+  const isPragma = upper.startsWith('PRAGMA');
+  if (isPragma) return [[]];
+
+  let pgSql = toPgSql(trimmed);
+  const isInsert = upper.startsWith('INSERT') && !upper.includes('RETURNING');
+  if (isInsert) {
+    pgSql = `${pgSql.replace(/;\s*$/, '')} RETURNING id`;
+  }
+
+  const result = await getPool().query(pgSql, values);
+  if (isSelect) return [result.rows];
+  const insertId = result.rows[0]?.id != null ? Number(result.rows[0].id) : 0;
+  return [{ insertId, affectedRows: result.rowCount ?? 0 }];
+}
+
 async function runBulkWrite(fn) {
-  savePaused += 1;
+  const client = await getPool().connect();
   try {
-    return await fn();
+    await client.query('BEGIN');
+    const result = await fn();
+    await client.query('COMMIT');
+    return result;
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
   } finally {
-    savePaused -= 1;
-    if (savePaused === 0) {
-      try { flushDbToDisk(); } catch (e) { console.error('bulk flush error:', e.message); }
-    }
+    client.release();
   }
 }
 
-const initDb = async () => {
-  if (db && migrationsDone) return;
-  SQL = await initSqlJs();
+async function flushDb() {
+  /* no-op — PostgreSQL يحفظ تلقائياً */
+}
 
-  if (!db) {
-    try {
-      loadDbFromDisk();
-    } catch (e) {
-      console.error('[db] load failed:', e.message);
-    }
-  }
+async function checkIntegrity() {
+  await ensureSchema();
+  await getPool().query('SELECT 1');
+  return true;
+}
 
-  if (db && !checkIntegrity()) {
-    console.error('[db] integrity_check FAILED — attempting backup restore');
-    const zip = findLatestBackupZip();
-    if (zip) {
-      try {
-        restoreDbFromBackupZip(zip);
-        loadDbFromDisk();
-      } catch (restoreErr) {
-        console.error('[db] backup restore failed:', restoreErr.message);
-      }
-    }
-  }
+async function init() {
+  await ensureSchema();
+  await ensureDevAdmin();
+}
 
-  if (!db) {
-    db = new SQL.Database();
-  }
-  // Run schema if empty
-  const tableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
-  if (!tableCheck.length || !tableCheck[0].values.length) {
-    const schemaPath = path.join(__dirname, '../database/schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    db.exec(schema);
-    const bcrypt = require('bcrypt');
-    const adminPass = bcrypt.hashSync('Admin@123', 10);
-    db.run('INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)', ['مدير النظام', 'admin@rybella.iq', adminPass, '07701234567', 'admin']);
-    const seedPath = path.join(__dirname, '../../database/seed.sql');
-    if (fs.existsSync(seedPath)) {
-      const seed = fs.readFileSync(seedPath, 'utf8');
-      seed.split(';').forEach(s => {
-        const t = s.trim();
-        if (t && !t.startsWith('--') && !t.toLowerCase().includes('insert into users')) {
-          try { db.run(t); } catch (e) {}
-        }
-      });
-    }
-    saveDb();
-    console.log('Database initialized. Admin: admin@rybella.iq / Admin@123');
-  } else if (process.env.NODE_ENV !== 'production') {
-    // تطوير محلي فقط — لا تُعاد كلمة المرور في الإنتاج
-    const bcrypt = require('bcrypt');
-    const adminPass = bcrypt.hashSync('Admin@123', 10);
-    try {
-      const check = db.exec("SELECT id FROM users WHERE email = 'admin@rybella.iq'");
-      if (check.length && check[0].values.length > 0) {
-        db.run('UPDATE users SET password = ?, role = ?, name = ? WHERE email = ?', [adminPass, 'admin', 'مدير النظام', 'admin@rybella.iq']);
-        flushDbToDisk();
-        console.log('Admin password reset (dev). Login: admin@rybella.iq / Admin@123');
-      } else {
-        db.run('INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)', ['مدير النظام', 'admin@rybella.iq', adminPass, '07701234567', 'admin']);
-        flushDbToDisk();
-        console.log('Admin created (dev). Login: admin@rybella.iq / Admin@123');
-      }
-    } catch (e) {
-      console.error('Admin init:', e.message);
-    }
-  }
-  // Migration: ensure banners table exists
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS banners (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      image TEXT NOT NULL,
-      link_type TEXT DEFAULT 'none',
-      link_value TEXT,
-      sort_order INTEGER DEFAULT 0,
-      active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    saveDb();
-  } catch (e) {}
-  // Migration: banners.background_image (صورة خلفية + صورة PNG فوقها)
-  try {
-    const bannerInfo = db.exec("PRAGMA table_info(banners)");
-    const bannerCols = (bannerInfo[0]?.values || []).map((r) => r[1]);
-    if (!bannerCols.includes('background_image')) {
-      db.run('ALTER TABLE banners ADD COLUMN background_image TEXT');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: banners - إضافة subcategory إلى link_type (إصلاح خطأ الحفظ)
-  try {
-    const ck = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='banners'");
-    const sql = ck[0]?.values?.[0]?.[0] || '';
-    if (sql && sql.includes("CHECK(link_type IN") && !sql.includes("'subcategory'")) {
-      db.exec(`CREATE TABLE banners_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        image TEXT NOT NULL,
-        background_image TEXT,
-        link_type TEXT DEFAULT 'none',
-        link_value TEXT,
-        sort_order INTEGER DEFAULT 0,
-        active INTEGER DEFAULT 1,
-        image_pos_x REAL,
-        image_pos_y REAL,
-        image_size REAL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
-      db.run(`INSERT INTO banners_new SELECT id, title, image, background_image, link_type, link_value, sort_order, active, image_pos_x, image_pos_y, image_size, created_at FROM banners`);
-      db.run('DROP TABLE banners');
-      db.run('ALTER TABLE banners_new RENAME TO banners');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: banners - موضع صورة PNG (قابل للسحب)
-  try {
-    const bannerInfo = db.exec("PRAGMA table_info(banners)");
-    const bannerCols = (bannerInfo[0]?.values || []).map((r) => r[1]);
-    const posCols = ['image_pos_x', 'image_pos_y', 'image_size'];
-    posCols.forEach((col) => {
-      if (!bannerCols.includes(col)) {
-        db.run(`ALTER TABLE banners ADD COLUMN ${col} REAL`);
-        saveDb();
-      }
-    });
-  } catch (e) {}
-  // Migration: banners - subtitle, discount_percent, button_text (مثل الصورة المرجعية)
-  try {
-    const bannerInfo = db.exec("PRAGMA table_info(banners)");
-    const bannerCols = (bannerInfo[0]?.values || []).map((r) => r[1]);
-    const newCols = [
-      ['subtitle', 'TEXT'],
-      ['discount_percent', 'INTEGER'],
-      ['button_text', 'TEXT'],
-      ['background_color', 'TEXT'],
-      ['border_color', 'TEXT'],
-    ];
-    newCols.forEach(([col, typ]) => {
-      if (!bannerCols.includes(col)) {
-        db.run(`ALTER TABLE banners ADD COLUMN ${col} ${typ}`);
-        saveDb();
-      }
-    });
-  } catch (e) {}
-  // Migration: banners - إضافة subcategory إلى link_type (إصلاح خطأ الحفظ عند ربط بفئة ثانوية)
-  try {
-    const ck = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='banners'");
-    const sql = (ck[0]?.values?.[0]?.[0] || '').toLowerCase();
-    if (sql.includes('check(link_type') && !sql.includes("'subcategory'")) {
-      db.exec(`CREATE TABLE banners_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        image TEXT NOT NULL,
-        background_image TEXT,
-        link_type TEXT DEFAULT 'none',
-        link_value TEXT,
-        sort_order INTEGER DEFAULT 0,
-        active INTEGER DEFAULT 1,
-        image_pos_x REAL,
-        image_pos_y REAL,
-        image_size REAL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
-      const info = db.exec("PRAGMA table_info(banners)");
-      const cols = (info[0]?.values || []).map((r) => r[1]);
-      const sel = [
-        'id', 'title', 'image',
-        cols.includes('background_image') ? 'background_image' : 'NULL',
-        'link_type', 'link_value', 'sort_order', 'active',
-        cols.includes('image_pos_x') ? 'image_pos_x' : 'NULL',
-        cols.includes('image_pos_y') ? 'image_pos_y' : 'NULL',
-        cols.includes('image_size') ? 'image_size' : 'NULL',
-        'created_at'
-      ].join(', ');
-      db.run(`INSERT INTO banners_new SELECT ${sel} FROM banners`);
-      db.run('DROP TABLE banners');
-      db.run('ALTER TABLE banners_new RENAME TO banners');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: banners - button_color, border_radius, discount_label
-  try {
-    const bannerInfo = db.exec("PRAGMA table_info(banners)");
-    const bannerCols = (bannerInfo[0]?.values || []).map((r) => r[1]);
-    const newCols = [
-      ['button_color', 'TEXT'],
-      ['border_radius', 'REAL'],
-      ['discount_label', 'TEXT'],
-    ];
-    newCols.forEach(([col, typ]) => {
-      if (!bannerCols.includes(col)) {
-        db.run(`ALTER TABLE banners ADD COLUMN ${col} ${typ}`);
-        saveDb();
-      }
-    });
-  } catch (e) {}
-  // Migration: offers table
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS offers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      image TEXT NOT NULL,
-      discount_label TEXT,
-      product_ids TEXT,
-      sort_order INTEGER DEFAULT 0,
-      active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    saveDb();
-  } catch (e) {}
-  // Migration: offers.discount_percent
-  try {
-    const offerInfo = db.exec("PRAGMA table_info(offers)");
-    const offerCols = (offerInfo[0]?.values || []).map((r) => r[1]);
-    if (!offerCols.includes('discount_percent')) {
-      db.run('ALTER TABLE offers ADD COLUMN discount_percent REAL DEFAULT 0');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: products.barcode (للمنتجات بدون عناصر إضافية)
-  try {
-    const colCheck = db.exec("PRAGMA table_info(products)");
-    const cols = colCheck[0]?.values || [];
-    const hasBarcode = cols.some((r) => r[1] === 'barcode');
-    if (!hasBarcode) {
-      db.run('ALTER TABLE products ADD COLUMN barcode TEXT');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: product enhancements (status, featured, new_until, SEO, tags)
-  try {
-    const prodInfo = db.exec("PRAGMA table_info(products)");
-    const prodCols = (prodInfo[0]?.values || []).map((r) => r[1]);
-    const addCol = (name, def) => {
-      if (!prodCols.includes(name)) {
-        db.run(`ALTER TABLE products ADD COLUMN ${name} ${def}`);
-        saveDb();
-      }
-    };
-    addCol('status', "TEXT DEFAULT 'published'");
-    addCol('is_featured', 'INTEGER DEFAULT 0');
-    addCol('is_best_seller', 'INTEGER DEFAULT 0');
-    addCol('new_until', 'TEXT');
-    addCol('meta_title', 'TEXT');
-    addCol('meta_description', 'TEXT');
-    addCol('tags', 'TEXT');
-  } catch (e) {}
-  // Migration: sort_order for brands, subcategories, products
-  try {
-    const addSortOrder = (table) => {
-      try {
-        const info = db.exec(`PRAGMA table_info(${table})`);
-        const cols = (info[0]?.values || []).map((r) => r[1]);
-        if (!cols.includes('sort_order')) {
-          db.run(`ALTER TABLE ${table} ADD COLUMN sort_order INTEGER DEFAULT 0`);
-          saveDb();
-        }
-      } catch (e) {}
-    };
-    addSortOrder('brands');
-    addSortOrder('categories');
-    addSortOrder('subcategories');
-    addSortOrder('products');
-  } catch (e) {}
-  // Migration: subcategories + products.subcategory_id
-  try {
-    const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='subcategories'");
-    if (!tables.length || !tables[0].values.length) {
-      db.exec(`CREATE TABLE IF NOT EXISTS subcategories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        category_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        image TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-      )`);
-      db.exec('CREATE INDEX IF NOT EXISTS idx_subcategories_category ON subcategories(category_id)');
-      saveDb();
-    }
-    const prodCols = db.exec("PRAGMA table_info(products)");
-    const hasSubcategory = (prodCols[0]?.values || []).some((r) => r[1] === 'subcategory_id');
-    if (!hasSubcategory) {
-      db.run('ALTER TABLE products ADD COLUMN subcategory_id INTEGER REFERENCES subcategories(id)');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: categories icon + overlay_text (أيقونة ونص فوق الصورة)
-  try {
-    const catInfo = db.exec("PRAGMA table_info(categories)");
-    const catCols = (catInfo[0]?.values || []).map((r) => r[1]);
-    if (!catCols.includes('icon')) {
-      db.run('ALTER TABLE categories ADD COLUMN icon TEXT');
-      saveDb();
-    }
-    if (!catCols.includes('overlay_text')) {
-      db.run('ALTER TABLE categories ADD COLUMN overlay_text TEXT');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: story_groups + story_slides (اليوميات - صورة الناشر + صور متعددة)
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS story_groups (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      avatar TEXT,
-      publisher_name TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    db.exec(`CREATE TABLE IF NOT EXISTS story_slides (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      story_group_id INTEGER NOT NULL,
-      image TEXT NOT NULL,
-      link_type TEXT DEFAULT 'none',
-      link_value TEXT,
-      sort_order INTEGER DEFAULT 0,
-      FOREIGN KEY (story_group_id) REFERENCES story_groups(id) ON DELETE CASCADE
-    )`);
-    const hasOldStories = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='stories'");
-    if (hasOldStories.length && hasOldStories[0].values.length) {
-      const oldRows = db.exec("SELECT id, image, link_type, link_value, created_at FROM stories");
-      if (oldRows.length && oldRows[0].values.length) {
-        const cols = oldRows[0].columns || ['id','image','link_type','link_value','created_at'];
-        const rows = oldRows[0].values;
-        for (let i = 0; i < rows.length; i++) {
-          const row = rows[i];
-          const r = {};
-          for (let j = 0; j < cols.length; j++) r[cols[j]] = row[j];
-          db.run('INSERT INTO story_groups (id, created_at) VALUES (?, ?)', [r.id, r.created_at || null]);
-          db.run('INSERT INTO story_slides (story_group_id, image, link_type, link_value, sort_order) VALUES (?, ?, ?, ?, 0)', [r.id, r.image, r.link_type || 'none', r.link_value || null]);
-        }
-      }
-      db.run('DROP TABLE stories');
-    }
-    saveDb();
-  } catch (e) {}
-  // Migration: story_slides - إضافة media_type و thumbnail (صورة أو فيديو)
-  try {
-    const slideInfo = db.exec("PRAGMA table_info(story_slides)");
-    const slideCols = (slideInfo[0]?.values || []).map((r) => r[1]);
-    if (!slideCols.includes('media_type')) {
-      db.run('ALTER TABLE story_slides ADD COLUMN media_type TEXT DEFAULT \'image\'');
-      saveDb();
-    }
-    if (!slideCols.includes('thumbnail')) {
-      db.run('ALTER TABLE story_slides ADD COLUMN thumbnail TEXT');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: story_groups - إضافة avatar و publisher_name (صورة الناشر)
-  try {
-    const sgInfo = db.exec("PRAGMA table_info(story_groups)");
-    const sgCols = (sgInfo[0]?.values || []).map((r) => r[1]);
-    if (!sgCols.includes('avatar')) {
-      db.run('ALTER TABLE story_groups ADD COLUMN avatar TEXT');
-      saveDb();
-    }
-    if (!sgCols.includes('publisher_name')) {
-      db.run('ALTER TABLE story_groups ADD COLUMN publisher_name TEXT');
-      saveDb();
-    }
-    if (!sgCols.includes('duration_seconds')) {
-      db.run('ALTER TABLE story_groups ADD COLUMN duration_seconds INTEGER DEFAULT 5');
-      saveDb();
-    }
-    if (!sgCols.includes('published_at')) {
-      db.run('ALTER TABLE story_groups ADD COLUMN published_at DATETIME');
-      db.run('UPDATE story_groups SET published_at = created_at WHERE published_at IS NULL');
-      saveDb();
-    }
-  } catch (e) {}
-  // Migration: story_highlights (هايلايت مثل انستغرام - فيديوهات دائمة)
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS story_highlights (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      cover TEXT,
-      sort_order INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    db.exec(`CREATE TABLE IF NOT EXISTS story_highlight_slides (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      highlight_id INTEGER NOT NULL,
-      video TEXT NOT NULL,
-      thumbnail TEXT,
-      link_type TEXT DEFAULT 'none',
-      link_value TEXT,
-      sort_order INTEGER DEFAULT 0,
-      FOREIGN KEY (highlight_id) REFERENCES story_highlights(id) ON DELETE CASCADE
-    )`);
-    saveDb();
-  } catch (e) {}
-  // Migration: review_images (صور المراجعات)
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS review_images (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      review_id INTEGER NOT NULL,
-      image_url TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
-    )`);
-    saveDb();
-  } catch (e) {}
-  // Migration: web_settings (إعدادات الموقع الإلكتروني)
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS web_settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      setting_key TEXT UNIQUE NOT NULL,
-      setting_value TEXT,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    saveDb();
-  } catch (e) {}
-  // Migration: inventory sync + variant pricing fields
-  try {
-    const variantInfo = db.exec("PRAGMA table_info(product_variants)");
-    const variantCols = (variantInfo[0]?.values || []).map((r) => r[1]);
-    const addVariantCol = (name, def) => {
-      if (!variantCols.includes(name)) {
-        db.run(`ALTER TABLE product_variants ADD COLUMN ${name} ${def}`);
-        saveDb();
-      }
-    };
-    addVariantCol('original_price', 'REAL DEFAULT 0');
-    addVariantCol('discount_percent', 'REAL DEFAULT 0');
-    addVariantCol('last_synced_at', 'TEXT');
-
-    db.exec(`CREATE TABLE IF NOT EXISTS inventory_sync_snapshots (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      barcode TEXT NOT NULL UNIQUE,
-      product_code TEXT,
-      product_num TEXT,
-      name TEXT,
-      price REAL NOT NULL DEFAULT 0,
-      original_price REAL NOT NULL DEFAULT 0,
-      discount_percent REAL DEFAULT 0,
-      stock INTEGER DEFAULT 0,
-      offer_name TEXT,
-      synced_at TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    db.exec('CREATE INDEX IF NOT EXISTS idx_inventory_snapshots_barcode ON inventory_sync_snapshots(barcode)');
-    saveDb();
-  } catch (e) {
-    console.error('Inventory sync migration:', e.message);
-  }
-  // Migration: orders.cancel_reason + normalize legacy statuses + fix CHECK constraint
-  try {
-    const orderInfo = db.exec('PRAGMA table_info(orders)');
-    const orderCols = (orderInfo[0]?.values || []).map((r) => r[1]);
-    if (!orderCols.includes('cancel_reason')) {
-      db.run('ALTER TABLE orders ADD COLUMN cancel_reason TEXT');
-      saveDb();
-    }
-    db.run(`UPDATE orders SET status = 'preparing_shipping'
-      WHERE status IN ('confirmed', 'processing', 'shipped')`);
-    saveDb();
-
-    const schemaRow = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='orders'");
-    const createSql = schemaRow[0]?.values[0]?.[0] || '';
-    if (createSql && !createSql.includes('preparing_shipping')) {
-      console.log('[migration] Rebuilding orders table to allow preparing_shipping status...');
-      db.exec(`CREATE TABLE orders_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        total_price REAL NOT NULL,
-        delivery_fee REAL DEFAULT 0,
-        discount REAL DEFAULT 0,
-        final_price REAL NOT NULL,
-        status TEXT DEFAULT 'pending',
-        payment_method TEXT DEFAULT 'cash',
-        address TEXT NOT NULL,
-        city TEXT NOT NULL,
-        phone TEXT,
-        notes TEXT,
-        coupon_code TEXT,
-        cancel_reason TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      )`);
-      db.exec(`INSERT INTO orders_new
-        SELECT id, user_id, total_price, delivery_fee, discount, final_price,
-          CASE status
-            WHEN 'confirmed' THEN 'preparing_shipping'
-            WHEN 'processing' THEN 'preparing_shipping'
-            WHEN 'shipped' THEN 'preparing_shipping'
-            ELSE status
-          END,
-          payment_method, address, city, phone, notes, coupon_code, cancel_reason,
-          created_at, updated_at
-        FROM orders`);
-      db.exec('DROP TABLE orders');
-      db.exec('ALTER TABLE orders_new RENAME TO orders');
-      db.exec('CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id)');
-      db.exec('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)');
-      saveDb();
-      console.log('[migration] orders table updated — preparing_shipping enabled');
-    }
-  } catch (e) {
-    console.error('Orders status migration:', e.message);
-  }
-  // Migration: cart & order bundles
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS cart_bundles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      cart_id INTEGER NOT NULL,
-      offer_id INTEGER NOT NULL,
-      quantity INTEGER NOT NULL DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (cart_id) REFERENCES cart(id) ON DELETE CASCADE,
-      UNIQUE(cart_id, offer_id)
-    )`);
-    db.exec(`CREATE TABLE IF NOT EXISTS cart_bundle_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      cart_bundle_id INTEGER NOT NULL,
-      variant_id INTEGER NOT NULL,
-      FOREIGN KEY (cart_bundle_id) REFERENCES cart_bundles(id) ON DELETE CASCADE,
-      FOREIGN KEY (variant_id) REFERENCES product_variants(id)
-    )`);
-    db.exec(`CREATE TABLE IF NOT EXISTS order_bundles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      order_id INTEGER NOT NULL,
-      offer_id INTEGER NOT NULL,
-      offer_title TEXT NOT NULL,
-      discount_percent REAL DEFAULT 0,
-      quantity INTEGER NOT NULL DEFAULT 1,
-      subtotal REAL NOT NULL,
-      total_price REAL NOT NULL,
-      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-    )`);
-    db.exec(`CREATE TABLE IF NOT EXISTS order_bundle_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      order_bundle_id INTEGER NOT NULL,
-      variant_id INTEGER NOT NULL,
-      product_name TEXT,
-      shade_name TEXT,
-      quantity INTEGER NOT NULL DEFAULT 1,
-      price REAL NOT NULL,
-      FOREIGN KEY (order_bundle_id) REFERENCES order_bundles(id) ON DELETE CASCADE
-    )`);
-    saveDb();
-  } catch (e) {
-    console.error('Bundle tables migration:', e.message);
-  }
-  // Migration: user_notifications (إشعارات الزبائن)
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS user_notifications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      notification_id INTEGER NOT NULL,
-      read_at DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE,
-      UNIQUE(user_id, notification_id)
-    )`);
-    db.exec('CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id)');
-    db.exec('CREATE INDEX IF NOT EXISTS idx_user_notifications_notification ON user_notifications(notification_id)');
-    saveDb();
-  } catch (e) {
-    console.error('User notifications migration:', e.message);
-  }
-  // Migration: push_tokens (إشعارات الهاتف)
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS push_tokens (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      token TEXT NOT NULL,
-      platform TEXT NOT NULL DEFAULT 'web',
-      endpoint TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(user_id, platform, endpoint)
-    )`);
-    db.exec('CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id)');
-    saveDb();
-  } catch (e) {
-    console.error('Push tokens migration:', e.message);
-  }
-  migrationsDone = true;
-};
-
-// Async query - returns [rows] for SELECT, [{ insertId }] for INSERT (mysql2 compatible)
-const runQueryOnce = (sql, params = []) => {
-  const p = Array.isArray(params) ? params : (params && typeof params === 'object' ? Object.values(params) : []);
-  const upper = sql.trim().toUpperCase();
-  if (upper.startsWith('SELECT') || upper.startsWith('PRAGMA')) {
-    const stmt = db.prepare(sql);
-    if (p.length > 0) stmt.bind(p);
-    const rows = [];
-    while (stmt.step()) rows.push(stmt.getAsObject());
-    stmt.free();
-    return [rows];
-  }
-  db.run(sql, p);
-  const idResult = db.exec('SELECT last_insert_rowid() as id');
-  const insertId = idResult.length && idResult[0].values[0] ? idResult[0].values[0][0] : 0;
-  saveDb();
-  return [{ insertId, affectedRows: db.getRowsModified() }];
-};
-
-const query = (sql, params = []) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      await initDb();
-      try {
-        resolve(runQueryOnce(sql, params));
-      } catch (err) {
-        if (!isCorruptionError(err)) throw err;
-        console.error('[db] corruption during query, reloading from disk:', err.message);
-        loadDbFromDisk();
-        if (!checkIntegrity()) {
-          const zip = findLatestBackupZip();
-          if (zip) restoreDbFromBackupZip(zip);
-          loadDbFromDisk();
-        }
-        resolve(runQueryOnce(sql, params));
-      }
-    } catch (err) {
-      reject(err);
-    }
-  });
-};
+function getDbPath() {
+  return process.env.DATABASE_URL || '';
+}
 
 module.exports = {
   query,
-  flushDb: async () => { await initDb(); flushDbToDisk(); },
+  flushDb,
   runBulkWrite,
-  checkIntegrity: async () => { await initDb(); return checkIntegrity(); },
-  getDbPath: () => dbPath,
+  checkIntegrity,
+  getDbPath,
+  getPool,
+  init,
 };

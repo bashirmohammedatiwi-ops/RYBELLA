@@ -1,10 +1,32 @@
 # Rybella Iraq - Production Docker Compose
 # شغّل دائماً من جذر المشروع:
 #   ./deploy.sh
-# أو:
-#   docker compose --env-file deployment/.env up -d --build
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rybella-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rybella}
+      POSTGRES_USER: ${POSTGRES_USER:-rybella}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required in deployment/.env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rybella-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rybella} -d ${POSTGRES_DB:-rybella}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
   backend:
     build:
       context: .
@@ -13,9 +35,10 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
-      - NODE_OPTIONS=--max-old-space-size=512
       - PORT=4000
-      - DB_PATH=/app/data/rybella.db
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-rybella}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-rybella}
+      - PG_POOL_MAX=${PG_POOL_MAX:-20}
+      - SQLITE_PATH=/app/data/rybella.db
       - BACKUP_PATH=/app/backups
       - UPLOAD_PATH=/app/uploads
       - JWT_SECRET=${JWT_SECRET:-RybellaChangeThisSecretInEnv}
@@ -26,19 +49,23 @@ services:
       - EXTERNAL_INVENTORY_API_EMAIL=${EXTERNAL_INVENTORY_API_EMAIL:-}
       - EXTERNAL_INVENTORY_API_PASSWORD=${EXTERNAL_INVENTORY_API_PASSWORD:-}
       - EXTERNAL_INVENTORY_API_TOKEN=${EXTERNAL_INVENTORY_API_TOKEN:-}
-      - INVENTORY_SYNC_INTERVAL_MIN=${INVENTORY_SYNC_INTERVAL_MIN:-15}
+      - INVENTORY_SYNC_INTERVAL_MIN=${INVENTORY_SYNC_INTERVAL_MIN:-30}
+      - INVENTORY_AUTO_SYNC=${INVENTORY_AUTO_SYNC:-1}
     volumes:
       - backend_data:/app/data
       - backend_uploads:/app/uploads
       - backend_backups:/app/backups
     networks:
       - rybella-network
+    depends_on:
+      postgres:
+        condition: service_healthy
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
         reservations:
-          memory: 256M
+          memory: 128M
     logging:
       driver: json-file
       options:
@@ -49,7 +76,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
 
   web:
     build:
@@ -106,6 +133,8 @@ services:
       start_period: 20s
 
 volumes:
+  postgres_data:
+    name: rybella_postgres_data
   backend_data:
     name: rybella_backend_data
   backend_uploads:

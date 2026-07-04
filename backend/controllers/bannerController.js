@@ -69,7 +69,7 @@ async function resolveLinkUrl(linkType, linkValue) {
 exports.getAll = async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT * FROM banners WHERE active = 1 ORDER BY sort_order ASC, id ASC'
+      'SELECT * FROM banners WHERE active IS TRUE ORDER BY sort_order ASC, id ASC'
     );
     for (const b of rows) {
       if (b.link_type && b.link_value) {

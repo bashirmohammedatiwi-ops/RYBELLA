@@ -158,7 +158,7 @@ exports.getAll = async (req, res) => {
     const storyDays = parseInt(process.env.STORY_DAYS || '30', 10) || 30;
     const [groups] = await db.query(
       `SELECT sg.id, sg.created_at, sg.published_at, sg.avatar, sg.publisher_name, sg.duration_seconds FROM story_groups sg
-       WHERE COALESCE(sg.published_at, sg.created_at) > datetime('now', '-${storyDays} days')
+       WHERE COALESCE(sg.published_at, sg.created_at) > NOW() - make_interval(days => ${storyDays})
        ORDER BY COALESCE(sg.published_at, sg.created_at) DESC`
     );
     const stories = await buildStoryGroups(groups, true, storyDays);

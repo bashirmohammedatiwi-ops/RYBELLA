@@ -167,7 +167,7 @@ app.get('/api/health/db', async (req, res) => {
       status: 'error',
       database: 'disconnected',
       message: err.message,
-      hint: 'تأكد من تشغيل MySQL وتنفيذ schema.sql و seed.sql'
+      hint: 'تحقق من DATABASE_URL وخدمة postgres',
     });
   }
 });
@@ -192,10 +192,15 @@ process.on('uncaughtException', (err) => {
     .finally(() => process.exit(1));
 });
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Rybella Iraq API running on http://localhost:${PORT}`);
   console.log(`Health: http://localhost:${PORT}/api/health`);
-  require('./config/database').query('SELECT 1').catch((e) => console.error('DB init:', e.message));
+  try {
+    await require('./config/database').init();
+    console.log('[pg] database connected');
+  } catch (e) {
+    console.error('DB init:', e.message);
+  }
   startInventorySyncJob();
 });
 

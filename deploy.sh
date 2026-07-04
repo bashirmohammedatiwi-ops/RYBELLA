@@ -72,6 +72,19 @@ if ! grep -q '^API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
   echo "API_URL=http://187.124.23.65:4000" >> "$ENV_FILE"
 fi
 
+if ! grep -q '^POSTGRES_PASSWORD=.\+' "$ENV_FILE" 2>/dev/null; then
+  PG_PASS="$(openssl rand -base64 24 2>/dev/null | tr -dc 'a-zA-Z0-9' | head -c 24)"
+  cat >> "$ENV_FILE" <<EOF
+
+# PostgreSQL
+POSTGRES_DB=rybella
+POSTGRES_USER=rybella
+POSTGRES_PASSWORD=$PG_PASS
+PG_POOL_MAX=20
+EOF
+  echo "POSTGRES_PASSWORD generated in $ENV_FILE"
+fi
+
 if ! grep -q '^EXTERNAL_INVENTORY_API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
   cat >> "$ENV_FILE" <<'EOF'
 
@@ -123,6 +136,14 @@ done
 echo "==> Building and starting containers..."
 docker compose --env-file "$ENV_FILE" up -d --build "$@"
 
+if docker ps --format '{{.Names}}' | grep -q '^rybella-backend$'; then
+  if docker exec rybella-backend test -f /app/data/rybella.db 2>/dev/null; then
+    echo "==> SQLite detected — migrating to PostgreSQL..."
+    chmod +x deployment/migrate-to-postgres.sh
+    bash deployment/migrate-to-postgres.sh || echo "WARN: migration failed — run: bash deployment/migrate-to-postgres.sh"
+  fi
+fi
+
 wait_for_service() {
   local i
   for i in $(seq 1 30); do
@@ -143,6 +164,15 @@ post_deploy_checks() {
     return 1
   fi
   echo "OK  Backend /api/health"
+
+  local db_health
+  db_health="$(docker exec rybella-backend wget -qO- http://127.0.0.1:4000/api/health/db 2>/dev/null || true)"
+  if echo "$db_health" | grep -q '"database":"connected"'; then
+    echo "OK  PostgreSQL connected"
+  else
+    echo "FAIL Database: $db_health"
+    return 1
+  fi
 
   if docker exec rybella-backend test -d /app/backups 2>/dev/null; then
     echo "OK  Backup directory /app/backups"
