@@ -48,8 +48,30 @@ async function ensureSchema() {
   const schemaPath = path.join(__dirname, '../database/schema.postgresql.sql');
   const sql = fs.readFileSync(schemaPath, 'utf8');
   await getPool().query(sql);
+  await runMigrations();
   schemaReady = true;
   console.log('[pg] schema ready');
+}
+
+async function runMigrations() {
+  const migrations = [
+    'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS sync_price NUMERIC(12, 2)',
+    'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS sync_original_price NUMERIC(12, 2)',
+    'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS sync_discount_percent NUMERIC(8, 2) DEFAULT 0',
+    'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS manual_discount_percent NUMERIC(8, 2)',
+    'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS manual_discount_until TIMESTAMPTZ',
+  ];
+  for (const sql of migrations) {
+    await getPool().query(sql);
+  }
+  await getPool().query(`
+    UPDATE product_variants
+    SET
+      sync_price = COALESCE(sync_price, price),
+      sync_original_price = COALESCE(sync_original_price, NULLIF(original_price, 0), price),
+      sync_discount_percent = COALESCE(sync_discount_percent, discount_percent, 0)
+    WHERE sync_price IS NULL OR sync_original_price IS NULL OR sync_discount_percent IS NULL
+  `);
 }
 
 async function ensureDevAdmin() {

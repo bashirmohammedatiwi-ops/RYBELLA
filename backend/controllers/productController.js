@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { enrichProductPricing } = require('../services/inventorySyncService');
+const { expireManualDiscounts } = require('../services/pricingService');
 const {
   isBarcodeLikeSearch,
   buildBarcodeSearchClause,
@@ -7,10 +8,19 @@ const {
   rankSearchResults,
 } = require('../services/productSearch');
 
-const VARIANT_PUBLIC_FIELDS = 'id, shade_name, color_code, price, original_price, discount_percent, stock, image, expiration_date, barcode, sku';
+const VARIANT_DB_FIELDS = 'id, shade_name, color_code, price, original_price, discount_percent, sync_price, sync_original_price, sync_discount_percent, manual_discount_percent, manual_discount_until, stock, image, expiration_date, barcode, sku';
+
+async function prepareProductCatalog() {
+  try {
+    await expireManualDiscounts(db);
+  } catch (e) {
+    console.warn('expireManualDiscounts:', e.message);
+  }
+}
 
 exports.getAll = async (req, res) => {
   try {
+    await prepareProductCatalog();
     const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, product_ids, tags, color_code, sort_by } = req.query;
     let query = `
       SELECT p.*, b.name as brand_name, c.name as category_name, s.name as subcategory_name,
@@ -106,7 +116,7 @@ exports.getAll = async (req, res) => {
 
     for (const product of filteredProducts) {
       const [variants] = await db.query(
-        `SELECT ${VARIANT_PUBLIC_FIELDS} FROM product_variants WHERE product_id = ?`,
+        `SELECT ${VARIANT_DB_FIELDS} FROM product_variants WHERE product_id = ?`,
         [product.id]
       );
       product.variants = variants;
@@ -157,6 +167,7 @@ exports.getFilters = async (req, res) => {
 
 exports.getById = async (req, res) => {
   try {
+    await prepareProductCatalog();
     const [products] = await db.query(`
       SELECT p.*, b.name as brand_name, b.logo as brand_logo, c.name as category_name, s.name as subcategory_name
       FROM products p
@@ -171,7 +182,7 @@ exports.getById = async (req, res) => {
     }
 
     const product = products[0];
-    const [variants] = await db.query(`SELECT ${VARIANT_PUBLIC_FIELDS}, barcode, sku, batch_number, last_synced_at FROM product_variants WHERE product_id = ?`, [product.id]);
+    const [variants] = await db.query(`SELECT ${VARIANT_DB_FIELDS}, batch_number, last_synced_at FROM product_variants WHERE product_id = ?`, [product.id]);
     product.variants = variants;
     enrichProductPricing(product);
     if (product.tags && typeof product.tags === 'string') {

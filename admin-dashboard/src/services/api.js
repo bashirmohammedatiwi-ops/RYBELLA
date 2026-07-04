@@ -252,4 +252,13 @@ export const syncAPI = {
   bulk: (items) => api.post('/sync/inventory/bulk', { items }),
 };
 
+export const manualDiscountAPI = {
+  getStatus: () => api.get('/manual-discounts/status'),
+  applyAll: (data) => api.post('/manual-discounts/apply-all', data),
+  clearAll: () => api.post('/manual-discounts/clear-all'),
+  expireNow: () => api.post('/manual-discounts/expire-now'),
+  applyProduct: (productId, data) => api.put(`/manual-discounts/product/${productId}`, data),
+  applyVariant: (variantId, data) => api.put(`/manual-discounts/variant/${variantId}`, data),
+};
+
 export default api;

@@ -1,5 +1,6 @@
 const db = require('../config/database')
 const { normalizeBarcode, barcodeCandidates } = require('../utils/barcode')
+const { buildEffectiveFromSyncRow } = require('./pricingService')
 
 let cachedExternalToken = null
 let cachedExternalTokenExpiresAt = 0
@@ -244,11 +245,25 @@ async function applyItemToCatalog(item) {
 
   const variants = await findVariantRowsByBarcode(item.barcode)
   for (const row of variants) {
+    const [fullRows] = await db.query('SELECT * FROM product_variants WHERE id = ?', [row.id])
+    const fullRow = fullRows[0] || row
+    const effective = buildEffectiveFromSyncRow(fullRow, item)
     await db.query(
       `UPDATE product_variants SET
+        sync_price = ?, sync_original_price = ?, sync_discount_percent = ?,
         price = ?, original_price = ?, discount_percent = ?, stock = ?, last_synced_at = ?
        WHERE id = ?`,
-      [item.price, item.originalPrice, item.discountPercent, item.stock, now, row.id]
+      [
+        effective.sync_price,
+        effective.sync_original_price,
+        effective.sync_discount_percent,
+        effective.price,
+        effective.original_price,
+        effective.discount_percent,
+        item.stock,
+        now,
+        row.id,
+      ]
     )
     updated += 1
   }
@@ -263,11 +278,24 @@ async function applyItemToCatalog(item) {
         [prod.id]
       )
       if (simpleVariants.length) {
+        const [fullRow] = await db.query('SELECT * FROM product_variants WHERE id = ?', [simpleVariants[0].id])
+        const effective = buildEffectiveFromSyncRow(fullRow[0] || {}, item)
         await db.query(
           `UPDATE product_variants SET
+            sync_price = ?, sync_original_price = ?, sync_discount_percent = ?,
             price = ?, original_price = ?, discount_percent = ?, stock = ?, last_synced_at = ?
            WHERE id = ?`,
-          [item.price, item.originalPrice, item.discountPercent, item.stock, now, simpleVariants[0].id]
+          [
+            effective.sync_price,
+            effective.sync_original_price,
+            effective.sync_discount_percent,
+            effective.price,
+            effective.original_price,
+            effective.discount_percent,
+            item.stock,
+            now,
+            simpleVariants[0].id,
+          ]
         )
         updated += 1
       }
@@ -487,8 +515,10 @@ async function getByBarcode(barcode) {
 }
 
 function enrichProductPricing(product) {
-  const variants = product.variants || []
-  if (!variants.length) return product
+  const { resolveVariantsPricing } = require('./pricingService');
+  product.variants = resolveVariantsPricing(product.variants || []);
+  const variants = product.variants;
+  if (!variants.length) return product;
 
   let minPrice = Infinity
   let bestVariant = null

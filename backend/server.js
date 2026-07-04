@@ -30,12 +30,30 @@ const offerRoutes = require('./routes/offers');
 const webSettingsRoutes = require('./routes/webSettings');
 const inventorySyncRoutes = require('./routes/inventorySync');
 const backupRoutes = require('./routes/backups');
+const manualDiscountRoutes = require('./routes/manualDiscounts');
 
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 const WEB_CONCURRENCY = Math.max(1, parseInt(process.env.WEB_CONCURRENCY || '1', 10));
 const USE_CLUSTER = process.env.NODE_ENV === 'production' && WEB_CONCURRENCY > 1;
 
 let syncJobRunning = false;
+
+function startManualDiscountExpiryJob() {
+  const { expireManualDiscounts } = require('./services/pricingService');
+  const db = require('./config/database');
+  const run = async () => {
+    try {
+      const expired = await expireManualDiscounts(db);
+      if (expired > 0) {
+        console.log(`Manual discounts expired: restored sync pricing for ${expired} variants`);
+      }
+    } catch (e) {
+      console.error('Manual discount expiry job error:', e.message);
+    }
+  };
+  setTimeout(run, 20000);
+  setInterval(run, 5 * 60 * 1000);
+}
 
 function startInventorySyncJob() {
   if (process.env.INVENTORY_AUTO_SYNC === '0' || process.env.INVENTORY_AUTO_SYNC === 'false') {
@@ -131,6 +149,7 @@ app.use('/api/offers', offerRoutes);
 app.use('/api/web-settings', webSettingsRoutes);
 app.use('/api/sync', inventorySyncRoutes);
 app.use('/api/backups', backupRoutes);
+app.use('/api/manual-discounts', manualDiscountRoutes);
 
 // Health check — يفحص الذاكرة وقاعدة البيانات
 app.get('/api/health', async (req, res) => {
@@ -234,6 +253,7 @@ function startHttpServer() {
     }
     if (!USE_CLUSTER) {
       startInventorySyncJob();
+      startManualDiscountExpiryJob();
     }
   });
   attachProcessHandlers(server);
@@ -254,6 +274,7 @@ function bootstrap() {
       .then(() => {
         console.log('[pg] primary database connected');
         startInventorySyncJob();
+        startManualDiscountExpiryJob();
       })
       .catch((e) => console.error('Primary DB init:', e.message));
     return null;

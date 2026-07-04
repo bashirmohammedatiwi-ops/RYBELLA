@@ -199,7 +199,7 @@ export default function Home() {
                       key={b.id}
                       to={bannerLink}
                       className="home-banner-slide"
-                      style={{ background: b.background_image ? undefined : bgColor, borderColor }}
+                      style={{ borderColor }}
                     >
                       <div className="home-banner-clip">
                         <div className="home-banner-bg" style={{ background: bgColor }}>

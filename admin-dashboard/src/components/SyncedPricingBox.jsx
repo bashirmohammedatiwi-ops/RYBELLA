@@ -23,7 +23,7 @@ export function getAdminPricing(data) {
   };
 }
 
-export default function SyncedPricingBox({ data, compact = false }) {
+export default function SyncedPricingBox({ data, compact = false, autoDiscountPercent }) {
   const p = getAdminPricing(data);
   if (p.finalPrice == null && (data?.stock === '' || data?.stock == null)) {
     return (
@@ -57,6 +57,18 @@ export default function SyncedPricingBox({ data, compact = false }) {
         <Box>
           <Typography variant="caption" color="text.secondary" display="block">المخزون</Typography>
           <Typography variant="body2" fontWeight={600}>{data.stock}</Typography>
+        </Box>
+      )}
+      {autoDiscountPercent !== undefined && autoDiscountPercent !== '' && (
+        <Box>
+          <Typography variant="caption" color="text.secondary" display="block">خصم السيرفر (تلقائي)</Typography>
+          <Typography variant="body2" fontWeight={600}>{Number(autoDiscountPercent) > 0 ? `${autoDiscountPercent}%` : '—'}</Typography>
+        </Box>
+      )}
+      {data?.pricing_source === 'manual' && (
+        <Box>
+          <Typography variant="caption" color="error.main" display="block">مصدر السعر المعروض</Typography>
+          <Typography variant="body2" fontWeight={700} color="error.main">خصم يدوي نشط</Typography>
         </Box>
       )}
     </Box>

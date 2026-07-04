@@ -34,8 +34,9 @@ import {
   Star as StarIcon,
   TrendingUp as BestSellerIcon,
   NewReleases as NewIcon,
+  Sell as ManualDiscountIcon,
 } from '@mui/icons-material';
-import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, variantsAPI, syncAPI, getImgBase } from '../services/api';
+import { productsAPI, brandsAPI, categoriesAPI, subcategoriesAPI, variantsAPI, syncAPI, manualDiscountAPI, getImgBase } from '../services/api';
 import SyncedPricingBox from '../components/SyncedPricingBox';
 import ImageUploadZone from '../components/ImageUploadZone';
 
@@ -43,6 +44,14 @@ const emptyElement = () => ({
   barcode: '', color_code: '#000000', shade_name: '', price: '', stock: '',
   original_price: '', discount_percent: '', expiration_date: '', imageFile: null,
 });
+
+function toLocalDateTimeInput(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 const STATUS_OPTIONS = [
   { value: 'published', label: 'منشور', color: 'success' },
@@ -84,6 +93,9 @@ export default function ProductForm() {
   const [existingImages, setExistingImages] = useState([]);
   const [snack, setSnack] = useState('');
   const [error, setError] = useState('');
+  const [manualDiscountPercent, setManualDiscountPercent] = useState('');
+  const [manualDiscountUntil, setManualDiscountUntil] = useState('');
+  const [autoDiscountPercent, setAutoDiscountPercent] = useState('');
 
   useEffect(() => {
     loadBrandsAndCategories();
@@ -139,6 +151,10 @@ export default function ProductForm() {
       });
       setExistingMainImage(data.main_image || null);
       setExistingImages(data.images || []);
+      const firstVariant = vars[0];
+      setManualDiscountPercent(firstVariant?.manual_discount_percent != null ? String(firstVariant.manual_discount_percent) : '');
+      setManualDiscountUntil(toLocalDateTimeInput(firstVariant?.manual_discount_until));
+      setAutoDiscountPercent(firstVariant?.auto_discount_percent != null ? String(firstVariant.auto_discount_percent) : '');
       setElements(hasSingle ? [] : vars.map((v) => ({
         id: v.id,
         barcode: v.barcode || '',
@@ -177,6 +193,34 @@ export default function ProductForm() {
     const next = [...elements];
     next[i] = { ...next[i], [field]: value };
     setElements(next);
+  };
+
+  const applyProductManualDiscount = async () => {
+    if (!isEdit) return;
+    setError('');
+    try {
+      setLoading(true);
+      const pct = Number(manualDiscountPercent);
+      if (!manualDiscountPercent || pct <= 0) {
+        await manualDiscountAPI.applyProduct(id, { discount_percent: 0 });
+        setSnack('تم إلغاء الخصم اليدوي واستعادة سعر السيرفر');
+      } else {
+        if (!manualDiscountUntil) {
+          setError('حددي تاريخ انتهاء الخصم اليدوي');
+          return;
+        }
+        await manualDiscountAPI.applyProduct(id, {
+          discount_percent: pct,
+          until: new Date(manualDiscountUntil).toISOString(),
+        });
+        setSnack(`تم تطبيق خصم يدوي ${pct}% على هذا المنتج`);
+      }
+      await loadProduct();
+    } catch (err) {
+      setError(err.response?.data?.message || 'تعذّر تطبيق الخصم اليدوي');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -382,7 +426,42 @@ export default function ProductForm() {
                   required
                   sx={{ mb: 2 }}
                 />
-                <SyncedPricingBox data={form} />
+                <SyncedPricingBox data={form} autoDiscountPercent={autoDiscountPercent} />
+              </SectionCard>
+            )}
+
+            {isEdit && (
+              <SectionCard title="الخصم اليدوي (منفصل عن السيرفر)" icon={ManualDiscountIcon} accent="#c62828">
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  الخصم اليدوي يُطبَّق على السعر الأصلي من السيرفر. الخصم التلقائي الحالي: {autoDiscountPercent ? `${autoDiscountPercent}%` : 'لا يوجد'}
+                </Alert>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="نسبة الخصم اليدوي %"
+                      type="number"
+                      value={manualDiscountPercent}
+                      onChange={(e) => setManualDiscountPercent(e.target.value)}
+                      fullWidth
+                      inputProps={{ min: 0, max: 100 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={5}>
+                    <TextField
+                      label="ينتهي في"
+                      type="datetime-local"
+                      value={manualDiscountUntil}
+                      onChange={(e) => setManualDiscountUntil(e.target.value)}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <Button variant="contained" color="error" fullWidth onClick={applyProductManualDiscount} disabled={loading}>
+                      تطبيق على المنتج
+                    </Button>
+                  </Grid>
+                </Grid>
               </SectionCard>
             )}
 
