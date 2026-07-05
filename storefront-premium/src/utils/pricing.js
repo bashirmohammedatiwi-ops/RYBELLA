@@ -43,6 +43,28 @@ function buildPricing(rawPrice, originalPrice, discountPercent) {
   }
 }
 
+/** نفس منطق سعر البطاقة: أرخص تدرج بعد التقريب لـ 250 د.ع */
+export function pickCheapestVariant(variants = []) {
+  if (!variants.length) return null
+
+  let best = variants[0]
+  let bestPrice = roundDisplayPrice(best.price) ?? (Number(best.price) || Infinity)
+
+  for (const v of variants) {
+    const display = roundDisplayPrice(v.price) ?? (Number(v.price) || Infinity)
+    if (display < bestPrice) {
+      best = v
+      bestPrice = display
+    }
+  }
+
+  return best
+}
+
+export function getDefaultProductVariant(product) {
+  return pickCheapestVariant(product?.variants || [])
+}
+
 export function getVariantPricing(variant) {
   if (!variant) return { price: null, originalPrice: null, discountPercent: 0, hasDiscount: false }
   return buildPricing(variant.price, variant.original_price, variant.discount_percent)
@@ -54,16 +76,7 @@ export function getProductCardPricing(product) {
     return buildPricing(product?.min_price, product?.min_original_price, product?.max_discount_percent)
   }
 
-  let best = variants[0]
-  let bestPrice = Number(best.price) || Infinity
-  for (const v of variants) {
-    const p = Number(v.price) || Infinity
-    if (p < bestPrice) {
-      best = v
-      bestPrice = p
-    }
-  }
-  return getVariantPricing(best)
+  return getVariantPricing(pickCheapestVariant(variants))
 }
 
 export function getSelectedVariantPricing(selectedVariant, product) {

@@ -5,7 +5,7 @@ import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { formatPrice, formatPercent } from '../utils/format'
-import { getSelectedVariantPricing, roundDisplayPrice } from '../utils/pricing'
+import { getSelectedVariantPricing, roundDisplayPrice, getDefaultProductVariant } from '../utils/pricing'
 import { getVariantColor, isMetallicShade } from '../utils/variantColor'
 import MobileHeader from '../components/MobileHeader'
 import './ProductDetail.css'
@@ -79,8 +79,7 @@ export default function ProductDetail() {
         const fromBarcode = variantId
           ? p.variants.find((v) => String(v.id) === String(variantId))
           : null
-        const first = p.variants.find((v) => v.stock > 0) || p.variants[0]
-        setSelectedVariant(fromBarcode || first)
+        setSelectedVariant(fromBarcode || getDefaultProductVariant(p))
       } else {
         setSelectedVariant(null)
       }
