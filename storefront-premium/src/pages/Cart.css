@@ -5,7 +5,7 @@
 .cart-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #FFFBF9 0%, #FFF 20%);
-  padding-bottom: calc(120px + var(--bottom-nav-h, 70px) + var(--safe-bottom, 0));
+  padding-bottom: calc(1.5rem + var(--bottom-nav-h, 70px) + var(--safe-bottom, 0));
 }
 
 /* ─── Loading ─── */
@@ -467,72 +467,8 @@
   color: var(--primary);
 }
 
-/* ─── Sticky Bar (Mobile) ─── */
-.cart-sticky-bar {
-  display: none;
-  position: fixed;
-  bottom: calc(var(--bottom-nav-h, 70px) + var(--safe-bottom, 0));
-  left: 0;
-  right: 0;
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08);
-  z-index: 80;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.cart-sticky-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.cart-sticky-total {
-  font-weight: 800;
-  font-size: 1.2rem;
-  color: var(--primary);
-}
-
-.cart-sticky-count {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.cart-sticky-btn {
-  flex: 1;
-  max-width: 200px;
-  padding: 16px 1.5rem;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-  border-radius: 16px;
-  text-align: center;
-  text-decoration: none;
-  transition: all 0.25s;
-}
-
-.cart-sticky-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(232, 93, 122, 0.35);
-}
-
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
-  .cart-page {
-    padding-bottom: calc(100px + var(--bottom-nav-h, 70px) + var(--safe-bottom, 0));
-  }
-
-  .cart-sticky-bar {
-    display: flex;
-  }
-
   .cart-item-image {
     width: 88px;
     height: 88px;
@@ -546,10 +482,6 @@
 }
 
 @media (min-width: 769px) {
-  .cart-sticky-bar {
-    display: none !important;
-  }
-
   .cart-content {
     max-width: 560px;
     padding: 28px 24px 32px;

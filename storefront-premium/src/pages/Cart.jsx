@@ -173,13 +173,6 @@ export default function Cart() {
           <Link to="/explore" className="cart-continue-link">استمري في التسوق</Link>
         </div>
       </div>
-      <div className="cart-sticky-bar">
-        <div className="cart-sticky-info">
-          <span className="cart-sticky-total cart-price-value">{formatPrice(total)}</span>
-          <span className="cart-sticky-count">{formatNumber(totalCount)} عنصر</span>
-        </div>
-        <Link to="/checkout" className="cart-sticky-btn">إتمام الطلب</Link>
-      </div>
     </div>
   )
 }
