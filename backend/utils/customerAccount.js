@@ -40,7 +40,8 @@ async function softDeleteCustomer(userId) {
 /** شرط SQL: حساب نشط (غير محذوف) */
 const ACTIVE_USER = 'deleted_at IS NULL';
 
-function isActiveUserWhere(alias = 'u') {
+function isActiveUserWhere(alias = '') {
+  if (!alias) return 'deleted_at IS NULL';
   return `${alias}.deleted_at IS NULL`;
 }
 

@@ -1,7 +1,7 @@
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const { normalizeIraqiPhone, isValidIraqiPhone } = require('./phone');
-const { phonePlaceholderEmail, isActiveUserWhere } = require('./customerAccount');
+const { phonePlaceholderEmail } = require('./customerAccount');
 
 /**
  * إنشاء حساب عميل جديد (تسجيل ذاتي أو من موظف/مدير).
@@ -25,7 +25,7 @@ async function createCustomerAccount({ name, email, password, phone }) {
 
     const [existingPhone] = await db.query(
       `SELECT id, role FROM users
-       WHERE phone = ? AND ${isActiveUserWhere()}`,
+       WHERE phone = ? AND (deleted_at IS NULL)`,
       [normalizedPhone]
     );
     if (existingPhone.length > 0) {
@@ -44,7 +44,7 @@ async function createCustomerAccount({ name, email, password, phone }) {
   const userEmail = trimmedEmail || phonePlaceholderEmail(normalizedPhone);
 
   const [existingUser] = await db.query(
-    `SELECT id FROM users WHERE email = ? AND ${isActiveUserWhere()}`,
+    `SELECT id FROM users WHERE email = ? AND (deleted_at IS NULL)`,
     [userEmail]
   );
   if (existingUser.length > 0) {
@@ -54,18 +54,27 @@ async function createCustomerAccount({ name, email, password, phone }) {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const [result] = await db.query(
-    'INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
-    [name.trim(), userEmail, hashedPassword, normalizedPhone, 'customer']
-  );
+  try {
+    const [result] = await db.query(
+      'INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
+      [name.trim(), userEmail, hashedPassword, normalizedPhone, 'customer']
+    );
 
-  return {
-    id: result.insertId,
-    name: name.trim(),
-    email: trimmedEmail || userEmail,
-    phone: normalizedPhone,
-    role: 'customer',
-  };
+    return {
+      id: result.insertId,
+      name: name.trim(),
+      email: trimmedEmail || userEmail,
+      phone: normalizedPhone,
+      role: 'customer',
+    };
+  } catch (error) {
+    if (error.code === '23505') {
+      const err = new Error('PHONE_IN_USE');
+      err.code = 'PHONE_IN_USE';
+      throw err;
+    }
+    throw error;
+  }
 }
 
 function mapCreateError(err) {

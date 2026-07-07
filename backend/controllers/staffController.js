@@ -134,7 +134,8 @@ exports.createCustomer = async (req, res) => {
       return res.status(400).json({ message: mapCreateError(error) });
     }
     console.error('Staff create customer error:', error);
-    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+    const msg = process.env.NODE_ENV === 'development' ? error.message : 'حدث خطأ في الخادم';
+    res.status(500).json({ message: msg });
   }
 };
 
