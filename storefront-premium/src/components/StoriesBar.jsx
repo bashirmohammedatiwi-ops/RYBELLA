@@ -486,19 +486,39 @@ export default function StoriesBar() {
   })
 
   useEffect(() => {
-    storiesAPI.getAll().then((r) => {
-      const data = r?.data ?? r
-      if (Array.isArray(data)) {
-        setStoryGroups(data)
-        setHighlights([])
-      } else {
-        setStoryGroups(Array.isArray(data?.stories) ? data.stories : [])
-        setHighlights(Array.isArray(data?.highlights) ? data.highlights : [])
+    let cancelled = false
+    const load = () => {
+      storiesAPI.getAll().then((r) => {
+        if (cancelled) return
+        const data = r?.data ?? r
+        if (Array.isArray(data)) {
+          setStoryGroups(data)
+          setHighlights([])
+        } else {
+          setStoryGroups(Array.isArray(data?.stories) ? data.stories : [])
+          setHighlights(Array.isArray(data?.highlights) ? data.highlights : [])
+        }
+      }).catch(() => {
+        if (!cancelled) {
+          setStoryGroups([])
+          setHighlights([])
+        }
+      })
+    }
+
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(load, { timeout: 2500 })
+      return () => {
+        cancelled = true
+        window.cancelIdleCallback(id)
       }
-    }).catch(() => {
-      setStoryGroups([])
-      setHighlights([])
-    })
+    }
+
+    const timer = window.setTimeout(load, 400)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [])
 
   const saveViewed = useCallback((group) => {

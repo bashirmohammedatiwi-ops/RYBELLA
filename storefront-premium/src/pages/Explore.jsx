@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { productsAPI, categoriesAPI, wishlistAPI } from '../services/api'
+import { productsAPI, categoriesAPI, wishlistAPI, getCachedExplorePage } from '../services/api'
 import { isBarcodeLikeQuery } from '../utils/barcode'
 import { searchByBarcode } from '../utils/barcodeSearch'
 import BarcodeScanner from '../components/BarcodeScanner'
@@ -72,23 +72,36 @@ export default function Explore() {
   }, [categoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
 
   useEffect(() => {
-    setLoading(true)
-    setProducts([])
-    setTotal(0)
-    setHasMore(false)
+    const params = buildListParams(0)
+    const isDefaultExplore = !categoryId && !brandId && !tagFilter && !minPrice && !maxPrice && !search && !featured && !sortBy
+    const cached = isDefaultExplore ? getCachedExplorePage(params) : null
 
-    productsAPI.getPage(buildListParams(0))
+    if (cached?.products?.length) {
+      setProducts(cached.products)
+      setTotal(Number(cached.total) || 0)
+      setHasMore(Boolean(cached.hasMore))
+      setLoading(false)
+    } else {
+      setLoading(true)
+      setProducts([])
+      setTotal(0)
+      setHasMore(false)
+    }
+
+    productsAPI.getPage(params)
       .then((data) => {
         setProducts(data?.products || [])
         setTotal(Number(data?.total) || 0)
         setHasMore(Boolean(data?.hasMore))
       })
       .catch(() => {
-        setProducts([])
-        setTotal(0)
+        if (!cached?.products?.length) {
+          setProducts([])
+          setTotal(0)
+        }
       })
       .finally(() => setLoading(false))
-  }, [buildListParams])
+  }, [buildListParams, categoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
 
   const loadMore = useCallback(() => {
     if (loading || loadingMore || loadingMoreRef.current || !hasMore) return

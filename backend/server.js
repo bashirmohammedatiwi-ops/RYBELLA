@@ -146,6 +146,34 @@ app.use(cors({
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
+// كاش للكتالوج العام — يُسرّع أول زيارة والزوار المتزامنين
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  const hasAuth = Boolean(req.headers.authorization);
+  if (hasAuth) return next();
+
+  const pathOnly = req.path;
+  const publicExact = new Set([
+    '/api/categories',
+    '/api/banners',
+    '/api/brands',
+    '/api/web-settings',
+    '/api/offers',
+    '/api/stories',
+  ]);
+
+  if (publicExact.has(pathOnly)) {
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    return next();
+  }
+
+  if (pathOnly === '/api/products' && (req.query.lite === '1' || req.query.lite === 'true')) {
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  }
+
+  return next();
+});
+
 // توليد WebP عند طلب ملف cache غير موجود بعد
 app.use('/uploads', async (req, res, next) => {
   if (!req.path.startsWith('/.cache/')) return next();

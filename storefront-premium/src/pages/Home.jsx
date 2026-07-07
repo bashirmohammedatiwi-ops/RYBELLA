@@ -37,22 +37,47 @@ export default function Home() {
 
   useEffect(() => {
     const toArr = (d) => (Array.isArray(d) ? d : d?.data && Array.isArray(d.data) ? d.data : [])
+    let cancelled = false
+
     Promise.all([
       categoriesAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       bannersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      offersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      productsAPI.getAll({ featured: '1', limit: 12, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
-      productsAPI.getAll({ best_seller: '1', limit: 12, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
-      productsAPI.getAll({ sort_by: 'newest', limit: 48, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
-    ]).then(([cats, bns, offs, feat, best, recent]) => {
+      webSettingsAPI.get().then((r) => r?.data || null).catch(() => null),
+    ]).then(([cats, bns, sett]) => {
+      if (cancelled) return
       setCategories(cats)
       setBanners(bns)
-      setOffers(offs)
-      setFeatured(feat.slice(0, 10))
-      setPopular(recent)
-      setBestSellers(best.slice(0, 10))
+      if (sett) setSettings(sett)
     })
-    webSettingsAPI.get().then((r) => r?.data && setSettings(r.data)).catch(() => {})
+
+    const loadSecondary = () => {
+      Promise.all([
+        productsAPI.getAll({ featured: '1', limit: 10, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
+        productsAPI.getAll({ best_seller: '1', limit: 10, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
+        productsAPI.getAll({ sort_by: 'newest', limit: 12, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
+        offersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
+      ]).then(([feat, best, recent, offs]) => {
+        if (cancelled) return
+        setFeatured(feat.slice(0, 10))
+        setPopular(recent)
+        setBestSellers(best.slice(0, 10))
+        setOffers(offs)
+      })
+    }
+
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(loadSecondary, { timeout: 900 })
+      return () => {
+        cancelled = true
+        window.cancelIdleCallback(id)
+      }
+    }
+
+    const timer = window.setTimeout(loadSecondary, 120)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [])
 
   useEffect(() => {

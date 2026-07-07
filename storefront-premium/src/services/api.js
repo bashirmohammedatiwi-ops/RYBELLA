@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { buildCacheKey, cachedRequest, readCache } from '../utils/apiCache'
 
 const getBase = () => {
   const url = import.meta.env.VITE_API_URL
@@ -31,6 +32,35 @@ api.interceptors.response.use(
 )
 
 const PAGE_SIZE = 24
+const CATALOG_TTL = 5 * 60 * 1000
+const SETTINGS_TTL = 10 * 60 * 1000
+
+function cachedGet(path, params = {}, ttl = CATALOG_TTL) {
+  const key = buildCacheKey(path, params)
+  return cachedRequest(key, ttl, () => api.get(path, { params }))
+}
+
+export function prefetchPublicCatalog() {
+  return Promise.all([
+    cachedGet('/categories', {}, CATALOG_TTL),
+    cachedGet('/banners', {}, CATALOG_TTL),
+    cachedGet('/web-settings', {}, SETTINGS_TTL),
+    cachedGet('/products', {
+      status: 'published',
+      lite: 1,
+      meta: 1,
+      limit: PAGE_SIZE,
+      offset: 0,
+    }, CATALOG_TTL),
+  ])
+}
+
+export function getCachedExplorePage(params = {}) {
+  const query = { status: 'published', lite: 1, meta: 1, limit: PAGE_SIZE, offset: 0, ...params }
+  const raw = readCache(buildCacheKey('/products', query), CATALOG_TTL)
+  if (!raw) return null
+  return normalizePageResponse(raw, query)
+}
 
 function normalizePageResponse(data, params = {}) {
   const limit = Number(params.limit) || PAGE_SIZE
@@ -50,11 +80,17 @@ function normalizePageResponse(data, params = {}) {
 }
 
 export const productsAPI = {
-  getAll: (params) => api.get('/products', { params: { ...params, status: params?.status ?? 'published' } }),
+  getAll: (params) => {
+    const query = { ...params, status: params?.status ?? 'published' }
+    if (query.lite === 1 || query.lite === '1' || query.lite === true) {
+      return cachedGet('/products', query, CATALOG_TTL)
+    }
+    return api.get('/products', { params: query })
+  },
   getPage: async (params = {}) => {
     const query = { status: 'published', lite: 1, meta: 1, ...params }
     try {
-      const r = await api.get('/products', { params: query })
+      const r = await cachedGet('/products', query, CATALOG_TTL)
       return normalizePageResponse(r?.data, query)
     } catch {
       /* fallback */
@@ -69,17 +105,17 @@ export const productsAPI = {
   getById: (id) => api.get(`/products/${id}`),
   getFilters: () => api.get('/products/filters'),
 }
-export const categoriesAPI = { getAll: () => api.get('/categories') }
+export const categoriesAPI = { getAll: () => cachedGet('/categories', {}, CATALOG_TTL) }
 export const subcategoriesAPI = { getAll: (params) => api.get('/subcategories', { params }) }
-export const brandsAPI = { getAll: () => api.get('/brands') }
-export const bannersAPI = { getAll: () => api.get('/banners') }
-export const storiesAPI = { getAll: () => api.get('/stories') }
+export const brandsAPI = { getAll: () => cachedGet('/brands', {}, CATALOG_TTL) }
+export const bannersAPI = { getAll: () => cachedGet('/banners', {}, CATALOG_TTL) }
+export const storiesAPI = { getAll: () => cachedGet('/stories', {}, CATALOG_TTL) }
 export const offersAPI = {
-  getAll: () => api.get('/offers'),
+  getAll: () => cachedGet('/offers', {}, CATALOG_TTL),
   getById: (id) => api.get(`/offers/${id}`),
 }
 export const webSettingsAPI = {
-  get: () => api.get('/web-settings').catch(() => ({ data: null })),
+  get: () => cachedGet('/web-settings', {}, SETTINGS_TTL).catch(() => ({ data: null })),
 }
 export const authAPI = {
   login: (data) => api.post('/auth/login', data),

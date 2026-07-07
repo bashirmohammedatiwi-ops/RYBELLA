@@ -19,6 +19,7 @@ RUN npm run build
 FROM nginx:alpine
 
 RUN apk add --no-cache curl
+RUN mkdir -p /var/cache/nginx/rybella && chown -R nginx:nginx /var/cache/nginx
 RUN rm /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY deployment/nginx-webstore.conf /etc/nginx/conf.d/default.conf
