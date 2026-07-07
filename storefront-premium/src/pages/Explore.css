@@ -188,9 +188,37 @@
   font-size: 1rem;
 }
 
-.premium-explore-load-more {
-  padding: 1.5rem;
-  min-height: 48px;
+.premium-explore-load-more-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.premium-explore-load-more-btn {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  margin: 1.25rem auto 0;
+  padding: 0.95rem 1.25rem;
+  border: 1.5px solid rgba(232, 93, 122, 0.35);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.premium-explore-load-more-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.premium-explore-load-more-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .premium-empty {

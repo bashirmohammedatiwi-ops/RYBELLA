@@ -30,26 +30,40 @@ api.interceptors.response.use(
   }
 )
 
+const PAGE_SIZE = 36
+
+function normalizePageResponse(data, params = {}) {
+  const limit = Number(params.limit) || PAGE_SIZE
+  const offset = Number(params.offset) || 0
+  if (data && Array.isArray(data.products)) {
+    const count = data.products.length
+    const total = parseInt(data.total, 10) || 0
+    const hasMore = data.hasMore === true
+      || (total > 0 ? offset + count < total : count >= limit)
+    return { products: data.products, total, hasMore, limit: data.limit ?? limit, offset: data.offset ?? offset }
+  }
+  if (Array.isArray(data)) {
+    const hasMore = data.length >= limit
+    return { products: data, total: hasMore ? offset + data.length + 1 : data.length, hasMore, limit, offset }
+  }
+  return { products: [], total: 0, hasMore: false, limit, offset }
+}
+
 export const productsAPI = {
   getAll: (params) => api.get('/products', { params: { ...params, status: params?.status ?? 'published' } }),
   getPage: async (params = {}) => {
     const query = { status: 'published', lite: 1, meta: 1, ...params }
     try {
       const r = await api.get('/products', { params: query })
-      const data = r?.data
-      if (data && Array.isArray(data.products)) return data
-      if (Array.isArray(data)) {
-        return { products: data, total: data.length, limit: query.limit, offset: query.offset || 0 }
-      }
+      return normalizePageResponse(r?.data, query)
     } catch {
-      /* fallback below */
+      /* fallback */
     }
     try {
       const r = await api.get('/products', { params: { status: 'published', lite: 1, ...params } })
-      const list = Array.isArray(r?.data) ? r.data : []
-      return { products: list, total: list.length, limit: params.limit, offset: params.offset || 0 }
+      return normalizePageResponse(r?.data, params)
     } catch {
-      return { products: [], total: 0, limit: params.limit, offset: params.offset || 0 }
+      return { products: [], total: 0, hasMore: false, limit: params.limit, offset: params.offset || 0 }
     }
   },
   getById: (id) => api.get(`/products/${id}`),

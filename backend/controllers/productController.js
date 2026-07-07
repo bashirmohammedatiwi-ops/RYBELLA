@@ -182,7 +182,7 @@ exports.getAll = async (req, res) => {
         ${whereSql}
       `;
       const [countRows] = await db.query(countQuery, [...params]);
-      total = Number(countRows[0]?.total) || 0;
+      total = parseInt(countRows[0]?.total, 10) || 0;
     }
 
     if (effectiveLimit) {
@@ -204,9 +204,14 @@ exports.getAll = async (req, res) => {
     }
 
     if (wantMeta) {
+      const pageCount = filteredProducts.length;
+      const hasMore = effectiveLimit
+        ? (total > 0 ? offsetNum + pageCount < total : pageCount >= effectiveLimit)
+        : false;
       return res.json({
         products: filteredProducts,
-        total: total ?? filteredProducts.length,
+        total,
+        hasMore,
         limit: effectiveLimit,
         offset: offsetNum,
       });

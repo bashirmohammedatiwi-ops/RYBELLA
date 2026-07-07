@@ -11,7 +11,7 @@ import MobileHeader from '../components/MobileHeader'
 import ExploreCategoryBar from '../components/ExploreCategoryBar'
 import './Explore.css'
 
-const PAGE_SIZE = 24
+const PAGE_SIZE = 36
 
 export default function Explore() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -19,6 +19,7 @@ export default function Explore() {
   const [searchInput, setSearchInput] = useState('')
   const [products, setProducts] = useState([])
   const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
   const [categories, setCategories] = useState([])
   const [wishlistIds, setWishlistIds] = useState([])
   const [loading, setLoading] = useState(true)
@@ -27,6 +28,7 @@ export default function Explore() {
   const [scannerOpen, setScannerOpen] = useState(false)
   const mainScrollRef = useRef(null)
   const loadMoreRef = useRef(null)
+  const loadingMoreRef = useRef(false)
   const { user } = useAuth()
 
   const categoryId = searchParams.get('category')
@@ -73,11 +75,13 @@ export default function Explore() {
     setLoading(true)
     setProducts([])
     setTotal(0)
+    setHasMore(false)
 
     productsAPI.getPage(buildListParams(0))
       .then((data) => {
         setProducts(data?.products || [])
         setTotal(Number(data?.total) || 0)
+        setHasMore(Boolean(data?.hasMore))
       })
       .catch(() => {
         setProducts([])
@@ -87,37 +91,60 @@ export default function Explore() {
   }, [buildListParams])
 
   const loadMore = useCallback(() => {
-    if (loading || loadingMore || products.length >= total) return
+    if (loading || loadingMore || loadingMoreRef.current || !hasMore) return
+    loadingMoreRef.current = true
     setLoadingMore(true)
     const nextOffset = products.length
     productsAPI.getPage(buildListParams(nextOffset))
       .then((data) => {
         const batch = data?.products || []
-        if (!batch.length) return
+        if (!batch.length) {
+          setHasMore(false)
+          return
+        }
         setProducts((prev) => {
           const seen = new Set(prev.map((p) => p.id))
           return [...prev, ...batch.filter((p) => !seen.has(p.id))]
         })
         setTotal(Number(data?.total) || total)
+        setHasMore(Boolean(data?.hasMore))
       })
-      .catch(() => {})
-      .finally(() => setLoadingMore(false))
-  }, [loading, loadingMore, products.length, total, buildListParams])
+      .catch(() => setHasMore(false))
+      .finally(() => {
+        loadingMoreRef.current = false
+        setLoadingMore(false)
+      })
+  }, [loading, loadingMore, hasMore, products.length, total, buildListParams])
 
   useEffect(() => {
+    const scrollRoot = mainScrollRef.current
     const target = loadMoreRef.current
-    if (!target || loading) return undefined
+    if (!scrollRoot || !target || loading || !hasMore) return undefined
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) loadMore()
       },
-      { rootMargin: '600px 0px', threshold: 0 }
+      { root: scrollRoot, rootMargin: '240px 0px', threshold: 0 }
     )
 
     observer.observe(target)
     return () => observer.disconnect()
-  }, [loadMore, loading, products.length, total])
+  }, [loadMore, loading, hasMore, products.length])
+
+  useEffect(() => {
+    const el = mainScrollRef.current
+    if (!el || loading) return undefined
+
+    const onScroll = () => {
+      if (loadingMore || !hasMore) return
+      const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 320
+      if (nearBottom) loadMore()
+    }
+
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [loadMore, loading, loadingMore, hasMore, products.length])
 
   useEffect(() => {
     categoriesAPI.getAll().then((r) => setCategories(r?.data || [])).catch(() => [])
@@ -244,7 +271,11 @@ export default function Explore() {
 
           <div className="premium-explore-header">
             <p className="premium-explore-count">
-              {loading ? '...' : total > 0 ? `${products.length} / ${total} منتج` : `${products.length} منتج`}
+              {loading
+                ? '...'
+                : total > 0
+                  ? `${products.length} / ${total} منتج`
+                  : `${products.length} منتج${hasMore ? '+' : ''}`}
             </p>
             <select
               value={sortBy}
@@ -284,10 +315,18 @@ export default function Explore() {
             </div>
           )}
 
-          {!loading && products.length > 0 && products.length < total && (
-            <div ref={loadMoreRef} className="premium-explore-load-more" aria-hidden="true">
-              {loadingMore ? 'جاري تحميل المزيد...' : ''}
-            </div>
+          {!loading && products.length > 0 && hasMore && (
+            <>
+              <div ref={loadMoreRef} className="premium-explore-load-more-sentinel" aria-hidden="true" />
+              <button
+                type="button"
+                className="premium-explore-load-more-btn"
+                onClick={loadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'جاري تحميل المزيد...' : 'عرض المزيد من المنتجات'}
+              </button>
+            </>
           )}
         </div>
       </div>
