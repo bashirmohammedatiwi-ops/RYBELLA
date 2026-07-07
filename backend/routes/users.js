@@ -5,5 +5,6 @@ const { auth, adminAuth } = require('../middleware/auth');
 
 router.get('/', auth, adminAuth, userController.getAll);
 router.get('/:id', auth, userController.getById);
+router.delete('/:id', auth, adminAuth, userController.delete);
 
 module.exports = router;

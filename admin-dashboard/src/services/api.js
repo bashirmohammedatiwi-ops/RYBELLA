@@ -169,6 +169,7 @@ export const ordersAPI = {
 
 export const usersAPI = {
   getAll: () => api.get('/users'),
+  delete: (id) => api.delete(`/users/${id}`),
 };
 
 export const couponsAPI = {
