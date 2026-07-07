@@ -1,5 +1,5 @@
-# Rybella Backend - Node.js API
-FROM node:18-alpine
+# Rybella Backend - Node.js API (Node 20+ required by sharp ^0.35)
+FROM node:20-alpine
 
 # wget: healthcheck | postgresql-client: scripts | vips: sharp image processing
 RUN apk add --no-cache wget unzip postgresql16-client vips
