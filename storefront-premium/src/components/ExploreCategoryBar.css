@@ -1,0 +1,191 @@
+/* ExploreCategoryBar — شريط الأقسام الأفقي */
+
+.explore-cat-bar {
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #fff8fb 0%, #fff 100%);
+  border-bottom: 1px solid rgba(232, 93, 122, 0.1);
+  box-shadow: 0 4px 16px rgba(232, 93, 122, 0.06);
+}
+
+.explore-cat-scroll,
+.explore-subcat-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 12px 14px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.explore-cat-scroll::-webkit-scrollbar,
+.explore-subcat-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.explore-subcat-scroll {
+  gap: 8px;
+  padding-top: 0;
+  padding-bottom: 12px;
+  border-top: 1px solid rgba(232, 93, 122, 0.08);
+}
+
+.explore-cat-item {
+  flex: 0 0 68px;
+  width: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+  scroll-snap-align: start;
+  transition: transform 0.2s ease;
+}
+
+.explore-cat-item:active {
+  transform: scale(0.95);
+}
+
+.explore-cat-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  padding: 2px;
+  background: linear-gradient(145deg, var(--glow-a, #ffb3cc), var(--glow-b, #c31477));
+  box-shadow: 0 2px 8px rgba(232, 93, 122, 0.12);
+  color: var(--primary);
+}
+
+.explore-cat-icon::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff 0%, #fff7fa 100%);
+  z-index: 0;
+}
+
+.explore-cat-icon .cat-icon-visual,
+.explore-cat-icon svg {
+  position: relative;
+  z-index: 1;
+  width: 70%;
+  height: 70%;
+}
+
+.explore-cat-icon .cat-icon-visual img {
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.explore-cat-item:first-child .explore-cat-icon {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px dashed rgba(232, 93, 122, 0.35);
+  box-shadow: 0 2px 8px rgba(232, 93, 122, 0.1);
+}
+
+.explore-cat-item:first-child .explore-cat-icon::after {
+  display: none;
+}
+
+.explore-cat-item.selected .explore-cat-icon {
+  background: linear-gradient(135deg, #ff9ec0, var(--primary), var(--primary-dark, #c94a5a));
+  box-shadow: 0 4px 14px rgba(232, 93, 122, 0.35);
+  transform: scale(1.05);
+}
+
+.explore-cat-item.selected .explore-cat-icon::after {
+  background: #fff;
+}
+
+.explore-cat-label {
+  width: 100%;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  color: #4a3038;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.explore-cat-item.selected .explore-cat-label {
+  color: var(--primary-dark, #c94a5a);
+  font-weight: 800;
+}
+
+.explore-subcat-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary, #666);
+  background: #fff;
+  border: 1px solid rgba(232, 93, 122, 0.18);
+  white-space: nowrap;
+  scroll-snap-align: start;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.explore-subcat-pill.selected {
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark, #c94a5a));
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(232, 93, 122, 0.28);
+}
+
+.explore-subcat-pill-img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.explore-subcat-pill-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (min-width: 640px) {
+  .explore-cat-scroll,
+  .explore-subcat-scroll {
+    padding-inline: 20px;
+    gap: 14px;
+  }
+
+  .explore-cat-item {
+    flex-basis: 76px;
+    width: 76px;
+  }
+
+  .explore-cat-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+  }
+
+  .explore-cat-label {
+    font-size: 0.68rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-cat-item,
+  .explore-subcat-pill {
+    transition: none !important;
+  }
+}

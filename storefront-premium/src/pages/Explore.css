@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   Explore - استكشف المنتجات | شريط فئات جانبي + شبكة منتجات
+   Explore - استكشف المنتجات | شريط أقسام علوي + شبكة منتجات
    ═══════════════════════════════════════════════════════════════ */
 
 .premium-explore {
@@ -12,19 +12,6 @@
   overflow: hidden;
 }
 
-.premium-explore-layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  align-items: stretch;
-  position: relative;
-  --rail-base: 72px;
-  --rail-scroll-fade: 1;
-  --rail-open: 1;
-  --rail-width: calc(var(--rail-base) * var(--rail-scroll-fade, 1) * var(--rail-open, 1));
-  --rail-visual: calc(var(--rail-scroll-fade, 1) * var(--rail-open, 1));
-}
-
 .premium-explore-main {
   flex: 1 1 auto;
   min-width: 0;
@@ -33,18 +20,6 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: auto;
-}
-
-.premium-explore-layout.rail-transitioning .premium-explore-main {
-  transition: flex 0.48s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.premium-explore-layout.rail-transitioning .premium-products-grid {
-  transition: gap 0.48s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.premium-explore-layout.rail-transitioning .premium-explore-main-inner {
-  transition: padding 0.48s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .premium-explore-main-inner {
@@ -227,18 +202,6 @@
 @container explore-main (min-width: 820px) {
   .premium-products-grid {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  }
-}
-
-@media (min-width: 600px) {
-  .premium-explore-layout {
-    --rail-base: 78px;
-  }
-}
-
-@media (min-width: 900px) {
-  .premium-explore-layout {
-    --rail-base: 88px;
   }
 }
 
