@@ -135,9 +135,18 @@ async function getOptimizedImage({ src, width, quality, format }) {
   };
 }
 
+function warmImageThumbnails(src) {
+  if (!isSafeUploadPath(src)) return;
+  const widths = [120, 240, 400];
+  widths.forEach((width) => {
+    getOptimizedImage({ src, width, quality: 76, format: 'webp' }).catch(() => {});
+  });
+}
+
 module.exports = {
   getOptimizedImage,
   snapWidth,
   isSafeUploadPath,
   ALLOWED_WIDTHS,
+  warmImageThumbnails,
 };

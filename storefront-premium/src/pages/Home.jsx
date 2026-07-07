@@ -41,9 +41,9 @@ export default function Home() {
       categoriesAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       bannersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       offersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      productsAPI.getAll({ featured: '1', limit: 12 }).then((r) => toArr(r?.data)).catch(() => []),
-      productsAPI.getAll({ best_seller: '1', limit: 12 }).then((r) => toArr(r?.data)).catch(() => []),
-      productsAPI.getAll({ sort_by: 'newest', limit: 48 }).then((r) => toArr(r?.data)).catch(() => []),
+      productsAPI.getAll({ featured: '1', limit: 12, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
+      productsAPI.getAll({ best_seller: '1', limit: 12, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
+      productsAPI.getAll({ sort_by: 'newest', limit: 48, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
     ]).then(([cats, bns, offs, feat, best, recent]) => {
       setCategories(cats)
       setBanners(bns)
@@ -270,12 +270,13 @@ export default function Home() {
               <Link to="/explore?featured=1" className="home-section-link">الكل</Link>
             </div>
             <div className="home-products">
-              {featuredProducts.map((p) => (
+              {featuredProducts.map((p, index) => (
                 <ProductCard
                   key={p.id}
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
+                  priority={index < 4}
                 />
               ))}
             </div>

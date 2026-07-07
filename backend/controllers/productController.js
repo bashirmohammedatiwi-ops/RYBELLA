@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const { enrichProductPricing } = require('../services/inventorySyncService');
 const { expireManualDiscounts } = require('../services/pricingService');
+const { warmImageThumbnails } = require('../services/imageResizeService');
 const {
   isBarcodeLikeSearch,
   buildBarcodeSearchClause,
@@ -9,6 +10,53 @@ const {
 } = require('../services/productSearch');
 
 const VARIANT_DB_FIELDS = 'id, shade_name, color_code, price, original_price, discount_percent, sync_price, sync_original_price, sync_discount_percent, manual_discount_percent, manual_discount_until, stock, image, expiration_date, barcode, sku';
+const VARIANT_CARD_FIELDS = 'id, shade_name, color_code, price, original_price, discount_percent, sync_price, sync_original_price, sync_discount_percent, manual_discount_percent, manual_discount_until, stock, image';
+
+async function attachProductListData(products, { lite = false } = {}) {
+  if (!products.length) return products;
+
+  const ids = products.map((p) => p.id);
+  const variantFields = lite ? VARIANT_CARD_FIELDS : VARIANT_DB_FIELDS;
+  const [allVariants] = await db.query(
+    `SELECT product_id, ${variantFields} FROM product_variants WHERE product_id IN (${ids.join(',')}) ORDER BY product_id, id`,
+    []
+  );
+
+  const variantsByProduct = {};
+  for (const variant of allVariants) {
+    const productId = variant.product_id;
+    if (!variantsByProduct[productId]) variantsByProduct[productId] = [];
+    const { product_id, ...rest } = variant;
+    variantsByProduct[productId].push(rest);
+  }
+
+  let imagesByProduct = {};
+  if (!lite) {
+    const [allImages] = await db.query(
+      `SELECT product_id, image_url FROM product_images WHERE product_id IN (${ids.join(',')}) ORDER BY product_id, id`,
+      []
+    );
+    for (const row of allImages) {
+      if (!imagesByProduct[row.product_id]) imagesByProduct[row.product_id] = [];
+      imagesByProduct[row.product_id].push(row.image_url);
+    }
+  }
+
+  for (const product of products) {
+    product.variants = variantsByProduct[product.id] || [];
+    enrichProductPricing(product);
+    if (lite) {
+      product.images = product.main_image ? [product.main_image] : [];
+    } else {
+      product.images = imagesByProduct[product.id] || [];
+    }
+    if (product.tags && typeof product.tags === 'string') {
+      product.tags = product.tags.split(',').map((t) => t.trim()).filter(Boolean);
+    }
+  }
+
+  return products;
+}
 
 async function prepareProductCatalog() {
   try {
@@ -21,7 +69,9 @@ async function prepareProductCatalog() {
 exports.getAll = async (req, res) => {
   try {
     await prepareProductCatalog();
-    const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, best_seller, product_ids, tags, color_code, sort_by, limit } = req.query;
+    const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, best_seller, product_ids, tags, color_code, sort_by, limit, offset, lite, meta } = req.query;
+    const liteMode = lite === '1' || lite === 'true';
+    const wantMeta = meta === '1' || meta === 'true';
     let query = `
       SELECT p.*, b.name as brand_name, c.name as category_name, s.name as subcategory_name,
         (SELECT COUNT(*) FROM product_variants pv WHERE pv.product_id = p.id AND pv.stock > 0) as available_variants,
@@ -93,6 +143,16 @@ exports.getAll = async (req, res) => {
       query += ' AND EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND (pv.color_code = ? OR LOWER(pv.shade_name) LIKE ?))';
       params.push(color_code, `%${String(color_code).toLowerCase()}%`);
     }
+    if (min_price) {
+      query += ' AND (SELECT MIN(price) FROM product_variants WHERE product_id = p.id) >= ?';
+      params.push(parseFloat(min_price));
+    }
+    if (max_price) {
+      query += ' AND (SELECT MIN(price) FROM product_variants WHERE product_id = p.id) <= ?';
+      params.push(parseFloat(max_price));
+    }
+
+    const whereSql = query.slice(query.indexOf('WHERE'));
 
     const orderMap = {
       price_asc: '(SELECT MIN(price) FROM product_variants WHERE product_id = p.id) ASC',
@@ -105,40 +165,48 @@ exports.getAll = async (req, res) => {
     query += ' ORDER BY ' + orderClause;
 
     const limitNum = parseInt(limit, 10);
-    if (!isNaN(limitNum) && limitNum > 0) {
+    const offsetNum = Math.max(0, parseInt(offset, 10) || 0);
+    const effectiveLimit = !isNaN(limitNum) && limitNum > 0 ? Math.min(limitNum, 200) : null;
+
+    let total = null;
+    if (wantMeta) {
+      const countQuery = `
+        SELECT COUNT(*)::int AS total
+        FROM products p
+        LEFT JOIN brands b ON p.brand_id = b.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN subcategories s ON p.subcategory_id = s.id
+        ${whereSql}
+      `;
+      const [countRows] = await db.query(countQuery, [...params]);
+      total = Number(countRows[0]?.total) || 0;
+    }
+
+    if (effectiveLimit) {
       query += ' LIMIT ?';
-      params.push(Math.min(limitNum, 200));
+      params.push(effectiveLimit);
+    }
+    if (offsetNum > 0) {
+      query += ' OFFSET ?';
+      params.push(offsetNum);
     }
 
     const [products] = await db.query(query, params);
     let filteredProducts = products;
 
-    if (min_price || max_price) {
-      filteredProducts = products.filter(p => {
-        const min = parseFloat(p.min_price) || 0;
-        const max = parseFloat(p.max_price) || Infinity;
-        if (min_price && min < parseFloat(min_price)) return false;
-        if (max_price && max > parseFloat(max_price)) return false;
-        return true;
-      });
-    }
-
-    for (const product of filteredProducts) {
-      const [variants] = await db.query(
-        `SELECT ${VARIANT_DB_FIELDS} FROM product_variants WHERE product_id = ?`,
-        [product.id]
-      );
-      product.variants = variants;
-      enrichProductPricing(product);
-      const [images] = await db.query('SELECT image_url FROM product_images WHERE product_id = ?', [product.id]);
-      product.images = images.map(i => i.image_url);
-      if (product.tags && typeof product.tags === 'string') {
-        product.tags = product.tags.split(',').map((t) => t.trim()).filter(Boolean);
-      }
-    }
+    filteredProducts = await attachProductListData(filteredProducts, { lite: liteMode });
 
     if (searchMeta && !sort_by) {
       filteredProducts = rankSearchResults(filteredProducts, searchMeta);
+    }
+
+    if (wantMeta) {
+      return res.json({
+        products: filteredProducts,
+        total: total ?? filteredProducts.length,
+        limit: effectiveLimit,
+        offset: offsetNum,
+      });
     }
 
     res.json(filteredProducts);
@@ -263,11 +331,14 @@ exports.create = async (req, res) => {
 
     const imageFiles = req.files?.images || [];
     for (const file of imageFiles) {
+      const imagePath = `/uploads/${file.filename}`;
       await db.query('INSERT INTO product_images (product_id, image_url) VALUES (?, ?)', [
         result.insertId,
-        `/uploads/${file.filename}`
+        imagePath,
       ]);
+      warmImageThumbnails(imagePath);
     }
+    if (main_image) warmImageThumbnails(main_image);
 
     res.status(201).json({ message: 'تم إنشاء المنتج بنجاح', id: result.insertId });
   } catch (error) {
@@ -332,14 +403,18 @@ exports.update = async (req, res) => {
 
     await db.query(query, params);
 
+    if (main_image) warmImageThumbnails(main_image);
+
     const imageFiles = req.files?.images || [];
     if (imageFiles.length > 0) {
       await db.query('DELETE FROM product_images WHERE product_id = ?', [req.params.id]);
       for (const file of imageFiles) {
+        const imagePath = `/uploads/${file.filename}`;
         await db.query('INSERT INTO product_images (product_id, image_url) VALUES (?, ?)', [
           req.params.id,
-          `/uploads/${file.filename}`
+          imagePath,
         ]);
+        warmImageThumbnails(imagePath);
       }
     }
 

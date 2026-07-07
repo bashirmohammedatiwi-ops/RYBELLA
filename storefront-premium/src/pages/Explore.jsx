@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { productsAPI, categoriesAPI, wishlistAPI } from '../services/api'
 import { isBarcodeLikeQuery } from '../utils/barcode'
@@ -11,17 +11,22 @@ import MobileHeader from '../components/MobileHeader'
 import ExploreCategoryBar from '../components/ExploreCategoryBar'
 import './Explore.css'
 
+const PAGE_SIZE = 24
+
 export default function Explore() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const [searchInput, setSearchInput] = useState('')
   const [products, setProducts] = useState([])
+  const [total, setTotal] = useState(0)
   const [categories, setCategories] = useState([])
   const [wishlistIds, setWishlistIds] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [sortBy, setSortBy] = useState('')
   const [scannerOpen, setScannerOpen] = useState(false)
   const mainScrollRef = useRef(null)
+  const loadMoreRef = useRef(null)
   const { user } = useAuth()
 
   const categoryId = searchParams.get('category')
@@ -51,9 +56,8 @@ export default function Explore() {
     setSearchParams(p, { replace: true })
   }, [searchParams, setSearchParams])
 
-  useEffect(() => {
-    setLoading(true)
-    const params = {}
+  const buildListParams = useCallback((offset = 0) => {
+    const params = { limit: PAGE_SIZE, offset }
     if (categoryId) params.category_id = categoryId
     if (brandId) params.brand_id = brandId
     if (tagFilter) params.tags = tagFilter
@@ -62,12 +66,59 @@ export default function Explore() {
     if (search) params.search = search
     if (featured) params.featured = '1'
     if (sortBy) params.sort_by = sortBy
-
-    productsAPI.getAll(params)
-      .then((r) => setProducts(r?.data || []))
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false))
+    return params
   }, [categoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
+
+  useEffect(() => {
+    setLoading(true)
+    setProducts([])
+    setTotal(0)
+
+    productsAPI.getPage(buildListParams(0))
+      .then((data) => {
+        setProducts(data?.products || [])
+        setTotal(Number(data?.total) || 0)
+      })
+      .catch(() => {
+        setProducts([])
+        setTotal(0)
+      })
+      .finally(() => setLoading(false))
+  }, [buildListParams])
+
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || products.length >= total) return
+    setLoadingMore(true)
+    const nextOffset = products.length
+    productsAPI.getPage(buildListParams(nextOffset))
+      .then((data) => {
+        const batch = data?.products || []
+        if (!batch.length) return
+        setProducts((prev) => {
+          const seen = new Set(prev.map((p) => p.id))
+          return [...prev, ...batch.filter((p) => !seen.has(p.id))]
+        })
+        setTotal(Number(data?.total) || total)
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false))
+  }, [loading, loadingMore, products.length, total, buildListParams])
+
+  useEffect(() => {
+    const root = mainScrollRef.current
+    const target = loadMoreRef.current
+    if (!root || !target || loading) return undefined
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) loadMore()
+      },
+      { root, rootMargin: '480px 0px', threshold: 0 }
+    )
+
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [loadMore, loading, products.length, total])
 
   useEffect(() => {
     categoriesAPI.getAll().then((r) => setCategories(r?.data || [])).catch(() => [])
@@ -194,7 +245,7 @@ export default function Explore() {
 
           <div className="premium-explore-header">
             <p className="premium-explore-count">
-              {loading ? '...' : `${products.length} منتج`}
+              {loading ? '...' : total > 0 ? `${products.length} / ${total} منتج` : `${products.length} منتج`}
             </p>
             <select
               value={sortBy}
@@ -222,14 +273,21 @@ export default function Explore() {
             </div>
           ) : (
             <div className="premium-products-grid">
-              {products.map((p) => (
+              {products.map((p, index) => (
                 <ProductCard
                   key={p.id}
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
+                  priority={index < 6}
                 />
               ))}
+            </div>
+          )}
+
+          {!loading && products.length > 0 && products.length < total && (
+            <div ref={loadMoreRef} className="premium-explore-load-more" aria-hidden="true">
+              {loadingMore ? 'جاري تحميل المزيد...' : ''}
             </div>
           )}
         </div>

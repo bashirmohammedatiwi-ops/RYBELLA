@@ -5,12 +5,12 @@ const getApiBase = () => {
 }
 
 export const IMAGE_PRESETS = {
-  icon: { width: 80, sizes: '64px', widths: [80, 120] },
-  thumb: { width: 120, sizes: '100px', widths: [120, 200] },
-  card: { width: 400, sizes: '(max-width: 480px) 46vw, 220px', widths: [200, 400, 800] },
-  medium: { width: 800, sizes: '(max-width: 768px) 90vw, 420px', widths: [400, 800, 1200] },
-  banner: { width: 1000, sizes: '100vw', widths: [600, 1000, 1200] },
-  hero: { width: 1200, sizes: '100vw', widths: [800, 1200] },
+  icon: { width: 80, sizes: '64px', widths: [80], single: true, quality: 76 },
+  thumb: { width: 120, sizes: '100px', widths: [120], single: true, quality: 76 },
+  card: { width: 240, sizes: '(max-width: 480px) 46vw, 180px', widths: [240], single: true, quality: 76 },
+  medium: { width: 600, sizes: '(max-width: 768px) 90vw, 400px', widths: [400, 600], single: false, quality: 80 },
+  banner: { width: 900, sizes: '100vw', widths: [600, 900], single: false, quality: 82 },
+  hero: { width: 1000, sizes: '100vw', widths: [800, 1000], single: false, quality: 82 },
 }
 
 function isOptimizablePath(src) {
@@ -22,7 +22,7 @@ function isOptimizablePath(src) {
   return true
 }
 
-export function getOptimizedImageUrl(src, { width = 400, quality = 82, format = 'webp' } = {}) {
+export function getOptimizedImageUrl(src, { width = 240, quality = 76, format = 'webp' } = {}) {
   if (!src) return ''
   if (!isOptimizablePath(src)) {
     if (src.startsWith('http')) return src
@@ -39,7 +39,7 @@ export function getOptimizedImageUrl(src, { width = 400, quality = 82, format = 
   return `${base}/api/img?${params}`
 }
 
-export function getImageSrcSet(src, widths = [200, 400, 800], quality = 82, format = 'webp') {
+export function getImageSrcSet(src, widths = [240], quality = 76, format = 'webp') {
   if (!isOptimizablePath(src)) return undefined
   return widths
     .map((w) => `${getOptimizedImageUrl(src, { width: w, quality, format })} ${w}w`)
@@ -48,7 +48,7 @@ export function getImageSrcSet(src, widths = [200, 400, 800], quality = 82, form
 
 export function getPresetConfig(preset = 'card') {
   if (typeof preset === 'number') {
-    return { width: preset, sizes: `${preset}px`, widths: [Math.round(preset * 0.5), preset, preset * 2] }
+    return { width: preset, sizes: `${preset}px`, widths: [preset], single: true, quality: 76 }
   }
   return IMAGE_PRESETS[preset] || IMAGE_PRESETS.card
 }

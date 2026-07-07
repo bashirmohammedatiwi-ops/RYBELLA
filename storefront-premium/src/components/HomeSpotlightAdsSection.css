@@ -237,6 +237,13 @@
   box-shadow: 0 16px 40px rgba(92, 37, 52, 0.12);
 }
 
+.sg-gallery-frame .optimized-img-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .sg-gallery-img {
   position: absolute;
   inset: 0;

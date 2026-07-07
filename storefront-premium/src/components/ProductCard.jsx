@@ -15,7 +15,7 @@ function isTruthyFlag(value) {
   return value === true || value === 1 || value === '1'
 }
 
-export default function ProductCard({ product, wishlistIds = [], onWishlistToggle }) {
+export default function ProductCard({ product, wishlistIds = [], onWishlistToggle, priority = false }) {
   const pricing = getProductCardPricing(product)
   const priceValue = pricing.price != null ? formatNumber(pricing.price) : null
   const originalValue = pricing.originalPrice != null ? formatNumber(pricing.originalPrice) : null
@@ -33,7 +33,7 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
         <div className="premium-product-media">
           <div className="premium-product-image-frame">
             {img ? (
-              <OptimizedImage src={img} alt={product.name} className="premium-product-img" preset="card" />
+              <OptimizedImage src={img} alt={product.name} className="premium-product-img" preset="card" priority={priority} />
             ) : (
               <div className="premium-product-placeholder">لا صورة</div>
             )}

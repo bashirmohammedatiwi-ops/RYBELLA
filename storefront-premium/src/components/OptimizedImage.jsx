@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   getOptimizedImageUrl,
   getImageSrcSet,
@@ -15,16 +15,21 @@ export default function OptimizedImage({
   width,
   sizes,
   widths,
-  quality = 82,
+  quality,
   loading = 'lazy',
   decoding = 'async',
   fetchPriority,
   eager = false,
+  priority = false,
   enabled = true,
+  observe = true,
   draggable,
   onClick,
+  onLoad,
   ...rest
 }) {
+  const rootRef = useRef(null)
+  const [visible, setVisible] = useState(Boolean(priority || eager || !observe))
   const [loaded, setLoaded] = useState(false)
   const [useOriginal, setUseOriginal] = useState(false)
 
@@ -34,40 +39,84 @@ export default function OptimizedImage({
       width: width ?? base.width,
       sizes: sizes ?? base.sizes,
       widths: widths ?? base.widths,
+      single: base.single !== false,
+      quality: quality ?? base.quality ?? 76,
     }
-  }, [preset, width, sizes, widths])
+  }, [preset, width, sizes, widths, quality])
 
-  const optimizedSrc = useMemo(
-    () => (useOriginal ? getOriginalImageUrl(src) : getOptimizedImageUrl(src, { width: config.width, quality })),
-    [src, config.width, quality, useOriginal]
-  )
+  useEffect(() => {
+    if (!observe || priority || eager || visible) return undefined
+    const node = rootRef.current
+    if (!node) return undefined
 
-  const srcSet = useMemo(
-    () => (useOriginal ? undefined : getImageSrcSet(src, config.widths, quality)),
-    [src, config.widths, quality, useOriginal]
-  )
+    if (typeof IntersectionObserver === 'undefined') {
+      setVisible(true)
+      return undefined
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '320px 0px', threshold: 0.01 }
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [observe, priority, eager, visible, src])
+
+  useEffect(() => {
+    setLoaded(false)
+    setUseOriginal(false)
+    if (!priority && !eager && observe) {
+      setVisible(false)
+    }
+  }, [src])
+
+  const optimizedSrc = useMemo(() => {
+    if (!visible) return undefined
+    return useOriginal
+      ? getOriginalImageUrl(src)
+      : getOptimizedImageUrl(src, { width: config.width, quality: config.quality })
+  }, [src, config.width, config.quality, useOriginal, visible])
+
+  const srcSet = useMemo(() => {
+    if (!visible || useOriginal || config.single) return undefined
+    return getImageSrcSet(src, config.widths, config.quality)
+  }, [src, config.widths, config.quality, useOriginal, visible, config.single])
 
   if (!src || !enabled) {
-    return <span className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />
+    return <span ref={rootRef} className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />
   }
 
   return (
-    <img
-      src={optimizedSrc}
-      srcSet={srcSet}
-      sizes={srcSet ? config.sizes : undefined}
-      alt={alt}
-      className={`optimized-img${loaded ? ' is-loaded' : ''}${className ? ` ${className}` : ''}`}
-      loading={eager ? 'eager' : loading}
-      decoding={decoding}
-      fetchPriority={fetchPriority}
-      draggable={draggable}
-      onClick={onClick}
-      onLoad={() => setLoaded(true)}
-      onError={() => {
-        if (!useOriginal) setUseOriginal(true)
-      }}
-      {...rest}
-    />
+    <span ref={rootRef} className={`optimized-img-wrap${className ? ` ${className}-wrap` : ''}`}>
+      {!loaded && <span className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />}
+      {visible && optimizedSrc && (
+        <img
+          src={optimizedSrc}
+          srcSet={srcSet}
+          sizes={srcSet ? config.sizes : undefined}
+          alt={alt}
+          className={`optimized-img${loaded ? ' is-loaded' : ''}${className ? ` ${className}` : ''}`}
+          loading={priority || eager ? 'eager' : loading}
+          decoding={decoding}
+          fetchPriority={priority ? 'high' : fetchPriority}
+          draggable={draggable}
+          onClick={onClick}
+          onLoad={(e) => {
+            setLoaded(true)
+            onLoad?.(e)
+          }}
+          onError={() => {
+            if (!useOriginal) setUseOriginal(true)
+          }}
+          {...rest}
+        />
+      )}
+    </span>
   )
 }
