@@ -63,6 +63,15 @@ class _HomeShellState extends State<HomeShell> {
               Text(user!.phone!, style: const TextStyle(color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
             const SizedBox(height: 20),
             ListTile(
+              leading: const Icon(Icons.person_add_outlined, color: AppTheme.primary),
+              title: const Text('إنشاء حساب عميل'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).pushNamed('/create-customer');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.notifications_active_outlined, color: AppTheme.primary),
               title: const Text('تفعيل الإشعارات'),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

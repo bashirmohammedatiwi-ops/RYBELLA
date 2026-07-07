@@ -61,6 +61,7 @@ async function runMigrations() {
     'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS manual_discount_percent NUMERIC(8, 2)',
     'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS manual_discount_until TIMESTAMPTZ',
     'ALTER TABLE push_tokens ADD COLUMN IF NOT EXISTS app TEXT DEFAULT \'customer\'',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ',
     `DO $$ BEGIN
       ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
       ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'customer', 'staff'));
@@ -70,6 +71,14 @@ async function runMigrations() {
   for (const sql of migrations) {
     await getPool().query(sql);
   }
+  // أرشفة الحسابات المحذوفة سابقاً وتحرير أرقامها
+  await getPool().query(`
+    UPDATE users
+    SET deleted_at = COALESCE(deleted_at, CURRENT_TIMESTAMP),
+        phone = NULL
+    WHERE email LIKE '%@deleted.rybella.iq'
+       OR (deleted_at IS NOT NULL AND phone IS NOT NULL)
+  `);
   await getPool().query(`
     UPDATE product_variants
     SET

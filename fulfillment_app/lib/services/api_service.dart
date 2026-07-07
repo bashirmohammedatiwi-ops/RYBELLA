@@ -77,4 +77,16 @@ class ApiService {
       if (token != null) 'token': token,
     });
   }
+
+  static Future<ApiResponse> createCustomer({
+    required String name,
+    required String phone,
+    required String password,
+  }) {
+    return _client.post('/staff/customers', body: {
+      'name': name,
+      'phone': normalizeIraqiPhone(phone),
+      'password': password,
+    });
+  }
 }

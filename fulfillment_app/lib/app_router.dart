@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/app_widgets.dart';
+import 'screens/create_customer_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/order_detail_screen.dart';
@@ -34,6 +35,9 @@ Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     if (id != null) {
       return MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: id));
     }
+  }
+  if (name == '/create-customer') {
+    return MaterialPageRoute(builder: (_) => const CreateCustomerScreen());
   }
   return null;
 }

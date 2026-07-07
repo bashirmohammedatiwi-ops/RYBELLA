@@ -37,6 +37,15 @@ const staffAuth = (req, res, next) => {
   });
 };
 
+const staffOrAdminAuth = (req, res, next) => {
+  auth(req, res, () => {
+    if (!['admin', 'staff'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'غير مصرح - للمسؤولين وموظفي التجهيز فقط' });
+    }
+    next();
+  });
+};
+
 module.exports = {
   auth,
   authenticate: auth,
@@ -45,4 +54,5 @@ module.exports = {
   requireAdmin: adminAuth,
   authorizeAdmin: adminAuth,
   staffAuth,
+  staffOrAdminAuth,
 };

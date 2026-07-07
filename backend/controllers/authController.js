@@ -2,12 +2,9 @@ const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { normalizeIraqiPhone, isValidIraqiPhone } = require('../utils/phone');
+const { softDeleteCustomer } = require('../utils/customerAccount');
+const { createCustomerAccount, mapCreateError } = require('../utils/createCustomer');
 const { purgeUserById } = require('../utils/purgeUser');
-const {
-  phonePlaceholderEmail,
-  clearOrphanCustomerBlockers,
-  findCustomerPhoneBlockers,
-} = require('../utils/customerPhone');
 
 function sanitizeUserResponse(user) {
   if (!user) return user;
@@ -24,66 +21,11 @@ function sanitizeUserResponse(user) {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
-
-    if (!name || !password) {
-      return res.status(400).json({ message: 'الاسم وكلمة المرور مطلوبة' });
-    }
-
-    const normalizedPhone = phone ? normalizeIraqiPhone(phone) : null;
-    const trimmedEmail = email?.trim() || null;
-
-    if (normalizedPhone) {
-      if (!isValidIraqiPhone(normalizedPhone)) {
-        return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
-      }
-
-      // حسابات عميل يتيمة (بدون طلبات) بعد حذف فاشل من لوحة التحكم
-      await clearOrphanCustomerBlockers(normalizedPhone);
-
-      const blockers = await findCustomerPhoneBlockers(normalizedPhone);
-      if (blockers.length > 0) {
-        const withOrders = blockers.filter((b) => b.order_count > 0);
-        if (withOrders.length > 0) {
-          return res.status(400).json({
-            message: 'رقم الهاتف مستخدم بالفعل — إذا كان لديك حساب سابق فسجّل الدخول',
-          });
-        }
-      }
-
-      const [otherRoles] = await db.query(
-        'SELECT id, role FROM users WHERE phone = ? AND role != ?',
-        [normalizedPhone, 'customer']
-      );
-      if (otherRoles.length > 0) {
-        const role = otherRoles[0].role;
-        if (role === 'staff') {
-          return res.status(400).json({ message: 'رقم الهاتف مستخدم لحساب موظف' });
-        }
-        return res.status(400).json({ message: 'رقم الهاتف مستخدم بالفعل' });
-      }
-    }
-
-    if (!normalizedPhone && !trimmedEmail) {
-      return res.status(400).json({ message: 'رقم الهاتف مطلوب' });
-    }
-
-    const userEmail = trimmedEmail || phonePlaceholderEmail(normalizedPhone);
-
-    const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [userEmail]);
-    if (existingUser.length > 0) {
-      return res.status(400).json({ message: normalizedPhone ? 'رقم الهاتف مستخدم بالفعل' : 'البريد الإلكتروني مستخدم بالفعل' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const [result] = await db.query(
-      'INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
-      [name.trim(), userEmail, hashedPassword, normalizedPhone, 'customer']
-    );
+    const user = await createCustomerAccount(req.body);
 
     const jwtSecret = process.env.JWT_SECRET || 'rybella_dev_secret_change_in_production';
     const token = jwt.sign(
-      { id: result.insertId, email: userEmail, role: 'customer' },
+      { id: user.id, email: user.email, role: 'customer' },
       jwtSecret,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -91,15 +33,12 @@ exports.register = async (req, res) => {
     res.status(201).json({
       message: 'تم التسجيل بنجاح',
       token,
-      user: sanitizeUserResponse({
-        id: result.insertId,
-        name: name.trim(),
-        email: trimmedEmail || userEmail,
-        phone: normalizedPhone,
-        role: 'customer',
-      }),
+      user: sanitizeUserResponse(user),
     });
   } catch (error) {
+    if (error.code) {
+      return res.status(400).json({ message: mapCreateError(error) });
+    }
     console.error('Register error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
@@ -126,9 +65,15 @@ exports.login = async (req, res) => {
 
     let users;
     if (normalizedPhone) {
-      [users] = await db.query('SELECT * FROM users WHERE phone = ?', [normalizedPhone]);
+      [users] = await db.query(
+        'SELECT * FROM users WHERE phone = ? AND deleted_at IS NULL',
+        [normalizedPhone]
+      );
     } else {
-      [users] = await db.query('SELECT * FROM users WHERE email = ?', [trimmedEmail]);
+      [users] = await db.query(
+        'SELECT * FROM users WHERE email = ? AND deleted_at IS NULL',
+        [trimmedEmail]
+      );
     }
 
     if (users.length === 0) {
@@ -163,7 +108,7 @@ exports.login = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const [users] = await db.query(
-      'SELECT id, name, email, phone, role, created_at FROM users WHERE id = ?',
+      'SELECT id, name, email, phone, role, created_at FROM users WHERE id = ? AND deleted_at IS NULL',
       [req.user.id]
     );
     if (users.length === 0) {
@@ -246,7 +191,11 @@ exports.deleteAccount = async (req, res) => {
     if (!valid) {
       return res.status(400).json({ message: 'كلمة المرور غير صحيحة' });
     }
-    await purgeUserById(req.user.id);
+    if (user.role === 'customer') {
+      await softDeleteCustomer(req.user.id);
+    } else {
+      await purgeUserById(req.user.id);
+    }
     res.json({ message: 'تم حذف الحساب بنجاح' });
   } catch (error) {
     console.error('Delete account error:', error);

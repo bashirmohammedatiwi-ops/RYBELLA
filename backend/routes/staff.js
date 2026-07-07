@@ -4,6 +4,7 @@ const staffController = require('../controllers/staffController');
 const { auth, adminAuth, staffAuth } = require('../middleware/auth');
 
 router.get('/stats', auth, staffAuth, staffController.getStats);
+router.post('/customers', auth, staffAuth, staffController.createCustomer);
 router.post('/push/subscribe', auth, staffAuth, staffController.subscribePush);
 router.post('/push/unsubscribe', auth, staffAuth, staffController.unsubscribePush);
 router.get('/', auth, adminAuth, staffController.getAll);

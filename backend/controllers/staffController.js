@@ -2,6 +2,7 @@ const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const { normalizeIraqiPhone, isValidIraqiPhone } = require('../utils/phone');
 const { purgeUserById } = require('../utils/purgeUser');
+const { createCustomerAccount, mapCreateError } = require('../utils/createCustomer');
 
 function phonePlaceholderEmail(phone) {
   return `${phone}@staff.rybella.iq`;
@@ -50,13 +51,19 @@ exports.create = async (req, res) => {
       return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
     }
 
-    const [existingPhone] = await db.query('SELECT id FROM users WHERE phone = ?', [normalizedPhone]);
+    const [existingPhone] = await db.query(
+      'SELECT id FROM users WHERE phone = ? AND deleted_at IS NULL',
+      [normalizedPhone]
+    );
     if (existingPhone.length > 0) {
       return res.status(400).json({ message: 'رقم الهاتف مستخدم بالفعل' });
     }
 
     const userEmail = email?.trim() || phonePlaceholderEmail(normalizedPhone);
-    const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [userEmail]);
+    const [existingUser] = await db.query(
+      'SELECT id FROM users WHERE email = ? AND deleted_at IS NULL',
+      [userEmail]
+    );
     if (existingUser.length > 0) {
       return res.status(400).json({ message: 'البريد أو الهاتف مستخدم بالفعل' });
     }
@@ -105,6 +112,28 @@ exports.delete = async (req, res) => {
     if (error.code === 'USER_DELETE_FAILED') {
       return res.status(500).json({ message: 'تعذّر حذف الموظف' });
     }
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
+
+/** إنشاء حساب عميل — للموظفين والمدير */
+exports.createCustomer = async (req, res) => {
+  try {
+    const user = await createCustomerAccount(req.body);
+    res.status(201).json({
+      message: 'تم إنشاء حساب العميل بنجاح',
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    if (error.code) {
+      return res.status(400).json({ message: mapCreateError(error) });
+    }
+    console.error('Staff create customer error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };
