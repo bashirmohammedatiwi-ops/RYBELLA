@@ -120,11 +120,42 @@
   border-color: rgba(34, 197, 94, 0.1);
 }
 
+.free-shipping-bar.is-pending {
+  background: linear-gradient(135deg, #fff8f0 0%, #fff 55%, #fffaf5 100%);
+  border-color: rgba(249, 115, 22, 0.28);
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.1);
+}
+
+.free-shipping-bar.is-pending .free-shipping-bar-icon {
+  color: #c2410c;
+  background: linear-gradient(145deg, #ffedd5, #fff);
+  border-color: rgba(249, 115, 22, 0.22);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.14);
+}
+
+.free-shipping-bar.is-pending .free-shipping-bar-amount {
+  color: #ea580c;
+}
+
+.free-shipping-bar.is-pending .free-shipping-bar-pct {
+  color: #c2410c;
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.2);
+}
+
+.free-shipping-bar.is-pending .free-shipping-bar-track {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.14);
+}
+
+.free-shipping-bar.is-pending .free-shipping-bar-fill {
+  background: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.4);
+}
+
 .free-shipping-bar-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #e85d7a 0%, #f08fa6 55%, #ff9ec0 100%);
-  box-shadow: 0 0 12px rgba(232, 93, 122, 0.35);
   transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: width;
 }

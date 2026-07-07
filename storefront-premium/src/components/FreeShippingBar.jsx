@@ -41,7 +41,7 @@ export default function FreeShippingBar({ subtotal }) {
   const pct = reached ? 100 : Math.min(100, (subtotal / threshold) * 100)
 
   return (
-    <div className={`free-shipping-bar${reached ? ' is-complete' : ''}`} role="status" aria-live="polite">
+    <div className={`free-shipping-bar${reached ? ' is-complete' : ' is-pending'}`} role="status" aria-live="polite">
       <div className="free-shipping-bar-top">
         <span className="free-shipping-bar-icon" aria-hidden="true">
           {reached ? <CheckIcon /> : <TruckIcon />}
@@ -53,14 +53,10 @@ export default function FreeShippingBar({ subtotal }) {
               <span className="free-shipping-bar-sub">طلبكِ مؤهل للتوصيل بدون رسوم</span>
             </>
           ) : (
-            <>
-              <strong className="free-shipping-bar-title">
-                بقي <span className="free-shipping-bar-amount">{formatPrice(remaining)}</span> للتوصيل المجاني
-              </strong>
-              <span className="free-shipping-bar-sub">
-                أضيفي منتجات بقيمة {formatPrice(remaining)} لتفعيل التوصيل المجاني
-              </span>
-            </>
+            <p className="free-shipping-bar-title">
+              إذا رغبتم بالحصول على توصيل مجاني أضف على طلبكم مواد بقيمة{' '}
+              <span className="free-shipping-bar-amount">{formatPrice(remaining)}</span>
+            </p>
           )}
         </div>
         <span className="free-shipping-bar-pct" aria-hidden="true">{Math.round(pct)}%</span>
