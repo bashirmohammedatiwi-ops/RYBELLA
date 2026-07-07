@@ -42,6 +42,7 @@ function cachedGet(path, params = {}, ttl = CATALOG_TTL) {
 
 export function prefetchPublicCatalog() {
   return Promise.all([
+    cachedGet('/storefront/home', {}, CATALOG_TTL),
     cachedGet('/categories', {}, CATALOG_TTL),
     cachedGet('/banners', {}, CATALOG_TTL),
     cachedGet('/web-settings', {}, SETTINGS_TTL),
@@ -53,6 +54,10 @@ export function prefetchPublicCatalog() {
       offset: 0,
     }, CATALOG_TTL),
   ])
+}
+
+export const storefrontAPI = {
+  getHome: () => cachedGet('/storefront/home', {}, CATALOG_TTL),
 }
 
 export function getCachedExplorePage(params = {}) {

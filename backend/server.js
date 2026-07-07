@@ -32,6 +32,7 @@ const inventorySyncRoutes = require('./routes/inventorySync');
 const backupRoutes = require('./routes/backups');
 const manualDiscountRoutes = require('./routes/manualDiscounts');
 const staffRoutes = require('./routes/staff');
+const storefrontRoutes = require('./routes/storefront');
 const imageRoutes = require('./routes/images');
 const { getOptimizedImage, parseCacheRequestPath } = require('./services/imageResizeService');
 
@@ -160,6 +161,7 @@ app.use((req, res, next) => {
     '/api/web-settings',
     '/api/offers',
     '/api/stories',
+    '/api/storefront/home',
   ]);
 
   if (publicExact.has(pathOnly)) {
@@ -204,6 +206,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 
 // Optimized image delivery (WebP resize + cache)
 app.use('/api/img', imageRoutes);
+
+app.use('/api/storefront', storefrontRoutes);
 
 // API Routes
 app.use('/api/auth', authRoutes);

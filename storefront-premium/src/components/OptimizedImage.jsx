@@ -5,13 +5,11 @@ import {
   getPresetConfig,
   getOriginalImageUrl,
   getUploadSource,
-  isDirectImageUrl,
 } from '../utils/imageUrl'
 import './OptimizedImage.css'
 
 function buildPrimaryUrl(src, fallbackSrc, config) {
   if (!src) return ''
-  if (isDirectImageUrl(src)) return getOriginalImageUrl(src)
   const uploadSource = getUploadSource(src, fallbackSrc)
   if (uploadSource) return getCachedImageUrl(uploadSource, config)
   return getOriginalImageUrl(src)
@@ -50,22 +48,48 @@ export default function OptimizedImage({
   )
 
   const uploadSource = useMemo(
-    () => getUploadSource(src, fallbackSrc),
+    () => getUploadSource(src, fallbackSrc) || fallbackSrc || null,
     [src, fallbackSrc]
   )
 
+  const secondarySource = useMemo(() => {
+    if (!fallbackSrc || fallbackSrc === uploadSource) return null
+    return fallbackSrc
+  }, [fallbackSrc, uploadSource])
+
   const [displayUrl, setDisplayUrl] = useState(primaryUrl)
-  const loadedRef = useRef(false)
   const stepRef = useRef(0)
+  const loadedUrlRef = useRef('')
 
   useEffect(() => {
-    loadedRef.current = false
     stepRef.current = 0
+    loadedUrlRef.current = ''
     setDisplayUrl(primaryUrl)
   }, [primaryUrl])
 
   if (!src || !enabled || !displayUrl) {
     return <span className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />
+  }
+
+  const handleError = (event) => {
+    const failedUrl = event.currentTarget?.src || ''
+    if (loadedUrlRef.current && loadedUrlRef.current === failedUrl) return
+    if (failedUrl !== displayUrl) return
+
+    if (stepRef.current === 0 && uploadSource) {
+      stepRef.current = 1
+      setDisplayUrl(getApiImageUrl(uploadSource, config))
+      return
+    }
+    if (stepRef.current === 1 && uploadSource) {
+      stepRef.current = 2
+      setDisplayUrl(getOriginalImageUrl(uploadSource))
+      return
+    }
+    if (stepRef.current === 2 && secondarySource) {
+      stepRef.current = 3
+      setDisplayUrl(getOriginalImageUrl(secondarySource))
+    }
   }
 
   return (
@@ -79,29 +103,10 @@ export default function OptimizedImage({
       draggable={draggable}
       onClick={onClick}
       onLoad={(event) => {
-        loadedRef.current = true
+        loadedUrlRef.current = event.currentTarget.currentSrc || event.currentTarget.src || displayUrl
         onLoad?.(event)
       }}
-      onError={() => {
-        if (loadedRef.current) return
-
-        if (stepRef.current === 0 && uploadSource) {
-          stepRef.current = 1
-          setDisplayUrl(getApiImageUrl(uploadSource, config))
-          return
-        }
-
-        if (stepRef.current <= 1 && uploadSource) {
-          stepRef.current = 2
-          setDisplayUrl(getOriginalImageUrl(uploadSource))
-          return
-        }
-
-        if (stepRef.current <= 2 && fallbackSrc && fallbackSrc !== uploadSource) {
-          stepRef.current = 3
-          setDisplayUrl(getOriginalImageUrl(fallbackSrc))
-        }
-      }}
+      onError={handleError}
       {...rest}
     />
   )

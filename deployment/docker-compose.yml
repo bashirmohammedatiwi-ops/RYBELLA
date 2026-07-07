@@ -1,4 +1,5 @@
 # Rybella Iraq - Production Docker Compose
+# ⚠️ مهمل — يستخدم SQLite. للإنتاج استخدم docker-compose.yml في جذر المشروع + PostgreSQL.
 # للتشغيل من مجلد deployment:
 #   cd ~/RYBELLA/deployment && docker compose --env-file .env up -d --build
 #

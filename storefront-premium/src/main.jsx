@@ -5,6 +5,7 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { RecentlyViewedProvider } from './context/RecentlyViewedContext'
+import { WebSettingsProvider } from './context/WebSettingsContext'
 import { startCatalogPrefetch } from './utils/prefetchCatalog'
 import './styles/global.css'
 
@@ -16,7 +17,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <CartProvider>
           <RecentlyViewedProvider>
-            <App />
+            <WebSettingsProvider>
+              <App />
+            </WebSettingsProvider>
           </RecentlyViewedProvider>
         </CartProvider>
       </AuthProvider>

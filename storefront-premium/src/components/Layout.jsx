@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react'
-import { webSettingsAPI } from '../services/api'
+import { useWebSettings } from '../context/WebSettingsContext'
 import BottomNav from './BottomNav'
 import LayoutExtras from './LayoutExtras'
 import ScrollToTop from './ScrollToTop'
 import './Layout.css'
 
 export default function Layout({ children }) {
-  const [settings, setSettings] = useState(null)
-
-  useEffect(() => {
-    webSettingsAPI.get().then((r) => r?.data && setSettings(r.data)).catch(() => {})
-  }, [])
+  const { settings } = useWebSettings()
 
   const showBottomNav = !settings || settings.show_bottom_nav !== '0'
   const showAnnouncement = settings?.announcement_bar_enabled === '1' && settings?.announcement_bar

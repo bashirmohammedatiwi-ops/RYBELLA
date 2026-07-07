@@ -63,6 +63,8 @@ async function attachProductListData(products, { lite = false } = {}) {
   return products;
 }
 
+exports.attachProductListData = attachProductListData;
+
 async function prepareProductCatalog() {
   try {
     await expireManualDiscounts(db);

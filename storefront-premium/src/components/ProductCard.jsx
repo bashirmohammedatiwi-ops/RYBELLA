@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom'
-import OptimizedImage from './OptimizedImage'
+import ProductCardImage from './ProductCardImage'
 import { formatNumber, formatCount, formatPercent } from '../utils/format'
 import { getProductCardPricing } from '../utils/pricing'
 import { getProductColorSwatches } from '../utils/variantColor'
-import { getProductCardImageUrl } from '../utils/imageUrl'
 import './ProductCard.css'
 
 function isNewProduct(p) {
@@ -20,9 +19,9 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
   const pricing = getProductCardPricing(product)
   const priceValue = pricing.price != null ? formatNumber(pricing.price) : null
   const originalValue = pricing.originalPrice != null ? formatNumber(pricing.originalPrice) : null
-  const imgSource = product.main_image || product.images?.[0] || product.variants?.[0]?.image
-  const imgFallback = imgSource
-  const img = imgSource ? getProductCardImageUrl(product.card_image || imgSource, imgSource) : null
+  const mainImage = product.main_image || product.images?.[0] || null
+  const variantImage = product.variants?.[0]?.image || null
+  const hasImage = Boolean(mainImage || variantImage)
   const inStock = product.variants?.some((v) => v.stock > 0) ?? product.in_stock > 0 ?? true
   const variants = product.variants || []
   const { displayed: colorSwatches, remaining: remainingColors, total: totalColors } = getProductColorSwatches(variants)
@@ -35,15 +34,13 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
       <Link to={`/products/${product.id}`} className="premium-product-card">
         <div className="premium-product-media">
           <div className="premium-product-image-frame">
-            {img ? (
-              <OptimizedImage
-                src={img}
-                fallbackSrc={imgFallback}
+            {hasImage ? (
+              <ProductCardImage
+                mainImage={mainImage}
+                variantImage={variantImage}
                 alt={product.name}
                 className="premium-product-img"
-                preset="card"
                 priority={priority}
-                loading={priority ? 'eager' : 'lazy'}
               />
             ) : (
               <div className="premium-product-placeholder">لا صورة</div>

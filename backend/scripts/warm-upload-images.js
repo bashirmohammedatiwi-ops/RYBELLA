@@ -16,11 +16,12 @@ const {
   snapWidth,
   CARD_WIDTH,
   CARD_QUALITY,
+  WARM_WIDTHS,
 } = require('../services/imageResizeService');
 
 const uploadsDir = process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads');
-const ALL_WIDTHS = [CARD_WIDTH, 120, 240, 400];
 const CARD_WIDTHS = [CARD_WIDTH];
+const ALL_WIDTHS = WARM_WIDTHS;
 
 const args = new Set(process.argv.slice(2));
 const cardsOnly = args.has('--cards-only');
@@ -52,7 +53,7 @@ function walk(dir, files = []) {
 async function warmOne(src) {
   for (const width of widths) {
     const w = snapWidth(width);
-    const q = w === CARD_WIDTH ? CARD_QUALITY : 76;
+    const q = w === CARD_WIDTH ? CARD_QUALITY : (w >= 900 ? 82 : w >= 600 ? 80 : 76);
     await getOptimizedImage({ src, width: w, quality: q, format: 'webp' }).catch(() => {});
   }
 }

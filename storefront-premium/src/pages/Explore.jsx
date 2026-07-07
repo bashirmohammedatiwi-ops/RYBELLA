@@ -103,6 +103,17 @@ export default function Explore() {
       .finally(() => setLoading(false))
   }, [buildListParams, categoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
 
+  useEffect(() => {
+    const isDefaultExplore = !categoryId && !brandId && !tagFilter && !minPrice && !maxPrice && !search && !featured && !sortBy
+    if (!isDefaultExplore || loading || products.length === 0 || !hasMore) return undefined
+
+    const timer = window.setTimeout(() => {
+      productsAPI.getPage(buildListParams(PAGE_SIZE)).catch(() => {})
+    }, 400)
+
+    return () => window.clearTimeout(timer)
+  }, [loading, products.length, hasMore, buildListParams, categoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
+
   const loadMore = useCallback(() => {
     if (loading || loadingMore || loadingMoreRef.current || !hasMore) return
     loadingMoreRef.current = true
@@ -322,7 +333,7 @@ export default function Explore() {
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
-                  priority={index < 4}
+                  priority={index < 2}
                 />
               ))}
             </div>

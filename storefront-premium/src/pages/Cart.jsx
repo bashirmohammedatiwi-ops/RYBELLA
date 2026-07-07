@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
-import OptimizedImage from '../components/OptimizedImage'
+import ProductCardImage from '../components/ProductCardImage'
 import FreeShippingBar from '../components/FreeShippingBar'
 import CartQuantityStepper from '../components/CartQuantityStepper'
 import MobileHeader from '../components/MobileHeader'
@@ -94,7 +94,11 @@ export default function Cart() {
               <div key={`bundle-${bundleId}`} className="cart-bundle-card">
                 <div className="cart-bundle-head">
                   <div className="cart-bundle-thumb">
-                    {img ? <OptimizedImage src={img} alt="" preset="thumb" /> : <span>باكج</span>}
+                    {img ? (
+                      <ProductCardImage mainImage={img} variantImage={null} alt="" className="cart-thumb-img" />
+                    ) : (
+                      <span>باكج</span>
+                    )}
                   </div>
                   <div className="cart-bundle-meta">
                     <span className="cart-bundle-badge">باكج حصري</span>
@@ -137,7 +141,16 @@ export default function Cart() {
             return (
               <div key={getItemId(item)} className="cart-item">
                 <Link to={`/products/${item.product_id || item.productId || ''}`} className="cart-item-image">
-                  {img ? <OptimizedImage src={img} alt="" preset="thumb" /> : <span className="cart-item-placeholder">صورة</span>}
+                  {img ? (
+                    <ProductCardImage
+                      mainImage={item.product_image || img}
+                      variantImage={item.variant_image || null}
+                      alt={getItemName(item)}
+                      className="cart-thumb-img"
+                    />
+                  ) : (
+                    <span className="cart-item-placeholder">صورة</span>
+                  )}
                   <span className={`cart-item-qty-badge${qty > 1 ? ' is-visible' : ''}`}>×{formatNumber(qty)}</span>
                 </Link>
                 <div className="cart-item-body">

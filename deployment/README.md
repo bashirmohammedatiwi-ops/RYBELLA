@@ -1,13 +1,15 @@
 # Rybella Iraq - دليل النشر على VPS باستخدام Docker
 
+> **تنبيه:** الملف [`deployment/docker-compose.yml`](docker-compose.yml) القديم (SQLite) **مهمل**. استخدم [`docker-compose.yml`](../docker-compose.yml) في جذر المشروع مع PostgreSQL و `./deploy.sh`.
+
 ## هيكل المشروع
 
 | المكون | التقنية | الوصف |
 |--------|---------|-------|
 | **Backend** | Node.js + Express | API على المنفذ 4000 |
 | **Admin Dashboard** | React + Vite | لوحة إدارة (المنفذ 4000) |
-| **Web Store** | React + Vite | متجر الويب (المنفذ 4001) |
-| **قاعدة البيانات** | SQLite (sql.js) | ملفية، لا تحتاج حاوية منفصلة |
+| **Web Store** | React + Vite | متجر الويب (المنفذ 4003) |
+| **قاعدة البيانات** | PostgreSQL 16 | حاوية `postgres` |
 | **Mobile** | Expo/React Native | يعمل على الأجهزة، يتصل بـ API المنشور |
 
 ---
@@ -53,8 +55,29 @@ docker compose ps
 docker compose logs -f
 
 # لوحة الإدارة: http://YOUR_VPS_IP:4000
-# متجر الويب:  http://YOUR_VPS_IP:4001
+# متجر الويب:  http://YOUR_VPS_IP:4003
 ```
+
+### صور البطاقات والأداء
+
+بعد النشر، يشغّل `deploy.sh` تلقائياً تسخين صور البطاقات (WebP 200px) **قبل** إعلان الجاهزية.
+
+```bash
+# تسخين يدوي لصور البطاقات فقط
+docker exec rybella-backend node scripts/warm-upload-images.js --cards-only
+
+# تنظيف ملفات cache اليتيمة (بدون أصل)
+docker exec rybella-backend node scripts/prune-image-cache.js
+
+# تخطي التسخين عند النشر
+SKIP_WARM=1 ./deploy.sh
+```
+
+Nginx في متجر الويب يخزّن مؤقتاً:
+- JSON الكتالوج و `/api/storefront/home` (90 ثانية)
+- `/uploads/.cache/` و `/api/img` (حتى 365 يوم للملفات الجاهزة)
+
+راقب `X-Cache-Status` في سجلات Nginx لمعرفة نسبة الـ hit.
 
 **بيانات الدخول الافتراضية للوحة الإدارة:**
 - البريد: `admin@rybella.iq`
@@ -132,3 +155,19 @@ docker compose logs -f webstore
 2. **API_URL:** ضع رابط الدومين الفعلي (مثل `https://rybella.example.com`)
 3. **HTTPS:** استخدم Certbot أو Nginx كـ reverse proxy أمامي لتفعيل SSL
 4. **النسخ الاحتياطي:** احفظ مجلدات `backend_data` و `backend_uploads` بشكل دوري
+
+---
+
+## معايير التحقق بعد النشر
+
+1. **صور البطاقات:** على `/` و `/explore` — لا تختفي الصور بعد التحميل ولا تظهر أيقونة مكسورة
+2. **أول فتح:** LCP أقل من 3 ثوانٍ على محاكاة mobile/4G (DevTools Lighthouse)
+3. **السيرفر:** طلب cache miss لنفس الصورة = عملية Sharp واحدة (in-flight dedup)
+4. **بعد `./deploy.sh`:** يكتمل warm البطاقات قبل رسالة «جاهز للاستخدام»
+5. **Network:** صفحة explore الأولى — بطاقات WebP ~200px
+
+```bash
+# تحقق من عينة cache
+curl -I "https://rybellairaq.com/uploads/.cache/w200_q72_webp/..."
+# يجب: HTTP 200 + Cache-Control: public, immutable
+```

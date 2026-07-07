@@ -66,6 +66,8 @@ async function resolveLinkUrl(linkType, linkValue) {
   return null;
 }
 
+exports.resolveLinkUrl = resolveLinkUrl;
+
 exports.getAll = async (req, res) => {
   try {
     const [rows] = await db.query(

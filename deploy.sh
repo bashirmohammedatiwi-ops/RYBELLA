@@ -258,7 +258,7 @@ warm_product_images() {
 
   if ! docker ps --format '{{.Names}}' | grep -q '^rybella-backend$'; then
     echo "WARN: backend غير شغّال — تخطي تسخين الصور"
-    return 0
+    return 1
   fi
 
   local warm_concurrency
@@ -267,9 +267,15 @@ warm_product_images() {
 
   echo ""
   echo "==> [1/2] تسخين صور بطاقات المتجر (قبل دخول الزبائن)..."
-  docker exec -e "WARM_CONCURRENCY=${warm_concurrency}" rybella-backend \
-    node scripts/warm-upload-images.js --cards-only \
-    || echo "WARN: card warm failed — run: docker exec rybella-backend node scripts/warm-upload-images.js --cards-only"
+  if ! docker exec -e "WARM_CONCURRENCY=${warm_concurrency}" rybella-backend \
+    node scripts/warm-upload-images.js --cards-only; then
+    echo "WARN: فشل تسخين بطاقات الصور"
+    echo "      شغّل يدوياً: docker exec rybella-backend node scripts/warm-upload-images.js --cards-only"
+    return 1
+  fi
+
+  echo "==> تنظيف ملفات cache اليتيمة..."
+  docker exec rybella-backend node scripts/prune-image-cache.js 2>/dev/null || true
 
   echo "==> [2/2] تسخين باقي أحجام الصور (خلفية، أولوية منخفضة)..."
   docker exec -d rybella-backend sh -c \
@@ -278,6 +284,35 @@ warm_product_images() {
     || docker exec -d rybella-backend node scripts/warm-upload-images.js --skip-cards \
     2>/dev/null \
     || true
+  return 0
+}
+
+verify_card_cache_samples() {
+  local count
+  count="$(docker exec rybella-backend sh -c 'find /app/uploads/.cache -type f -name "*.webp" 2>/dev/null | head -3 | wc -l' 2>/dev/null || echo 0)"
+  count="$(echo "$count" | tr -d '[:space:]')"
+  if [ "${count:-0}" -lt 1 ]; then
+    echo "WARN: لا توجد عينات WebP في cache بعد التسخين"
+    return 1
+  fi
+
+  local sample_file url_path webstore_port http_code
+  sample_file="$(docker exec rybella-backend sh -c 'find /app/uploads/.cache/w200_q72_webp -type f -name "*.webp" 2>/dev/null | head -1' 2>/dev/null || true)"
+  if [ -n "$sample_file" ]; then
+    url_path="/uploads/.cache/w200_q72_webp/$(basename "$sample_file")"
+    webstore_port="$(grep -E '^WEBSTORE_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo 4003)"
+    webstore_port="${webstore_port:-4003}"
+    http_code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${webstore_port}${url_path}" 2>/dev/null || echo 000)"
+    if [ "$http_code" = "200" ]; then
+      echo "OK  عينة cache بطاقة HTTP 200"
+    else
+      echo "WARN: عينة cache بطاقة أعادت HTTP ${http_code} (${url_path})"
+      return 1
+    fi
+  fi
+
+  echo "OK  وجدت عينات WebP في cache (${count}+)"
+  return 0
 }
 
 post_deploy_checks() {
@@ -326,6 +361,20 @@ post_deploy_checks() {
     echo "WARN Admin Nginx returned HTTP $nginx_code for /api/health/backups (rebuild web container if needed)"
   fi
 
+  local warm_ok=0
+  if ! warm_product_images; then
+    warm_ok=1
+  fi
+  if ! verify_card_cache_samples; then
+    warm_ok=1
+  fi
+
+  if [ "$warm_ok" -ne 0 ]; then
+    echo ""
+    echo "WARN: تسخين صور البطاقات لم يكتمل — قد تتأخر الصور عند أول زيارة"
+    echo "      docker exec rybella-backend node scripts/warm-upload-images.js --cards-only"
+  fi
+
   echo ""
   echo "============================================"
   echo "  Rybella — جاهز للاستخدام"
@@ -339,8 +388,6 @@ post_deploy_checks() {
 }
 
 post_deploy_checks || true
-
-warm_product_images
 
 echo ""
 echo "==> Status:"

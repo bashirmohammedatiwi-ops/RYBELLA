@@ -133,6 +133,9 @@ services:
     restart: always
     ports:
       - "127.0.0.1:${WEBSTORE_PORT:-4003}:80"
+    volumes:
+      - nginx_webstore_cache:/var/cache/nginx/rybella
+      - nginx_webstore_images_cache:/var/cache/nginx/rybella_images
     depends_on:
       backend:
         condition: service_healthy
@@ -159,6 +162,10 @@ volumes:
     name: rybella_backend_uploads
   backend_backups:
     name: rybella_backend_backups
+  nginx_webstore_cache:
+    name: rybella_nginx_webstore_cache
+  nginx_webstore_images_cache:
+    name: rybella_nginx_webstore_images_cache
 
 networks:
   rybella-network:

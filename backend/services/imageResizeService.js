@@ -4,7 +4,9 @@ const path = require('path');
 const UPLOADS_DIR = path.resolve(__dirname, '..', 'uploads');
 const CACHE_DIR = path.join(UPLOADS_DIR, '.cache');
 
+// Keep in sync with storefront-premium/src/utils/imageUrl.js IMAGE_PRESETS widths
 const ALLOWED_WIDTHS = [80, 120, 200, 240, 400, 600, 800, 900, 1000, 1200];
+const WARM_WIDTHS = [80, 120, 200, 240, 400, 600, 900, 1000];
 const DEFAULT_QUALITY = 82;
 const MAX_QUALITY = 95;
 const MIN_QUALITY = 40;
@@ -19,6 +21,7 @@ const SHARP_MAX_CONCURRENT = Math.max(
 const CARD_WIDTH = 200;
 const CARD_QUALITY = 72;
 const sharpWaiters = [];
+const inflightOptimizations = new Map();
 
 function releaseSharpSlot() {
   sharpActive = Math.max(0, sharpActive - 1);
@@ -150,6 +153,25 @@ async function getOptimizedImage({ src, width, quality, format }) {
     throw err;
   }
 
+  const w = snapWidth(width);
+  const q = Math.max(MIN_QUALITY, Math.min(MAX_QUALITY, Number(quality) || DEFAULT_QUALITY));
+  const fmt = format === 'jpeg' || format === 'jpg' ? 'jpeg' : 'webp';
+  const dedupeKey = `${src}|${w}|${q}|${fmt}`;
+
+  if (inflightOptimizations.has(dedupeKey)) {
+    return inflightOptimizations.get(dedupeKey);
+  }
+
+  const task = generateOptimizedImage({ src, width: w, quality: q, format: fmt });
+  inflightOptimizations.set(dedupeKey, task);
+  try {
+    return await task;
+  } finally {
+    inflightOptimizations.delete(dedupeKey);
+  }
+}
+
+async function generateOptimizedImage({ src, width, quality, format }) {
   const sourcePath = resolveSourceFile(src);
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     const err = new Error('الصورة غير موجودة');
@@ -172,9 +194,9 @@ async function getOptimizedImage({ src, width, quality, format }) {
     throw err;
   }
 
-  const w = snapWidth(width);
-  const q = Math.max(MIN_QUALITY, Math.min(MAX_QUALITY, Number(quality) || DEFAULT_QUALITY));
-  const fmt = format === 'jpeg' || format === 'jpg' ? 'jpeg' : 'webp';
+  const w = width;
+  const q = quality;
+  const fmt = format;
   const cachePath = getCacheAbsPath(src, w, q, fmt);
 
   if (fs.existsSync(cachePath)) {
@@ -218,9 +240,9 @@ async function getOptimizedImage({ src, width, quality, format }) {
 
 function warmImageThumbnails(src) {
   if (!isSafeUploadPath(src)) return;
-  [CARD_WIDTH, 120, 240, 400].forEach((width) => {
+  WARM_WIDTHS.forEach((width) => {
     const w = snapWidth(width);
-    const q = w === CARD_WIDTH ? CARD_QUALITY : 76;
+    const q = w === CARD_WIDTH ? CARD_QUALITY : (w >= 900 ? 82 : w >= 600 ? 80 : 76);
     getOptimizedImage({ src, width: w, quality: q, format: 'webp' }).catch(() => {});
   });
 }
@@ -230,6 +252,7 @@ module.exports = {
   snapWidth,
   isSafeUploadPath,
   ALLOWED_WIDTHS,
+  WARM_WIDTHS,
   warmImageThumbnails,
   getPublicCacheUrl,
   getCacheRelPath,

@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { warmImageThumbnails } = require('../services/imageResizeService');
 
 exports.create = async (req, res) => {
   try {
@@ -21,6 +22,8 @@ exports.create = async (req, res) => {
       const inventorySync = require('../services/inventorySyncService');
       await inventorySync.syncBarcodeFromExternal(barcode.trim());
     } catch (_) {}
+
+    if (image) warmImageThumbnails(image);
 
     res.status(201).json({ message: 'تم إنشاء الظل بنجاح', id: result.insertId });
   } catch (error) {
@@ -52,6 +55,8 @@ exports.update = async (req, res) => {
         await inventorySync.syncBarcodeFromExternal(barcode.trim());
       } catch (_) {}
     }
+
+    if (image) warmImageThumbnails(image);
 
     res.json({ message: 'تم تحديث الظل بنجاح' });
   } catch (error) {

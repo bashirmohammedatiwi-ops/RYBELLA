@@ -5,6 +5,7 @@ const getApiBase = () => {
 }
 
 const ALLOWED_WIDTHS = [80, 120, 200, 240, 400, 600, 800, 900, 1000, 1200]
+// Keep in sync with backend/services/imageResizeService.js ALLOWED_WIDTHS + CARD_WIDTH/CARD_QUALITY
 
 export const IMAGE_PRESETS = {
   icon: { width: 80, quality: 72 },

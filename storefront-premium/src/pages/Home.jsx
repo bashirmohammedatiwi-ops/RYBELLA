@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { productsAPI, categoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, notificationsAPI } from '../services/api'
+import { productsAPI, wishlistAPI, notificationsAPI, storefrontAPI } from '../services/api'
 import OptimizedImage from '../components/OptimizedImage'
 import { useAuth } from '../context/AuthContext'
+import { useWebSettings } from '../context/WebSettingsContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
 import HomeCategoriesSection from '../components/HomeCategoriesSection'
@@ -30,7 +31,7 @@ export default function Home() {
   const [popular, setPopular] = useState([])
   const [bestSellers, setBestSellers] = useState([])
   const [wishlistIds, setWishlistIds] = useState([])
-  const [settings, setSettings] = useState(null)
+  const { settings, setSettings } = useWebSettings()
   const [recentProducts, setRecentProducts] = useState([])
   const [bannerIdx, setBannerIdx] = useState(0)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
@@ -41,49 +42,33 @@ export default function Home() {
   const { recentIds } = useRecentlyViewed()
 
   useEffect(() => {
-    const toArr = (d) => (Array.isArray(d) ? d : d?.data && Array.isArray(d.data) ? d.data : [])
     let cancelled = false
 
-    Promise.all([
-      categoriesAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      bannersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      webSettingsAPI.get().then((r) => r?.data || null).catch(() => null),
-    ]).then(([cats, bns, sett]) => {
-      if (cancelled) return
-      setCategories(cats)
-      setBanners(bns)
-      if (sett) setSettings(sett)
-    })
-
-    const loadSecondary = () => {
-      Promise.all([
-        productsAPI.getAll({ featured: '1', limit: 10, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
-        productsAPI.getAll({ best_seller: '1', limit: 10, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
-        productsAPI.getAll({ sort_by: 'newest', limit: 12, lite: 1 }).then((r) => toArr(r?.data)).catch(() => []),
-        offersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      ]).then(([feat, best, recent, offs]) => {
+    storefrontAPI.getHome()
+      .then((r) => {
         if (cancelled) return
-        setFeatured(feat.slice(0, 10))
-        setPopular(recent)
-        setBestSellers(best.slice(0, 10))
-        setOffers(offs)
+        const data = r?.data || {}
+        setCategories(data.categories || [])
+        setBanners(data.banners || [])
+        setOffers(data.offers || [])
+        setFeatured((data.featured || []).slice(0, 10))
+        setPopular(data.newest || [])
+        setBestSellers((data.best_sellers || []).slice(0, 10))
+        if (data.settings) setSettings(data.settings)
       })
-    }
+      .catch(() => {
+        if (!cancelled) {
+          setCategories([])
+          setBanners([])
+          setOffers([])
+          setFeatured([])
+          setPopular([])
+          setBestSellers([])
+        }
+      })
 
-    if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(loadSecondary, { timeout: 900 })
-      return () => {
-        cancelled = true
-        window.cancelIdleCallback(id)
-      }
-    }
-
-    const timer = window.setTimeout(loadSecondary, 120)
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [])
+    return () => { cancelled = true }
+  }, [setSettings])
 
   useEffect(() => {
     if (!recentIds?.length) {
@@ -324,7 +309,7 @@ export default function Home() {
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
-                  priority={index < 4}
+                  priority={index < 2}
                 />
               ))}
             </div>
@@ -344,7 +329,7 @@ export default function Home() {
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
-                  priority={index < 4}
+                  priority={index < 2}
                 />
               ))}
             </div>
@@ -364,7 +349,7 @@ export default function Home() {
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
-                  priority={index < 4}
+                  priority={index < 2}
                 />
               ))}
             </div>
