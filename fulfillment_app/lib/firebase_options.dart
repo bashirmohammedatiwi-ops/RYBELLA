@@ -29,6 +29,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '000000000000',
     projectId: 'rybella-iraq',
     storageBucket: 'rybella-iraq.appspot.com',
-    iosBundleId: 'com.rybella.fulfillmentApp',
+    iosBundleId: 'com.rybella.fulfillment.staff',
   );
 }

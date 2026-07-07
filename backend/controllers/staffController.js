@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const { normalizeIraqiPhone, isValidIraqiPhone } = require('../utils/phone');
+const { purgeUserById } = require('../utils/purgeUser');
 
 function phonePlaceholderEmail(phone) {
   return `${phone}@staff.rybella.iq`;
@@ -97,10 +98,13 @@ exports.delete = async (req, res) => {
       return res.status(403).json({ message: 'يمكن حذف حسابات موظفي التجهيز فقط' });
     }
 
-    await db.query('DELETE FROM users WHERE id = ?', [userId]);
+    await purgeUserById(userId);
     res.json({ message: 'تم حذف الموظف بنجاح' });
   } catch (error) {
     console.error('Delete staff error:', error);
+    if (error.code === 'USER_DELETE_FAILED') {
+      return res.status(500).json({ message: 'تعذّر حذف الموظف' });
+    }
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };

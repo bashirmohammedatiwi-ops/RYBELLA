@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { purgeUserById } = require('../utils/purgeUser');
 
 exports.getAll = async (req, res) => {
   try {
@@ -52,11 +53,17 @@ exports.delete = async (req, res) => {
     if (user.role === 'admin') {
       return res.status(403).json({ message: 'لا يمكن حذف حساب المدير' });
     }
+    if (user.role !== 'customer') {
+      return res.status(403).json({ message: 'يمكن حذف العملاء فقط من هذه الصفحة' });
+    }
 
-    await db.query('DELETE FROM users WHERE id = ?', [userId]);
+    await purgeUserById(userId);
     res.json({ message: 'تم حذف العميل بنجاح' });
   } catch (error) {
     console.error('Delete customer error:', error);
+    if (error.code === 'USER_DELETE_FAILED') {
+      return res.status(500).json({ message: 'تعذّر حذف العميل — حاول مرة أخرى أو تواصل مع الدعم' });
+    }
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };

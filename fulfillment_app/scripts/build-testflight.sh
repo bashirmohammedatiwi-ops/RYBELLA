@@ -15,7 +15,7 @@ if [[ ! -f ios/Runner/GoogleService-Info.plist ]]; then
   echo "تحذير: ios/Runner/GoogleService-Info.plist غير موجود."
   echo "شغّل من مجلد fulfillment_app:"
   echo "  dart pub global activate flutterfire_cli"
-  echo "  flutterfire configure --project=rybella-iraq --ios-bundle-id=com.rybella.fulfillmentApp"
+  echo "  flutterfire configure --project=rybella-iraq --ios-bundle-id=com.rybella.fulfillment.staff"
   echo ""
 fi
 

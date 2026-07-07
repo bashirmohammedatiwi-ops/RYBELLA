@@ -2,6 +2,7 @@ const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { normalizeIraqiPhone, isValidIraqiPhone } = require('../utils/phone');
+const { purgeUserById } = require('../utils/purgeUser');
 
 function phonePlaceholderEmail(phone) {
   return `${phone}@phone.rybella.iq`;
@@ -35,8 +36,15 @@ exports.register = async (req, res) => {
       if (!isValidIraqiPhone(normalizedPhone)) {
         return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
       }
-      const [existingPhone] = await db.query('SELECT id FROM users WHERE phone = ?', [normalizedPhone]);
+      const [existingPhone] = await db.query(
+        'SELECT id, role FROM users WHERE phone = ?',
+        [normalizedPhone]
+      );
       if (existingPhone.length > 0) {
+        const role = existingPhone[0].role;
+        if (role === 'staff') {
+          return res.status(400).json({ message: 'رقم الهاتف مستخدم لحساب موظف' });
+        }
         return res.status(400).json({ message: 'رقم الهاتف مستخدم بالفعل' });
       }
     }
@@ -223,10 +231,13 @@ exports.deleteAccount = async (req, res) => {
     if (!valid) {
       return res.status(400).json({ message: 'كلمة المرور غير صحيحة' });
     }
-    await db.query('DELETE FROM users WHERE id = ?', [req.user.id]);
+    await purgeUserById(req.user.id);
     res.json({ message: 'تم حذف الحساب بنجاح' });
   } catch (error) {
     console.error('Delete account error:', error);
+    if (error.code === 'USER_DELETE_FAILED') {
+      return res.status(500).json({ message: 'تعذّر حذف الحساب' });
+    }
     res.status(500).json({ message: 'حدث خطأ في الخادم' });
   }
 };

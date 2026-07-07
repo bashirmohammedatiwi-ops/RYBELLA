@@ -2,11 +2,18 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../core/firebase_config.dart';
+import '../firebase_options.dart';
 import 'api_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  if (!FirebaseConfig.isConfigured) return;
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    }
+  } catch (_) {}
 }
 
 class PushService {
@@ -21,9 +28,11 @@ class PushService {
           defaultTargetPlatform == TargetPlatform.iOS);
 
   static Future<bool> _firebaseReady() async {
-    if (kIsWeb) return false;
+    if (kIsWeb || !FirebaseConfig.isConfigured) return false;
     try {
-      if (Firebase.apps.isEmpty) await Firebase.initializeApp();
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      }
       return true;
     } catch (e) {
       debugPrint('[PushService] Firebase: $e');
@@ -69,50 +78,63 @@ class PushService {
 
     if (!await _firebaseReady()) return;
 
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    try {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    FirebaseMessaging.onMessage.listen((message) {
-      final title = message.notification?.title ?? 'طلب جديد';
-      final body = message.notification?.body ?? '';
-      final orderId = message.data['orderId'];
-      showLocal(
-        title: title,
-        body: body,
-        payload: orderId != null ? 'order:$orderId' : null,
-      );
-    });
+      FirebaseMessaging.onMessage.listen((message) {
+        final title = message.notification?.title ?? 'طلب جديد';
+        final body = message.notification?.body ?? '';
+        final orderId = message.data['orderId'];
+        showLocal(
+          title: title,
+          body: body,
+          payload: orderId != null ? 'order:$orderId' : null,
+        );
+      });
 
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      final orderId = message.data['orderId'];
-      if (orderId != null) {
-        onNotificationTap?.call({'orderId': orderId});
-      }
-    });
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        final orderId = message.data['orderId'];
+        if (orderId != null) {
+          onNotificationTap?.call({'orderId': orderId});
+        }
+      });
+    } catch (e) {
+      debugPrint('[PushService] FCM listeners skipped: $e');
+    }
   }
 
   static Future<bool> requestAndSubscribe() async {
     if (!_isNativeMobile || !await _firebaseReady()) return false;
 
-    final messaging = FirebaseMessaging.instance;
-    final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
-    final allowed = settings.authorizationStatus == AuthorizationStatus.authorized ||
-        settings.authorizationStatus == AuthorizationStatus.provisional;
-    if (!allowed) return false;
+    try {
+      final messaging = FirebaseMessaging.instance;
+      final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
+      final allowed = settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+      if (!allowed) return false;
 
-    final token = await messaging.getToken();
-    if (token == null || token.isEmpty) return false;
+      final token = await messaging.getToken();
+      if (token == null || token.isEmpty) return false;
 
-    final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-    final res = await ApiService.subscribePush(token: token, platform: platform);
-    return res.success;
+      final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+      final res = await ApiService.subscribePush(token: token, platform: platform);
+      return res.success;
+    } catch (e) {
+      debugPrint('[PushService] subscribe skipped: $e');
+      return false;
+    }
   }
 
   static Future<void> syncAfterLogin() async {
     if (!_isNativeMobile || !await _firebaseReady()) return;
-    final token = await FirebaseMessaging.instance.getToken();
-    if (token == null) return;
-    final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-    await ApiService.subscribePush(token: token, platform: platform);
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null) return;
+      final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+      await ApiService.subscribePush(token: token, platform: platform);
+    } catch (e) {
+      debugPrint('[PushService] sync skipped: $e');
+    }
   }
 
   static Future<void> showLocal({
@@ -123,28 +145,36 @@ class PushService {
   }) async {
     if (kIsWeb) return;
 
-    final androidDetails = AndroidNotificationDetails(
-      _channelId,
-      _channelName,
-      channelDescription: 'إشعارات تجهيز الطلبات',
-      importance: Importance.max,
-      priority: Priority.high,
-      ongoing: ongoing,
-      fullScreenIntent: true,
-      category: AndroidNotificationCategory.reminder,
-    );
-    const iosDetails = DarwinNotificationDetails(presentSound: true);
-    await _local.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      NotificationDetails(android: androidDetails, iOS: iosDetails),
-      payload: payload,
-    );
+    try {
+      final androidDetails = AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: 'إشعارات تجهيز الطلبات',
+        importance: Importance.max,
+        priority: Priority.high,
+        ongoing: ongoing,
+        fullScreenIntent: true,
+        category: AndroidNotificationCategory.reminder,
+      );
+      const iosDetails = DarwinNotificationDetails(presentSound: true);
+      await _local.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title,
+        body,
+        NotificationDetails(android: androidDetails, iOS: iosDetails),
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('[PushService] showLocal skipped: $e');
+    }
   }
 
   static Future<void> cancelAll() async {
     if (kIsWeb) return;
-    await _local.cancelAll();
+    try {
+      await _local.cancelAll();
+    } catch (e) {
+      debugPrint('[PushService] cancelAll skipped: $e');
+    }
   }
 }

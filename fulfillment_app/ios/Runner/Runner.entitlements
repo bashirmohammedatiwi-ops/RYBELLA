@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  مؤقتاً بدون Push — لتجنب خطأ provisioning profile.
+  عند تفعيل Push في Apple Developer:
+  1. انسخ Runner.entitlements.push إلى Runner.entitlements
+  2. أعد CODE_SIGN_ENTITLEMENTS في Xcode لكل إعدادات Runner
+  3. أضف Capability: Push Notifications
+-->
 <plist version="1.0">
-<dict>
-	<key>aps-environment</key>
-	<string>production</string>
-</dict>
+<dict/>
 </plist>

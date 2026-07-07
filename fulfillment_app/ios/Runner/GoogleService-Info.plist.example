@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.rybella.fulfillmentApp</string>
+	<string>com.rybella.fulfillment.staff</string>
 	<key>PROJECT_ID</key>
 	<string>rybella-iraq</string>
 	<key>STORAGE_BUCKET</key>
