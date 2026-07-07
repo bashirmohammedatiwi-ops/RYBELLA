@@ -20,6 +20,7 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
   const priceValue = pricing.price != null ? formatNumber(pricing.price) : null
   const originalValue = pricing.originalPrice != null ? formatNumber(pricing.originalPrice) : null
   const img = product.card_image || product.main_image || product.images?.[0] || product.variants?.[0]?.image
+  const imgFallback = product.main_image || product.images?.[0] || product.variants?.[0]?.image
   const inStock = product.variants?.some((v) => v.stock > 0) ?? product.in_stock > 0 ?? true
   const variants = product.variants || []
   const { displayed: colorSwatches, remaining: remainingColors, total: totalColors } = getProductColorSwatches(variants)
@@ -33,7 +34,14 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
         <div className="premium-product-media">
           <div className="premium-product-image-frame">
             {img ? (
-              <OptimizedImage src={img} alt={product.name} className="premium-product-img" preset="card" priority={priority} />
+              <OptimizedImage
+                src={img}
+                fallbackSrc={imgFallback}
+                alt={product.name}
+                className="premium-product-img"
+                preset="card"
+                priority={priority}
+              />
             ) : (
               <div className="premium-product-placeholder">لا صورة</div>
             )}

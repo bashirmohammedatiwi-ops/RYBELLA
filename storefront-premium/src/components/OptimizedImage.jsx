@@ -12,6 +12,7 @@ const FAST_PRESETS = new Set(['card', 'thumb', 'icon'])
 
 export default function OptimizedImage({
   src,
+  fallbackSrc,
   alt = '',
   className = '',
   preset = 'card',
@@ -29,12 +30,12 @@ export default function OptimizedImage({
   ...rest
 }) {
   const [mode, setMode] = useState('primary')
-  const [ready, setReady] = useState(false)
+  const [activeSrc, setActiveSrc] = useState(src)
   const fastPreset = FAST_PRESETS.has(preset)
 
   useEffect(() => {
     setMode('primary')
-    setReady(false)
+    setActiveSrc(src)
   }, [src])
 
   const config = useMemo(() => {
@@ -46,18 +47,18 @@ export default function OptimizedImage({
   }, [preset, width, quality])
 
   const imgSrc = useMemo(() => {
-    if (!src || !enabled) return ''
+    if (!activeSrc || !enabled) return ''
     const opts = { width: config.width, quality: config.quality }
+    const base = activeSrc
 
-    if (mode === 'original') return getOriginalImageUrl(src)
-    if (mode === 'api') return getApiImageUrl(src, opts)
-
-    // البطاقات: السيرفر يختار الرابط (cache أو أصل) — بدون تخمين من المتصفح
-    if (fastPreset || isDirectImageUrl(src)) {
-      return getOriginalImageUrl(src)
+    if (fastPreset || isDirectImageUrl(base)) {
+      return getOriginalImageUrl(base)
     }
-    return getCachedImageUrl(src, opts)
-  }, [src, config.width, config.quality, mode, enabled])
+
+    if (mode === 'original') return getOriginalImageUrl(fallbackSrc || base)
+    if (mode === 'api') return getApiImageUrl(base, opts)
+    return getCachedImageUrl(base, opts)
+  }, [activeSrc, fallbackSrc, config.width, config.quality, mode, enabled, fastPreset])
 
   if (!src || !enabled) {
     return <span className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />
@@ -65,25 +66,27 @@ export default function OptimizedImage({
 
   return (
     <img
+      key={imgSrc}
       src={imgSrc}
       alt={alt}
-      className={`${className}${ready ? ' optimized-img--ready' : ' optimized-img--loading'}`.trim()}
+      className={className}
       loading={priority || eager ? 'eager' : loading}
-      decoding={priority ? 'sync' : decoding}
+      decoding={decoding}
       fetchPriority={priority ? 'high' : fetchPriority}
       draggable={draggable}
       onClick={onClick}
-      onLoad={(e) => {
-        setReady(true)
-        onLoad?.(e)
-      }}
+      onLoad={onLoad}
       onError={() => {
-        setReady(false)
-        setMode((current) => {
-          if (current === 'primary') {
-            if (fastPreset || isDirectImageUrl(src)) return 'original'
-            return 'api'
+        if (fastPreset) {
+          const original = fallbackSrc || src
+          if (original && activeSrc !== original) {
+            setActiveSrc(original)
+            return
           }
+          return
+        }
+        setMode((current) => {
+          if (current === 'primary') return 'api'
           if (current === 'api') return 'original'
           return current
         })
