@@ -83,6 +83,13 @@ export function getUploadSource(src, fallback) {
   return null
 }
 
+/** رابط بطاقة المنتج — يُبنى دائماً من المسار الأصلي لضمان تطابق الـ cache */
+export function getProductCardImageUrl(cardImage, fallback) {
+  const source = getUploadSource(cardImage, fallback) || fallback
+  if (!source) return cardImage ? getOriginalImageUrl(cardImage) : ''
+  return getCachedImageUrl(source, IMAGE_PRESETS.card)
+}
+
 /** رابط جاهز من السيرفر (cache أو أصل) — لا يُعاد تحويله */
 export function isDirectImageUrl(src) {
   if (!src || typeof src !== 'string') return false

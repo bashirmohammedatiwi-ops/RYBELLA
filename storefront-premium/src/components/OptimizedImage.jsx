@@ -9,6 +9,14 @@ import {
 } from '../utils/imageUrl'
 import './OptimizedImage.css'
 
+function buildPrimaryUrl(src, fallbackSrc, config) {
+  if (!src) return ''
+  if (isDirectImageUrl(src)) return getOriginalImageUrl(src)
+  const uploadSource = getUploadSource(src, fallbackSrc)
+  if (uploadSource) return getCachedImageUrl(uploadSource, config)
+  return getOriginalImageUrl(src)
+}
+
 export default function OptimizedImage({
   src,
   fallbackSrc,
@@ -28,42 +36,6 @@ export default function OptimizedImage({
   onLoad,
   ...rest
 }) {
-  const [mode, setMode] = useState('primary')
-  const [activeSrc, setActiveSrc] = useState(src)
-  const [inView, setInView] = useState(Boolean(priority || eager))
-  const rootRef = useRef(null)
-
-  useEffect(() => {
-    setMode('primary')
-    setActiveSrc(src)
-  }, [src])
-
-  useEffect(() => {
-    if (priority || eager || !enabled) {
-      setInView(true)
-      return undefined
-    }
-
-    const node = rootRef.current
-    if (!node || typeof IntersectionObserver === 'undefined') {
-      setInView(true)
-      return undefined
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true)
-          observer.disconnect()
-        }
-      },
-      { rootMargin: '180px 0px', threshold: 0.01 }
-    )
-
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [priority, eager, enabled, src])
-
   const config = useMemo(() => {
     const base = getPresetConfig(preset)
     return {
@@ -72,60 +44,65 @@ export default function OptimizedImage({
     }
   }, [preset, width, quality])
 
-  const uploadSource = useMemo(
-    () => getUploadSource(activeSrc, fallbackSrc),
-    [activeSrc, fallbackSrc]
+  const primaryUrl = useMemo(
+    () => buildPrimaryUrl(src, fallbackSrc, config),
+    [src, fallbackSrc, config]
   )
 
-  const imgSrc = useMemo(() => {
-    if (!activeSrc || !enabled || !inView) return ''
-    const opts = { width: config.width, quality: config.quality }
+  const uploadSource = useMemo(
+    () => getUploadSource(src, fallbackSrc),
+    [src, fallbackSrc]
+  )
 
-    if (mode === 'original') {
-      return uploadSource ? getOriginalImageUrl(uploadSource) : getOriginalImageUrl(activeSrc)
-    }
-    if (mode === 'api') {
-      return uploadSource ? getApiImageUrl(uploadSource, opts) : getOriginalImageUrl(activeSrc)
-    }
-    if (isDirectImageUrl(activeSrc)) {
-      return getOriginalImageUrl(activeSrc)
-    }
-    if (uploadSource) {
-      return getCachedImageUrl(uploadSource, opts)
-    }
-    return getOriginalImageUrl(activeSrc)
-  }, [activeSrc, uploadSource, config.width, config.quality, mode, enabled, inView])
+  const [displayUrl, setDisplayUrl] = useState(primaryUrl)
+  const loadedRef = useRef(false)
+  const stepRef = useRef(0)
 
-  if (!src || !enabled) {
+  useEffect(() => {
+    loadedRef.current = false
+    stepRef.current = 0
+    setDisplayUrl(primaryUrl)
+  }, [primaryUrl])
+
+  if (!src || !enabled || !displayUrl) {
     return <span className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />
   }
 
   return (
-    <span ref={rootRef} className="optimized-img-root">
-      {inView && imgSrc ? (
-        <img
-          key={imgSrc}
-          src={imgSrc}
-          alt={alt}
-          className={className}
-          loading={priority || eager ? 'eager' : loading}
-          decoding={decoding}
-          fetchPriority={priority ? 'high' : fetchPriority}
-          draggable={draggable}
-          onClick={onClick}
-          onLoad={onLoad}
-          onError={() => {
-            setMode((current) => {
-              if (current === 'primary') return 'api'
-              if (current === 'api') return 'original'
-              return current
-            })
-          }}
-          {...rest}
-        />
-      ) : (
-        <span className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />
-      )}
-    </span>
+    <img
+      src={displayUrl}
+      alt={alt}
+      className={className}
+      loading={priority || eager ? 'eager' : loading}
+      decoding={decoding}
+      fetchPriority={priority ? 'high' : fetchPriority}
+      draggable={draggable}
+      onClick={onClick}
+      onLoad={(event) => {
+        loadedRef.current = true
+        onLoad?.(event)
+      }}
+      onError={() => {
+        if (loadedRef.current) return
+
+        if (stepRef.current === 0 && uploadSource) {
+          stepRef.current = 1
+          setDisplayUrl(getApiImageUrl(uploadSource, config))
+          return
+        }
+
+        if (stepRef.current <= 1 && uploadSource) {
+          stepRef.current = 2
+          setDisplayUrl(getOriginalImageUrl(uploadSource))
+          return
+        }
+
+        if (stepRef.current <= 2 && fallbackSrc && fallbackSrc !== uploadSource) {
+          stepRef.current = 3
+          setDisplayUrl(getOriginalImageUrl(fallbackSrc))
+        }
+      }}
+      {...rest}
+    />
   )
 }

@@ -1,13 +1,13 @@
-.optimized-img-root {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
 .optimized-img-placeholder {
   display: block;
   width: 100%;
   height: 100%;
   min-height: 1px;
   background: #f3f4f6;
+}
+
+.premium-product-image-frame .premium-product-img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
