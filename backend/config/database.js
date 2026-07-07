@@ -60,6 +60,12 @@ async function runMigrations() {
     'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS sync_discount_percent NUMERIC(8, 2) DEFAULT 0',
     'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS manual_discount_percent NUMERIC(8, 2)',
     'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS manual_discount_until TIMESTAMPTZ',
+    'ALTER TABLE push_tokens ADD COLUMN IF NOT EXISTS app TEXT DEFAULT \'customer\'',
+    `DO $$ BEGIN
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'customer', 'staff'));
+    EXCEPTION WHEN others THEN NULL;
+    END $$`,
   ];
   for (const sql of migrations) {
     await getPool().query(sql);

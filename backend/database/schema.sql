@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
     phone TEXT,
-    role TEXT DEFAULT 'customer' CHECK(role IN ('admin', 'customer')),
+    role TEXT DEFAULT 'customer' CHECK(role IN ('admin', 'customer', 'staff')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

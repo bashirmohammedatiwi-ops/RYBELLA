@@ -11,6 +11,7 @@ import Subcategories from './pages/Subcategories'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Customers from './pages/Customers'
+import Staff from './pages/Staff'
 import Coupons from './pages/Coupons'
 import Reviews from './pages/Reviews'
 import DeliveryZones from './pages/DeliveryZones'
@@ -59,6 +60,7 @@ function App() {
         <Route path="orders" element={<Orders />} />
         <Route path="orders/:id" element={<OrderDetail />} />
         <Route path="customers" element={<Customers />} />
+        <Route path="staff" element={<Staff />} />
         <Route path="coupons" element={<Coupons />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="reviews" element={<Reviews />} />

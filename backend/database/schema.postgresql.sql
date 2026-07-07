@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
     phone TEXT,
-    role TEXT DEFAULT 'customer' CHECK (role IN ('admin', 'customer')),
+    role TEXT DEFAULT 'customer' CHECK (role IN ('admin', 'customer', 'staff')),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -201,6 +201,7 @@ CREATE TABLE IF NOT EXISTS push_tokens (
     token TEXT NOT NULL,
     platform TEXT NOT NULL DEFAULT 'web',
     endpoint TEXT,
+    app TEXT DEFAULT 'customer',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, platform, endpoint)
 );

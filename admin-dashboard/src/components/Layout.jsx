@@ -24,6 +24,7 @@ import {
   LocalOffer as BrandIcon,
   ShoppingCart as OrdersIcon,
   People as PeopleIcon,
+  SupportAgent as StaffIcon,
   ConfirmationNumber as CouponIcon,
   RateReview as ReviewIcon,
   LocalShipping as DeliveryIcon,
@@ -51,6 +52,7 @@ const mainNav = [
   { path: '/products', label: 'المنتجات', icon: <ProductsIcon /> },
   { path: '/orders', label: 'الطلبات', icon: <OrdersIcon /> },
   { path: '/customers', label: 'العملاء', icon: <PeopleIcon /> },
+  { path: '/staff', label: 'موظفو التجهيز', icon: <StaffIcon /> },
 ];
 
 const settingsNav = [

@@ -153,8 +153,68 @@ async function sendExpoPush(tokens, title, body, data = {}) {
   return { sent, failed };
 }
 
+async function getFulfillmentTokenRows() {
+  const [rows] = await db.query(`
+    SELECT pt.id, pt.token, pt.platform
+    FROM push_tokens pt
+    JOIN users u ON u.id = pt.user_id
+    WHERE u.role IN ('staff', 'admin')
+      AND COALESCE(pt.app, 'customer') = 'fulfillment'
+  `);
+  return rows;
+}
+
+async function sendStaffPush(title, body, data = {}) {
+  const rows = await getFulfillmentTokenRows();
+  if (!rows.length) {
+    return { total: 0, sent: 0, failed: 0 };
+  }
+
+  const fcmTokens = [];
+  const expoTokens = [];
+
+  for (const row of rows) {
+    if (isExpoToken(row.token)) {
+      expoTokens.push(row.token);
+    } else if (['android', 'ios'].includes(row.platform)) {
+      fcmTokens.push(row.token);
+    } else {
+      expoTokens.push(row.token);
+    }
+  }
+
+  const expoResult = await sendExpoPush(expoTokens, title, body, data);
+  const fcmResult = await sendFcmPush(fcmTokens, title, body, data);
+
+  return {
+    total: rows.length,
+    sent: expoResult.sent + fcmResult.sent,
+    failed: expoResult.failed + fcmResult.failed,
+  };
+}
+
+async function sendStaffNewOrderPush(orderId, finalPrice) {
+  const priceLabel = Number(finalPrice || 0).toLocaleString('ar-IQ');
+  return sendStaffPush(
+    'طلب جديد 🛍️',
+    `طلب #${orderId} بقيمة ${priceLabel} د.ع — يحتاج تجهيز`,
+    { type: 'new_order', orderId: String(orderId), url: `/orders/${orderId}` }
+  );
+}
+
+async function sendStaffReminderPush(pendingCount) {
+  const label = pendingCount === 1 ? 'طلب واحد' : `${pendingCount} طلبات`;
+  return sendStaffPush(
+    'تذكير بالتجهيز ⏰',
+    `لديك ${label} بانتظار التجهيز — يرجى المتابعة`,
+    { type: 'order_reminder', pendingCount: String(pendingCount) }
+  );
+}
+
 async function sendPushForNotification(title, message, notificationId) {
-  const [rows] = await db.query('SELECT id, token, platform, endpoint FROM push_tokens');
+  const [rows] = await db.query(
+    `SELECT id, token, platform, endpoint FROM push_tokens WHERE COALESCE(app, 'customer') = 'customer'`
+  );
   if (!rows.length) {
     return { total: 0, sent: 0, failed: 0, web: 0, mobile: 0 };
   }
@@ -213,4 +273,7 @@ async function sendPushForNotification(title, message, notificationId) {
 module.exports = {
   getPublicKey,
   sendPushForNotification,
+  sendStaffPush,
+  sendStaffNewOrderPush,
+  sendStaffReminderPush,
 };

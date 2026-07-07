@@ -31,12 +31,18 @@ const webSettingsRoutes = require('./routes/webSettings');
 const inventorySyncRoutes = require('./routes/inventorySync');
 const backupRoutes = require('./routes/backups');
 const manualDiscountRoutes = require('./routes/manualDiscounts');
+const staffRoutes = require('./routes/staff');
 
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 const WEB_CONCURRENCY = Math.max(1, parseInt(process.env.WEB_CONCURRENCY || '1', 10));
 const USE_CLUSTER = process.env.NODE_ENV === 'production' && WEB_CONCURRENCY > 1;
 
 let syncJobRunning = false;
+
+function startOrderReminderJob() {
+  const { startOrderReminderJob: start } = require('./services/orderReminderService');
+  start();
+}
 
 function startManualDiscountExpiryJob() {
   const { expireManualDiscounts } = require('./services/pricingService');
@@ -150,6 +156,7 @@ app.use('/api/web-settings', webSettingsRoutes);
 app.use('/api/sync', inventorySyncRoutes);
 app.use('/api/backups', backupRoutes);
 app.use('/api/manual-discounts', manualDiscountRoutes);
+app.use('/api/staff', staffRoutes);
 
 // Health check — يفحص الذاكرة وقاعدة البيانات
 app.get('/api/health', async (req, res) => {
@@ -254,6 +261,7 @@ function startHttpServer() {
     if (!USE_CLUSTER) {
       startInventorySyncJob();
       startManualDiscountExpiryJob();
+      startOrderReminderJob();
     }
   });
   attachProcessHandlers(server);
@@ -275,6 +283,7 @@ function bootstrap() {
         console.log('[pg] primary database connected');
         startInventorySyncJob();
         startManualDiscountExpiryJob();
+        startOrderReminderJob();
       })
       .catch((e) => console.error('Primary DB init:', e.message));
     return null;

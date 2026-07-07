@@ -172,6 +172,12 @@ export const usersAPI = {
   delete: (id) => api.delete(`/users/${id}`),
 };
 
+export const staffAPI = {
+  getAll: () => api.get('/staff'),
+  create: (data) => api.post('/staff', data),
+  delete: (id) => api.delete(`/staff/${id}`),
+};
+
 export const couponsAPI = {
   getAll: () => api.get('/coupons'),
   create: (data) => api.post('/coupons', data),

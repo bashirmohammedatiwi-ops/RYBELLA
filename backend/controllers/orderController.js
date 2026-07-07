@@ -43,7 +43,7 @@ exports.getById = async (req, res) => {
       return res.status(404).json({ message: 'الطلب غير موجود' });
     }
     const order = orders[0];
-    if (req.user.role !== 'admin' && order.user_id !== req.user.id) {
+    if (req.user.role !== 'admin' && req.user.role !== 'staff' && order.user_id !== req.user.id) {
       return res.status(403).json({ message: 'غير مصرح' });
     }
     const [items] = await db.query(ORDER_ITEMS_SELECT, [order.id]);
@@ -58,14 +58,14 @@ exports.getById = async (req, res) => {
 
 exports.getAll = async (req, res) => {
   try {
-    const isAdmin = req.user.role === 'admin';
+    const isStaff = req.user.role === 'admin' || req.user.role === 'staff';
     let query = `
       SELECT o.*, u.name as customer_name, u.phone as customer_phone
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.id
     `;
     const params = [];
-    if (!isAdmin) {
+    if (!isStaff) {
       query += ' WHERE o.user_id = ?';
       params.push(req.user.id);
     }
@@ -192,6 +192,13 @@ exports.create = async (req, res) => {
 
     await db.query('DELETE FROM cart_items WHERE cart_id IN (SELECT id FROM cart WHERE user_id = ?)', [userId]);
     await db.query('DELETE FROM cart_bundles WHERE cart_id IN (SELECT id FROM cart WHERE user_id = ?)', [userId]);
+
+    try {
+      const { sendStaffNewOrderPush } = require('../services/pushService');
+      await sendStaffNewOrderPush(orderId, final_price);
+    } catch (pushErr) {
+      console.error('Staff new order push error:', pushErr.message);
+    }
 
     res.status(201).json({
       message: 'تم إنشاء الطلب بنجاح',
