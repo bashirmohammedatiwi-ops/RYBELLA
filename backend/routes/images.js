@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getOptimizedImage } = require('../services/imageResizeService');
+const { getOptimizedImage, isSafeUploadPath } = require('../services/imageResizeService');
 
 router.get('/', async (req, res) => {
   try {
@@ -17,6 +17,9 @@ router.get('/', async (req, res) => {
     res.type(result.contentType);
     res.send(result.buffer);
   } catch (error) {
+    if (error.fallback && isSafeUploadPath(req.query.src)) {
+      return res.redirect(302, req.query.src);
+    }
     const status = error.status || 500;
     if (status >= 500) console.error('Image optimize error:', error.message);
     res.status(status).json({ message: error.message || 'تعذّر تحميل الصورة' });

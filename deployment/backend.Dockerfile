@@ -1,7 +1,8 @@
 # Rybella Backend - Node.js API
 FROM node:18-alpine
 
-RUN apk add --no-cache wget unzip postgresql16-client
+# wget: healthcheck | postgresql-client: scripts | vips: sharp image processing
+RUN apk add --no-cache wget unzip postgresql16-client vips
 
 WORKDIR /app
 

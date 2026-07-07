@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const sharp = require('sharp');
 
 const UPLOADS_DIR = path.resolve(__dirname, '..', 'uploads');
 const CACHE_DIR = path.join(UPLOADS_DIR, '.cache');
@@ -9,6 +8,22 @@ const ALLOWED_WIDTHS = [80, 120, 200, 400, 600, 800, 1000, 1200];
 const DEFAULT_QUALITY = 82;
 const MAX_QUALITY = 95;
 const MIN_QUALITY = 40;
+
+let sharpModule = null;
+let sharpUnavailable = false;
+
+function getSharp() {
+  if (sharpUnavailable) return null;
+  if (sharpModule) return sharpModule;
+  try {
+    sharpModule = require('sharp');
+    return sharpModule;
+  } catch (error) {
+    sharpUnavailable = true;
+    console.error('[images] sharp unavailable:', error.message);
+    return null;
+  }
+}
 
 function snapWidth(width) {
   const w = Math.max(40, Math.min(1600, Math.round(Number(width) || 400)));
@@ -68,6 +83,14 @@ async function getOptimizedImage({ src, width, quality, format }) {
     const buffer = fs.readFileSync(sourcePath);
     const mime = ext.toLowerCase() === '.svg' ? 'image/svg+xml' : 'image/gif';
     return { buffer, contentType: mime, fromCache: false, passthrough: true };
+  }
+
+  const sharp = getSharp();
+  if (!sharp) {
+    const err = new Error('Image optimizer unavailable');
+    err.status = 503;
+    err.fallback = true;
+    throw err;
   }
 
   const w = snapWidth(width);

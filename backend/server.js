@@ -180,6 +180,10 @@ app.use('/api/manual-discounts', manualDiscountRoutes);
 app.use('/api/staff', staffRoutes);
 
 // Health check — يفحص الذاكرة وقاعدة البيانات
+app.get('/api/health/live', (req, res) => {
+  res.status(200).json({ status: 'ok', live: true });
+});
+
 app.get('/api/health', async (req, res) => {
   const mem = process.memoryUsage();
   let dbOk = false;
