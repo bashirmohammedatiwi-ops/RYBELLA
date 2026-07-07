@@ -4,8 +4,11 @@ import {
   getApiImageUrl,
   getPresetConfig,
   getOriginalImageUrl,
+  isDirectImageUrl,
 } from '../utils/imageUrl'
 import './OptimizedImage.css'
+
+const FAST_PRESETS = new Set(['card', 'thumb', 'icon'])
 
 export default function OptimizedImage({
   src,
@@ -25,10 +28,13 @@ export default function OptimizedImage({
   onLoad,
   ...rest
 }) {
-  const [mode, setMode] = useState('cache')
+  const [mode, setMode] = useState('primary')
+  const [ready, setReady] = useState(false)
+  const fastPreset = FAST_PRESETS.has(preset)
 
   useEffect(() => {
-    setMode('cache')
+    setMode('primary')
+    setReady(false)
   }, [src])
 
   const config = useMemo(() => {
@@ -42,8 +48,14 @@ export default function OptimizedImage({
   const imgSrc = useMemo(() => {
     if (!src || !enabled) return ''
     const opts = { width: config.width, quality: config.quality }
+
     if (mode === 'original') return getOriginalImageUrl(src)
     if (mode === 'api') return getApiImageUrl(src, opts)
+
+    // البطاقات: السيرفر يختار الرابط (cache أو أصل) — بدون تخمين من المتصفح
+    if (fastPreset || isDirectImageUrl(src)) {
+      return getOriginalImageUrl(src)
+    }
     return getCachedImageUrl(src, opts)
   }, [src, config.width, config.quality, mode, enabled])
 
@@ -55,16 +67,23 @@ export default function OptimizedImage({
     <img
       src={imgSrc}
       alt={alt}
-      className={className}
+      className={`${className}${ready ? ' optimized-img--ready' : ' optimized-img--loading'}`.trim()}
       loading={priority || eager ? 'eager' : loading}
-      decoding={decoding}
+      decoding={priority ? 'sync' : decoding}
       fetchPriority={priority ? 'high' : fetchPriority}
       draggable={draggable}
       onClick={onClick}
-      onLoad={onLoad}
+      onLoad={(e) => {
+        setReady(true)
+        onLoad?.(e)
+      }}
       onError={() => {
+        setReady(false)
         setMode((current) => {
-          if (current === 'cache') return 'api'
+          if (current === 'primary') {
+            if (fastPreset || isDirectImageUrl(src)) return 'original'
+            return 'api'
+          }
           if (current === 'api') return 'original'
           return current
         })

@@ -1,7 +1,7 @@
 const db = require('../config/database');
 const { enrichProductPricing } = require('../services/inventorySyncService');
 const { expireManualDiscounts } = require('../services/pricingService');
-const { warmImageThumbnails } = require('../services/imageResizeService');
+const { warmImageThumbnails, resolveCardImageUrl } = require('../services/imageResizeService');
 const {
   isBarcodeLikeSearch,
   buildBarcodeSearchClause,
@@ -50,6 +50,11 @@ async function attachProductListData(products, { lite = false } = {}) {
     } else {
       product.images = imagesByProduct[product.id] || [];
     }
+    product.card_image = resolveCardImageUrl(product.main_image)
+      || resolveCardImageUrl(product.variants?.[0]?.image)
+      || product.main_image
+      || product.variants?.[0]?.image
+      || null;
     if (product.tags && typeof product.tags === 'string') {
       product.tags = product.tags.split(',').map((t) => t.trim()).filter(Boolean);
     }

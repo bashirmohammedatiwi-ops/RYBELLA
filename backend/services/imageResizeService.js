@@ -72,12 +72,34 @@ function resolveSourceFile(src) {
   return abs;
 }
 
-function getCachePath(width, quality, format, src) {
+function getCacheRelPath(src, width, quality, format) {
+  const w = snapWidth(width);
   const safeName = src.replace(/^\/uploads\//, '').replace(/[/\\]/g, '__');
   const baseName = safeName.replace(/\.[^.]+$/, '');
   const ext = format === 'jpeg' ? 'jpg' : format;
   const fileName = ext === 'webp' ? `${baseName}.webp` : `${baseName}.${ext}`;
-  return path.join(CACHE_DIR, `w${width}_q${quality}_${ext}`, fileName);
+  return `/uploads/.cache/w${w}_q${quality}_${ext}/${fileName}`;
+}
+
+function getCacheAbsPath(src, width, quality, format) {
+  const rel = getCacheRelPath(src, width, quality, format);
+  const sub = rel.replace(/^\/uploads\/\.cache\//, '');
+  return path.join(CACHE_DIR, sub);
+}
+
+/** يُرجع رابط WebP الجاهز أو null إن لم يُولَّد بعد */
+function getPublicCacheUrl(src, width = 240, quality = 76, format = 'webp') {
+  if (!isSafeUploadPath(src)) return null;
+  const abs = getCacheAbsPath(src, width, quality, format);
+  if (!fs.existsSync(abs)) return null;
+  return getCacheRelPath(src, width, quality, format);
+}
+
+/** للبطاقات: cache إن وُجد وإلا الأصل */
+function resolveCardImageUrl(src) {
+  if (!src) return null;
+  if (!isSafeUploadPath(src)) return src;
+  return getPublicCacheUrl(src, 240, 76, 'webp') || src;
 }
 
 function shouldSkipOptimization(ext) {
@@ -117,7 +139,7 @@ async function getOptimizedImage({ src, width, quality, format }) {
   const w = snapWidth(width);
   const q = Math.max(MIN_QUALITY, Math.min(MAX_QUALITY, Number(quality) || DEFAULT_QUALITY));
   const fmt = format === 'jpeg' || format === 'jpg' ? 'jpeg' : 'webp';
-  const cachePath = getCachePath(w, q, fmt, src);
+  const cachePath = getCacheAbsPath(src, w, q, fmt);
 
   if (fs.existsSync(cachePath)) {
     const stat = fs.statSync(cachePath);
@@ -172,4 +194,6 @@ module.exports = {
   isSafeUploadPath,
   ALLOWED_WIDTHS,
   warmImageThumbnails,
+  getPublicCacheUrl,
+  resolveCardImageUrl,
 };

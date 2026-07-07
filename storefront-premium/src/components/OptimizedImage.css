@@ -5,3 +5,25 @@
   min-height: 1px;
   background: #f3f4f6;
 }
+
+.premium-product-img.optimized-img--loading,
+.optimized-img--loading {
+  opacity: 0;
+}
+
+.premium-product-img.optimized-img--ready,
+.optimized-img--ready {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.cart-item-image .optimized-img--loading,
+.cart-bundle-thumb .optimized-img--loading {
+  opacity: 0;
+}
+
+.cart-item-image .optimized-img--ready,
+.cart-bundle-thumb .optimized-img--ready {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}

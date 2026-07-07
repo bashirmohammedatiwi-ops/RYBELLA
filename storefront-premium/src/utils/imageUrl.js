@@ -75,3 +75,9 @@ export function getOriginalImageUrl(src) {
   const base = import.meta.env.DEV ? '' : getApiBase()
   return `${base}${src}`
 }
+
+/** رابط جاهز من السيرفر (cache أو أصل) — لا يُعاد تحويله */
+export function isDirectImageUrl(src) {
+  if (!src || typeof src !== 'string') return false
+  return src.includes('/uploads/.cache/') || src.startsWith('http')
+}
