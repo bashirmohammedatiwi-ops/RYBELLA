@@ -52,16 +52,16 @@ exports.create = async (req, res) => {
     }
 
     const [existingPhone] = await db.query(
-      'SELECT id FROM users WHERE phone = ? AND deleted_at IS NULL',
+      'SELECT id FROM users WHERE phone = ? AND role = \'staff\' AND deleted_at IS NULL',
       [normalizedPhone]
     );
     if (existingPhone.length > 0) {
-      return res.status(400).json({ message: 'رقم الهاتف مستخدم بالفعل' });
+      return res.status(400).json({ message: 'رقم الهاتف مستخدم لموظف آخر' });
     }
 
     const userEmail = email?.trim() || phonePlaceholderEmail(normalizedPhone);
     const [existingUser] = await db.query(
-      'SELECT id FROM users WHERE email = ? AND deleted_at IS NULL',
+      'SELECT id FROM users WHERE email = ? AND role = \'staff\' AND deleted_at IS NULL',
       [userEmail]
     );
     if (existingUser.length > 0) {

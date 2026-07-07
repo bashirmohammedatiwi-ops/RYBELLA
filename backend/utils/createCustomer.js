@@ -24,13 +24,13 @@ async function createCustomerAccount({ name, email, password, phone }) {
     }
 
     const [existingPhone] = await db.query(
-      `SELECT id, role FROM users
-       WHERE phone = ? AND (deleted_at IS NULL)`,
+      `SELECT id FROM users
+       WHERE phone = ? AND role = 'customer' AND deleted_at IS NULL`,
       [normalizedPhone]
     );
     if (existingPhone.length > 0) {
-      const err = new Error(existingPhone[0].role === 'staff' ? 'PHONE_USED_BY_STAFF' : 'PHONE_IN_USE');
-      err.code = existingPhone[0].role === 'staff' ? 'PHONE_USED_BY_STAFF' : 'PHONE_IN_USE';
+      const err = new Error('PHONE_IN_USE');
+      err.code = 'PHONE_IN_USE';
       throw err;
     }
   }
@@ -44,7 +44,7 @@ async function createCustomerAccount({ name, email, password, phone }) {
   const userEmail = trimmedEmail || phonePlaceholderEmail(normalizedPhone);
 
   const [existingUser] = await db.query(
-    `SELECT id FROM users WHERE email = ? AND (deleted_at IS NULL)`,
+    `SELECT id FROM users WHERE email = ? AND role = 'customer' AND deleted_at IS NULL`,
     [userEmail]
   );
   if (existingUser.length > 0) {
@@ -82,8 +82,7 @@ function mapCreateError(err) {
     NAME_PASSWORD_REQUIRED: 'الاسم وكلمة المرور مطلوبة',
     INVALID_PHONE: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم',
     PHONE_REQUIRED: 'رقم الهاتف مطلوب',
-    PHONE_IN_USE: 'رقم الهاتف مستخدم بالفعل',
-    PHONE_USED_BY_STAFF: 'رقم الهاتف مستخدم لحساب موظف',
+    PHONE_IN_USE: 'رقم الهاتف مستخدم بالفعل لحساب عميل',
     EMAIL_IN_USE: 'البريد الإلكتروني مستخدم بالفعل',
   };
   return messages[err.code] || 'حدث خطأ في الخادم';

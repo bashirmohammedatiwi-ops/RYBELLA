@@ -47,7 +47,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, phone, password } = req.body;
+    const { email, phone, password, as: loginAs } = req.body;
 
     if (!password) {
       return res.status(400).json({ message: 'كلمة المرور مطلوبة' });
@@ -77,13 +77,24 @@ exports.login = async (req, res) => {
       );
     }
 
+    if (loginAs === 'customer') {
+      users = users.filter((u) => u.role === 'customer');
+    } else if (loginAs === 'staff') {
+      users = users.filter((u) => u.role === 'staff' || u.role === 'admin');
+    }
+
     if (users.length === 0) {
       return res.status(401).json({ message: 'بيانات الدخول غير صحيحة' });
     }
 
-    const user = users[0];
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
+    let user = null;
+    for (const candidate of users) {
+      if (await bcrypt.compare(password, candidate.password)) {
+        user = candidate;
+        break;
+      }
+    }
+    if (!user) {
       return res.status(401).json({ message: 'بيانات الدخول غير صحيحة' });
     }
 

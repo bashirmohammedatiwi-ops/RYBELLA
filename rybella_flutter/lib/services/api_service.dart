@@ -13,8 +13,8 @@ class ApiService {
   static Future<ApiResponse> login(String identifier, String password) async {
     final trimmed = identifier.trim();
     final body = trimmed.contains('@')
-        ? {'email': trimmed, 'password': password}
-        : {'phone': trimmed, 'password': password};
+        ? {'email': trimmed, 'password': password, 'as': 'customer'}
+        : {'phone': trimmed, 'password': password, 'as': 'customer'};
     final res = await _client.post('/auth/login', body: body);
     if (res.success && res.data != null) {
       final token = res.data['token'] as String?;

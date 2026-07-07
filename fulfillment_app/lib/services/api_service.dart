@@ -14,6 +14,7 @@ class ApiService {
     final res = await _client.post('/auth/login', body: {
       'phone': normalized,
       'password': password,
+      'as': 'staff',
     });
     if (res.success && res.data is Map) {
       final data = res.data as Map<String, dynamic>;
