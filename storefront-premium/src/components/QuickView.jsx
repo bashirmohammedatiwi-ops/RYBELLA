@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { productsAPI, IMG_BASE } from '../services/api'
+import { productsAPI } from '../services/api'
+import OptimizedImage from './OptimizedImage'
 import { useCart } from '../context/CartContext'
 import { formatPrice } from '../utils/format'
 
@@ -39,7 +40,7 @@ export default function QuickView({ productId, onClose }) {
         ) : product ? (
           <div className="qv-content">
             <div className="qv-img">
-              {img ? <img src={`${IMG_BASE}${img}`} alt={product.name} /> : <span>صورة</span>}
+              {img ? <OptimizedImage src={img} alt={product.name} preset="medium" eager /> : <span>صورة</span>}
             </div>
             <div className="qv-info">
               <h3>{product.name}</h3>

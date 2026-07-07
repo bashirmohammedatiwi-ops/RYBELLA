@@ -3,6 +3,7 @@ const { normalizeOrderStatus } = require('../utils/orderStatus');
 const { getFreeShippingThreshold, computeDeliveryFee } = require('../utils/delivery');
 const { ORDER_STATUSES, isValidOrderStatus } = require('../utils/orderStatus');
 const { validateBundleLines } = require('../services/bundleService');
+const { normalizeIraqiPhone, isValidIraqiPhone } = require('../utils/phone');
 const { roundSalePrice } = require('../utils/pricing');
 
 const ORDER_ITEMS_SELECT = `
@@ -277,6 +278,78 @@ async function restoreOrderStock(orderId) {
     }
   }
 }
+
+exports.updateByCustomer = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const [orders] = await db.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+    if (orders.length === 0) {
+      return res.status(404).json({ message: 'الطلب غير موجود' });
+    }
+
+    const order = orders[0];
+    if (req.user.role !== 'admin' && req.user.role !== 'staff' && order.user_id !== req.user.id) {
+      return res.status(403).json({ message: 'غير مصرح' });
+    }
+
+    const status = normalizeOrderStatus(order.status);
+    if (status !== 'pending') {
+      return res.status(400).json({ message: 'يمكن تعديل الطلب فقط عندما تكون حالته قيد الانتظار' });
+    }
+
+    const { address, city, phone, notes } = req.body;
+    const newAddress = (address != null ? String(address) : order.address).trim();
+    const newCity = (city != null ? String(city) : order.city).trim();
+    const newNotes = notes != null ? String(notes).trim() : (order.notes || '');
+    const newPhone = phone != null ? normalizeIraqiPhone(phone) : (order.phone || '');
+
+    if (!newAddress) {
+      return res.status(400).json({ message: 'العنوان مطلوب' });
+    }
+    if (!newCity) {
+      return res.status(400).json({ message: 'المحافظة مطلوبة' });
+    }
+    if (phone != null && !isValidIraqiPhone(newPhone)) {
+      return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
+    }
+
+    const [zone] = await db.query('SELECT delivery_fee FROM delivery_zones WHERE city = ?', [newCity]);
+    if (zone.length === 0) {
+      return res.status(400).json({ message: 'المحافظة غير متاحة للتوصيل' });
+    }
+
+    const zoneFee = parseFloat(zone[0].delivery_fee) || 5000;
+    const freeShippingThreshold = await getFreeShippingThreshold(db);
+    const totalPrice = parseFloat(order.total_price) || 0;
+    const discount = parseFloat(order.discount) || 0;
+    const delivery_fee = computeDeliveryFee(totalPrice, zoneFee, freeShippingThreshold);
+    const final_price = roundSalePrice(totalPrice + delivery_fee - discount);
+
+    await db.query(
+      `UPDATE orders
+       SET address = ?, city = ?, phone = ?, notes = ?, delivery_fee = ?, final_price = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [newAddress, newCity, newPhone || null, newNotes || null, delivery_fee, final_price, orderId]
+    );
+
+    const [updated] = await db.query(`
+      SELECT o.*, u.name as customer_name, u.phone as customer_phone
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.id = ?
+    `, [orderId]);
+    const result = updated[0];
+    result.status = normalizeOrderStatus(result.status);
+    const [items] = await db.query(ORDER_ITEMS_SELECT, [orderId]);
+    result.items = items;
+    await attachOrderBundles(result);
+
+    res.json({ message: 'تم تحديث الطلب بنجاح', order: result });
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
 
 exports.delete = async (req, res) => {
   try {

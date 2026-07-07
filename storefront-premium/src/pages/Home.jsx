@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { productsAPI, categoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, notificationsAPI, IMG_BASE } from '../services/api'
+import { productsAPI, categoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, notificationsAPI } from '../services/api'
+import OptimizedImage from '../components/OptimizedImage'
 import { useAuth } from '../context/AuthContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
@@ -40,15 +41,16 @@ export default function Home() {
       categoriesAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       bannersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
       offersAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-      productsAPI.getAll({ featured: '1' }).then((r) => toArr(r?.data)).catch(() => []),
-      productsAPI.getAll().then((r) => toArr(r?.data)).catch(() => []),
-    ]).then(([cats, bns, offs, feat, pop]) => {
+      productsAPI.getAll({ featured: '1', limit: 12 }).then((r) => toArr(r?.data)).catch(() => []),
+      productsAPI.getAll({ best_seller: '1', limit: 12 }).then((r) => toArr(r?.data)).catch(() => []),
+      productsAPI.getAll({ sort_by: 'newest', limit: 48 }).then((r) => toArr(r?.data)).catch(() => []),
+    ]).then(([cats, bns, offs, feat, best, recent]) => {
       setCategories(cats)
       setBanners(bns)
       setOffers(offs)
       setFeatured(feat.slice(0, 10))
-      setPopular(pop)
-      setBestSellers(pop.filter((p) => p.is_best_seller).slice(0, 10))
+      setPopular(recent)
+      setBestSellers(best.slice(0, 10))
     })
     webSettingsAPI.get().then((r) => r?.data && setSettings(r.data)).catch(() => {})
   }, [])
@@ -181,7 +183,9 @@ export default function Home() {
                     >
                       <div className="home-banner-card" style={{ borderColor }}>
                         <div className="home-banner-bg" style={{ background: bgColor }}>
-                          {b.background_image && <img src={`${IMG_BASE}${b.background_image}`} alt="" />}
+                          {b.background_image && (
+                            <OptimizedImage src={b.background_image} alt="" preset="banner" eager={banners.indexOf(b) === 0} />
+                          )}
                         </div>
 
                         {(b.title || b.subtitle || b.button_text) && (
@@ -209,7 +213,12 @@ export default function Home() {
                             width: `${displaySize}%`,
                           }}
                         >
-                          <img src={`${IMG_BASE}${b.image}`} alt={b.title || ''} />
+                          <OptimizedImage
+                            src={b.image}
+                            alt={b.title || ''}
+                            preset="medium"
+                            eager={banners.indexOf(b) === 0}
+                          />
                         </div>
                       )}
                     </Link>

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { storiesAPI, IMG_BASE } from '../services/api'
+import { storiesAPI } from '../services/api'
+import OptimizedImage from './OptimizedImage'
+import { getOriginalImageUrl } from '../utils/imageUrl'
 import './StoriesBar.css'
 
 const SWIPE_THRESHOLD = 50
@@ -35,7 +37,7 @@ function StoryCircle({ item, viewed, isHighlight, onClick }) {
     >
       <div className="story-circle-ring">
         {cover ? (
-          <img src={`${IMG_BASE}${cover}`} alt="" loading="lazy" decoding="async" />
+          <OptimizedImage src={cover} alt="" preset="thumb" decoding="async" />
         ) : (
           <span className="story-circle-placeholder" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -302,7 +304,7 @@ function StoryViewer({
 
   if (!currentSlide) return null
 
-  const mediaSrc = `${IMG_BASE}${currentSlide.video || currentSlide.image}`
+  const mediaSrc = getOriginalImageUrl(currentSlide.video || currentSlide.image)
   const nextIsVideo = nextSlide?.media_type === 'video'
 
   return (
@@ -335,10 +337,12 @@ function StoryViewer({
           </div>
           <div className="story-viewer-header">
             {(headerAvatar || currentGroup?.avatar) && (
-              <img
-                src={`${IMG_BASE}${headerAvatar || currentGroup.avatar}`}
+              <OptimizedImage
+                src={headerAvatar || currentGroup.avatar}
                 alt=""
                 className="story-viewer-avatar"
+                preset="icon"
+                eager
               />
             )}
             <span className="story-viewer-title">
@@ -372,7 +376,7 @@ function StoryViewer({
                 {nextSlide && nextIsVideo && (
                   <video
                     ref={preloadRef}
-                    src={`${IMG_BASE}${nextSlide.video || nextSlide.image}`}
+                    src={getOriginalImageUrl(nextSlide.video || nextSlide.image)}
                     preload="auto"
                     muted
                     playsInline
@@ -382,11 +386,12 @@ function StoryViewer({
                 )}
               </>
             ) : (
-              <img
-                key={mediaSrc}
+              <OptimizedImage
+                key={currentSlide.image}
                 className={`story-viewer-image ${isLoading ? 'loading' : ''}`}
-                src={mediaSrc}
-                alt=""
+                src={currentSlide.image}
+                preset="hero"
+                eager
                 onLoad={() => setIsLoading(false)}
               />
             )}

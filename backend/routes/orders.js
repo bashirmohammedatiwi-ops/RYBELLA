@@ -6,6 +6,7 @@ const { auth, adminAuth, staffAuth } = require('../middleware/auth');
 router.get('/', auth, orderController.getAll);
 router.get('/:id', auth, orderController.getById);
 router.post('/', auth, orderController.create);
+router.put('/:id', auth, orderController.updateByCustomer);
 router.put('/:id/status', auth, staffAuth, orderController.updateStatus);
 router.delete('/:id', auth, adminAuth, orderController.delete);
 

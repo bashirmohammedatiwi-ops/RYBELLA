@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
-import { IMG_BASE } from '../services/api'
+import OptimizedImage from '../components/OptimizedImage'
 import FreeShippingBar from '../components/FreeShippingBar'
 import CartQuantityStepper from '../components/CartQuantityStepper'
 import MobileHeader from '../components/MobileHeader'
@@ -94,7 +94,7 @@ export default function Cart() {
               <div key={`bundle-${bundleId}`} className="cart-bundle-card">
                 <div className="cart-bundle-head">
                   <div className="cart-bundle-thumb">
-                    {img ? <img src={`${IMG_BASE}${img}`} alt="" /> : <span>باكج</span>}
+                    {img ? <OptimizedImage src={img} alt="" preset="thumb" /> : <span>باكج</span>}
                   </div>
                   <div className="cart-bundle-meta">
                     <span className="cart-bundle-badge">باكج حصري</span>
@@ -137,7 +137,7 @@ export default function Cart() {
             return (
               <div key={getItemId(item)} className="cart-item">
                 <Link to={`/products/${item.product_id || item.productId || ''}`} className="cart-item-image">
-                  {img ? <img src={`${IMG_BASE}${img}`} alt="" /> : <span className="cart-item-placeholder">صورة</span>}
+                  {img ? <OptimizedImage src={img} alt="" preset="thumb" /> : <span className="cart-item-placeholder">صورة</span>}
                   <span className={`cart-item-qty-badge${qty > 1 ? ' is-visible' : ''}`}>×{formatNumber(qty)}</span>
                 </Link>
                 <div className="cart-item-body">

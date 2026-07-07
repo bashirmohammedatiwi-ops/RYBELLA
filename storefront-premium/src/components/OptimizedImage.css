@@ -1,0 +1,23 @@
+.optimized-img {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.optimized-img.is-loaded {
+  opacity: 1;
+}
+
+.optimized-img-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(110deg, #f3f4f6 8%, #fafafa 18%, #f3f4f6 33%);
+  background-size: 200% 100%;
+  animation: optimized-img-shimmer 1.2s linear infinite;
+}
+
+@keyframes optimized-img-shimmer {
+  to {
+    background-position-x: -200%;
+  }
+}

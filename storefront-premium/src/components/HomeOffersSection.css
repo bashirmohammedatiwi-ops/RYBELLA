@@ -130,7 +130,8 @@
   background: linear-gradient(145deg, #fff0f5, #ffd6e8);
 }
 
-.ho-deal-visual img {
+.ho-deal-visual img,
+.ho-deal-visual .optimized-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -138,7 +139,8 @@
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.ho-deal.is-active .ho-deal-visual img {
+.ho-deal.is-active .ho-deal-visual img,
+.ho-deal.is-active .ho-deal-visual .optimized-img {
   transform: scale(1.04);
 }
 

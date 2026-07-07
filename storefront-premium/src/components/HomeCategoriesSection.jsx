@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { IMG_BASE } from '../services/api'
 import CategoryIconVisual from './CategoryIconVisual'
+import OptimizedImage from './OptimizedImage'
 import { CATEGORY_RING_TONES } from '../utils/categoryIcon'
 import './HomeCategoriesSection.css'
 
@@ -22,13 +22,11 @@ function CategoryStripItem({ category, index }) {
 }
 
 function CategoryRow({ category }) {
-  const imageUrl = category.image ? `${IMG_BASE}${category.image}` : null
-
   return (
     <Link to={`/explore?category=${category.id}`} className="hc-bottom-row">
       <span className="hc-bottom-media">
-        {imageUrl ? (
-          <img src={imageUrl} alt="" loading="lazy" draggable={false} />
+        {category.image ? (
+          <OptimizedImage src={category.image} alt="" preset="medium" draggable={false} />
         ) : (
           <span className="hc-bottom-fallback" aria-hidden="true">
             <CategoryIconVisual category={category} />

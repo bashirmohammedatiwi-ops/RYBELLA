@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { offersAPI, IMG_BASE } from '../services/api'
+import { offersAPI } from '../services/api'
+import OptimizedImage from '../components/OptimizedImage'
 import { useCart } from '../context/CartContext'
 import { formatPrice, formatPercent } from '../utils/format'
 import { calcBundlePricing, roundDisplayPrice } from '../utils/pricing'
@@ -80,7 +81,7 @@ export default function OfferDetail() {
     <div className="offer-detail">
       <MobileHeader title={offer.title} showBack />
       <div className="offer-hero">
-        {offer.image && <img src={`${IMG_BASE}${offer.image}`} alt={offer.title} />}
+        {offer.image && <OptimizedImage src={offer.image} alt={offer.title} preset="banner" eager />}
         <div className="offer-hero-overlay" />
         <div className="offer-hero-content">
           <span className="offer-badge">باكج حصري</span>
@@ -101,7 +102,7 @@ export default function OfferDetail() {
             return (
               <Link key={p.id} to={`/products/${p.id}`} className="offer-product-card">
                 <div className="offer-product-img">
-                  {img ? <img src={`${IMG_BASE}${img}`} alt={p.name} /> : <span>صورة</span>}
+                  {img ? <OptimizedImage src={img} alt={p.name} preset="thumb" /> : <span>صورة</span>}
                 </div>
                 <div className="offer-product-info">
                   <h3>{p.name}</h3>

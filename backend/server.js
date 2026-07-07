@@ -32,6 +32,7 @@ const inventorySyncRoutes = require('./routes/inventorySync');
 const backupRoutes = require('./routes/backups');
 const manualDiscountRoutes = require('./routes/manualDiscounts');
 const staffRoutes = require('./routes/staff');
+const imageRoutes = require('./routes/images');
 
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 const WEB_CONCURRENCY = Math.max(1, parseInt(process.env.WEB_CONCURRENCY || '1', 10));
@@ -144,8 +145,14 @@ app.use(cors({
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Static files for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Static files for uploads (long cache for originals)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '30d',
+  immutable: false,
+}));
+
+// Optimized image delivery (WebP resize + cache)
+app.use('/api/img', imageRoutes);
 
 // API Routes
 app.use('/api/auth', authRoutes);

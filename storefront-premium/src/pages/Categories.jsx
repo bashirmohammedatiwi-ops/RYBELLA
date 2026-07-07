@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { categoriesAPI, IMG_BASE } from '../services/api'
+import { categoriesAPI } from '../services/api'
+import OptimizedImage from '../components/OptimizedImage'
 import './Categories.css'
 
 const iconSvg = {
@@ -45,17 +46,18 @@ const iconSvg = {
   ),
 }
 
-function CategoryCard({ item, imgUrl, iconUrl, onPress }) {
+function CategoryCard({ item, onPress }) {
   const iconIsImage = item.icon && (item.icon.startsWith('/') || item.icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp)$/i.test(item.icon))
-  const iconName = !iconUrl && item.icon && item.icon.trim() ? item.icon.trim() : 'tag-outline'
+  const iconName = !iconIsImage && item.icon && item.icon.trim() ? item.icon.trim() : 'tag-outline'
   const hasOverlayText = item.overlay_text && item.overlay_text.trim()
+  const hasImage = Boolean(item.image)
 
   return (
-    <Link to={`/explore?category=${item.id}`} className={`cat-card ${imgUrl ? 'has-image' : ''}`} onClick={onPress}>
+    <Link to={`/explore?category=${item.id}`} className={`cat-card ${hasImage ? 'has-image' : ''}`} onClick={onPress}>
       <div className="cat-card-inner">
-        {imgUrl ? (
+        {hasImage ? (
           <>
-            <img src={imgUrl} alt="" className="cat-card-image" />
+            <OptimizedImage src={item.image} alt="" className="cat-card-image" preset="medium" />
             <div className="cat-card-overlay" />
           </>
         ) : (
@@ -63,9 +65,9 @@ function CategoryCard({ item, imgUrl, iconUrl, onPress }) {
         )}
         <div className="cat-card-content">
           <div className="cat-card-top">
-            <div className={`cat-icon-badge ${imgUrl ? 'light' : ''}`}>
-              {iconUrl ? (
-                <img src={iconUrl} alt="" className="cat-icon-img" />
+            <div className={`cat-icon-badge ${hasImage ? 'light' : ''}`}>
+              {iconIsImage ? (
+                <OptimizedImage src={item.icon} alt="" className="cat-icon-img" preset="icon" />
               ) : (
                 iconSvg[iconName] || (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -75,11 +77,11 @@ function CategoryCard({ item, imgUrl, iconUrl, onPress }) {
               )}
             </div>
             {hasOverlayText && (
-              <span className={`cat-overlay-text ${!imgUrl ? 'solid' : ''}`}>{item.overlay_text.trim()}</span>
+              <span className={`cat-overlay-text ${!hasImage ? 'solid' : ''}`}>{item.overlay_text.trim()}</span>
             )}
           </div>
           <div className="cat-card-bottom">
-            <span className={`cat-card-name ${imgUrl ? 'light' : ''}`}>{item.name}</span>
+            <span className={`cat-card-name ${hasImage ? 'light' : ''}`}>{item.name}</span>
             <span className="cat-arrow-btn">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="15 18 9 12 15 6" />
@@ -142,19 +144,13 @@ export default function Categories() {
             <p className="categories-empty-text">أضف فئات من لوحة التحكم</p>
           </div>
         ) : (
-          categories.map((c) => {
-            const iconIsImg = c.icon && (c.icon.startsWith('/') || c.icon.startsWith('http') || /\.(png|jpg|jpeg|gif|webp)$/i.test(c.icon))
-            const iconUrl = iconIsImg ? `${IMG_BASE}${c.icon}` : null
-            return (
+          categories.map((c) => (
               <CategoryCard
                 key={c.id}
                 item={c}
-                imgUrl={c.image ? `${IMG_BASE}${c.image}` : null}
-                iconUrl={iconUrl}
                 onPress={() => {}}
               />
-            )
-          })
+            ))
         )}
       </div>
     </div>

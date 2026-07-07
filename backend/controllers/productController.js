@@ -21,7 +21,7 @@ async function prepareProductCatalog() {
 exports.getAll = async (req, res) => {
   try {
     await prepareProductCatalog();
-    const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, product_ids, tags, color_code, sort_by } = req.query;
+    const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, best_seller, product_ids, tags, color_code, sort_by, limit } = req.query;
     let query = `
       SELECT p.*, b.name as brand_name, c.name as category_name, s.name as subcategory_name,
         (SELECT COUNT(*) FROM product_variants pv WHERE pv.product_id = p.id AND pv.stock > 0) as available_variants,
@@ -53,6 +53,9 @@ exports.getAll = async (req, res) => {
     }
     if (featured === '1' || featured === 'true') {
       query += ' AND p.is_featured IS TRUE';
+    }
+    if (best_seller === '1' || best_seller === 'true') {
+      query += ' AND p.is_best_seller IS TRUE';
     }
     if (product_ids !== undefined && product_ids !== null) {
       const ids = String(product_ids).split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id));
@@ -100,6 +103,12 @@ exports.getAll = async (req, res) => {
     const useRelevanceSort = searchMeta && !sort_by;
     const orderClause = useRelevanceSort ? defaultOrder : (orderMap[sort_by] || defaultOrder);
     query += ' ORDER BY ' + orderClause;
+
+    const limitNum = parseInt(limit, 10);
+    if (!isNaN(limitNum) && limitNum > 0) {
+      query += ' LIMIT ?';
+      params.push(Math.min(limitNum, 200));
+    }
 
     const [products] = await db.query(query, params);
     let filteredProducts = products;

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { IMG_BASE } from '../services/api'
+import OptimizedImage from './OptimizedImage'
 import { formatNumber, formatCount, formatPercent } from '../utils/format'
 import { getProductCardPricing } from '../utils/pricing'
 import { getProductColorSwatches } from '../utils/variantColor'
@@ -33,7 +33,7 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
         <div className="premium-product-media">
           <div className="premium-product-image-frame">
             {img ? (
-              <img src={`${IMG_BASE}${img}`} alt={product.name} className="premium-product-img" loading="lazy" />
+              <OptimizedImage src={img} alt={product.name} className="premium-product-img" preset="card" />
             ) : (
               <div className="premium-product-placeholder">لا صورة</div>
             )}

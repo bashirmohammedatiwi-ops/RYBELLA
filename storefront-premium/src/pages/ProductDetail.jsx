@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
-import { productsAPI, wishlistAPI, IMG_BASE } from '../services/api'
+import { productsAPI, wishlistAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { formatPrice, formatPercent } from '../utils/format'
 import { getSelectedVariantPricing, roundDisplayPrice, getDefaultProductVariant } from '../utils/pricing'
 import { getVariantColor, isMetallicShade } from '../utils/variantColor'
 import MobileHeader from '../components/MobileHeader'
+import OptimizedImage from '../components/OptimizedImage'
 import './ProductDetail.css'
 
 function getVariantGallerySlideIndex(product, variantId) {
@@ -296,7 +297,13 @@ export default function ProductDetail() {
             {gallerySlides.length > 0 ? (
               gallerySlides.map((slide, i) => (
                 <div key={i} className="pd-gallery-slide" style={{ flex: `0 0 ${100 / gallerySlides.length}%` }}>
-                  <img src={`${IMG_BASE}${slide.url}`} alt={product.name} />
+                  <OptimizedImage
+                    src={slide.url}
+                    alt={product.name}
+                    preset="hero"
+                    eager={i === galleryIdx}
+                    enabled={Math.abs(i - galleryIdx) <= 1}
+                  />
                   {slide.shade_name && (
                     <span className="pd-slide-shade">{slide.shade_name}</span>
                   )}

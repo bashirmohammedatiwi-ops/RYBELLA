@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { brandsAPI, IMG_BASE } from '../services/api'
+import { brandsAPI } from '../services/api'
 import MobileHeader from '../components/MobileHeader'
+import OptimizedImage from '../components/OptimizedImage'
 import './Brands.css'
 
 export default function Brands() {
@@ -25,7 +26,7 @@ export default function Brands() {
         {brands.map((b) => (
           <Link key={b.id} to={`/explore?brand=${b.id}`} className="premium-brand-card">
             {b.logo ? (
-              <img src={`${IMG_BASE}${b.logo}`} alt="" className="premium-brand-logo" />
+              <OptimizedImage src={b.logo} alt="" className="premium-brand-logo" preset="icon" />
             ) : (
               <span className="premium-brand-name-only">{b.name}</span>
             )}

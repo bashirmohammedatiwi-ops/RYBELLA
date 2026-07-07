@@ -1,4 +1,5 @@
 import { getCategoryIconUrl, getCategoryNamedIcon } from '../utils/categoryIcon'
+import OptimizedImage from './OptimizedImage'
 
 export default function CategoryIconVisual({ category, className = '', fallbackLetter }) {
   const iconUrl = getCategoryIconUrl(category)
@@ -8,7 +9,7 @@ export default function CategoryIconVisual({ category, className = '', fallbackL
   return (
     <span className={`cat-icon-visual ${className}`.trim()}>
       {iconUrl ? (
-        <img src={iconUrl} alt="" loading="lazy" draggable={false} />
+        <OptimizedImage src={category.icon} alt="" preset="icon" draggable={false} />
       ) : namedIcon ? (
         namedIcon
       ) : (

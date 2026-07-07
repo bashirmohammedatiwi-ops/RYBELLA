@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { IMG_BASE } from '../services/api'
+import OptimizedImage from './OptimizedImage'
 import { formatPrice } from '../utils/format'
 import './HomeSpotlightAdsSection.css'
 
@@ -152,19 +152,21 @@ function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
                 zIndex: layer.z,
               }}
             >
-              <img src={`${IMG_BASE}${images[layer.idx]}`} alt="" loading="lazy" draggable={false} />
+              <OptimizedImage src={images[layer.idx]} alt="" preset="thumb" draggable={false} />
             </span>
           ))}
         </div>
 
         <div className="sg-gallery-frame">
           {images.map((src, i) => (
-            <img
+            <OptimizedImage
               key={src}
-              src={`${IMG_BASE}${src}`}
+              src={src}
               alt=""
+              preset="medium"
               className={`sg-gallery-img${i === frontIdx ? ' is-active' : ''}`}
-              loading={i === 0 ? 'eager' : 'lazy'}
+              eager={i === frontIdx}
+              enabled={i === frontIdx || Math.abs(i - frontIdx) <= 1}
               draggable={false}
             />
           ))}
@@ -191,7 +193,7 @@ function ImageGallery({ images, frontIdx, onChange, isActive, inView }) {
               }}
               aria-label={`صورة ${i + 1}`}
             >
-              <img src={`${IMG_BASE}${src}`} alt="" loading="lazy" draggable={false} />
+              <OptimizedImage src={src} alt="" preset="thumb" draggable={false} />
             </button>
           ))}
         </div>

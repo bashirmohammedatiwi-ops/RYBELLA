@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { IMG_BASE } from '../services/api'
+import OptimizedImage from './OptimizedImage'
 import { formatPercent } from '../utils/format'
 import './HomeOffersSection.css'
 
@@ -118,7 +118,7 @@ export default function HomeOffersSection({ offers = [] }) {
               >
                 <div className="ho-deal-visual">
                   {o.image ? (
-                    <img src={`${IMG_BASE}${o.image}`} alt={label} loading="lazy" draggable={false} />
+                    <OptimizedImage src={o.image} alt={label} preset="medium" eager={i === activeIdx} draggable={false} />
                   ) : (
                     <span className="ho-deal-fallback" aria-hidden="true" />
                   )}
