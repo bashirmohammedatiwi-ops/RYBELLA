@@ -5,6 +5,7 @@ import {
   getPresetConfig,
   getOriginalImageUrl,
   getUploadSource,
+  imageUrlsMatch,
 } from '../utils/imageUrl'
 import './OptimizedImage.css'
 
@@ -73,8 +74,8 @@ export default function OptimizedImage({
 
   const handleError = (event) => {
     const failedUrl = event.currentTarget?.src || ''
-    if (loadedUrlRef.current && loadedUrlRef.current === failedUrl) return
-    if (failedUrl !== displayUrl) return
+    if (loadedUrlRef.current && imageUrlsMatch(loadedUrlRef.current, failedUrl)) return
+    if (!imageUrlsMatch(failedUrl, displayUrl)) return
 
     if (stepRef.current === 0 && uploadSource) {
       stepRef.current = 1

@@ -103,11 +103,11 @@ function getPublicCacheUrl(src, width = 240, quality = 76, format = 'webp') {
   return getCacheRelPath(src, width, quality, format);
 }
 
-/** للبطاقات: دائماً رابط WebP مصغّر (يُولَّد عند الطلب إن لم يكن جاهزاً) */
+/** للبطاقات: رابط WebP مصغّر إن وُجد، وإلا المسار الأصلي */
 function resolveCardImageUrl(src) {
   if (!src) return null;
   if (!isSafeUploadPath(src)) return src;
-  return getCacheRelPath(src, CARD_WIDTH, CARD_QUALITY, 'webp');
+  return getPublicCacheUrl(src, CARD_WIDTH, CARD_QUALITY, 'webp') || src;
 }
 
 /** استخراج المصدر الأصلي من مسار ملف الـ cache عند الطلب المباشر */

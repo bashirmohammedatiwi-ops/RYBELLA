@@ -31,8 +31,21 @@ function isOptimizablePath(src) {
   if (src.startsWith('http://') || src.startsWith('https://')) return false
   if (src.startsWith('/assets') || src.startsWith('data:')) return false
   if (!src.startsWith('/uploads/')) return false
+  if (src.includes('/uploads/.cache/')) return false
   if (/\.(svg|gif)$/i.test(src)) return false
   return true
+}
+
+/** Compare relative and absolute image URLs (mobile browsers normalize img.src). */
+export function imageUrlsMatch(a, b) {
+  if (!a || !b) return false
+  if (a === b) return true
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+    return new URL(a, origin).href === new URL(b, origin).href
+  } catch {
+    return false
+  }
 }
 
 /** مسار ملف WebP ثابت من الـ cache — يُخدم مباشرة عبر Nginx بدون تحميل على Node */

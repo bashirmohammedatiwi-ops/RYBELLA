@@ -194,6 +194,9 @@ app.use('/uploads', async (req, res, next) => {
     return res.send(result.buffer);
   } catch (error) {
     if (error.status === 404) return res.status(404).end();
+    if (parsed?.src && (error.fallback || error.status === 503)) {
+      return res.redirect(302, parsed.src);
+    }
     return next(error);
   }
 });
@@ -337,6 +340,12 @@ function startHttpServer() {
       console.log('[pg] database connected');
     } catch (e) {
       console.error('DB init:', e.message);
+    }
+    try {
+      const sharp = require('sharp');
+      console.log('[images] sharp ready', sharp.versions?.sharp || 'ok');
+    } catch (e) {
+      console.error('[images] sharp unavailable — cache will redirect to originals:', e.message);
     }
     if (!USE_CLUSTER) {
       startInventorySyncJob();
