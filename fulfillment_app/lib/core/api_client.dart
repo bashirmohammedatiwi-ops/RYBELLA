@@ -40,7 +40,11 @@ class ApiClient {
       final res = await http.get(uri, headers: await _headers());
       return _handle(res);
     } catch (e) {
-      return ApiResponse.error(e.toString());
+      final msg = e.toString();
+      if (msg.contains('Failed to fetch') || msg.contains('XMLHttpRequest')) {
+        return ApiResponse.error('تعذّر الاتصال بالخادم — تحقق من الإنترنت أو CORS');
+      }
+      return ApiResponse.error(msg);
     }
   }
 
@@ -53,7 +57,11 @@ class ApiClient {
       );
       return _handle(res);
     } catch (e) {
-      return ApiResponse.error(e.toString());
+      final msg = e.toString();
+      if (msg.contains('Failed to fetch') || msg.contains('XMLHttpRequest')) {
+        return ApiResponse.error('تعذّر الاتصال بالخادم — تحقق من الإنترنت أو CORS');
+      }
+      return ApiResponse.error(msg);
     }
   }
 
@@ -66,7 +74,11 @@ class ApiClient {
       );
       return _handle(res);
     } catch (e) {
-      return ApiResponse.error(e.toString());
+      final msg = e.toString();
+      if (msg.contains('Failed to fetch') || msg.contains('XMLHttpRequest')) {
+        return ApiResponse.error('تعذّر الاتصال بالخادم — تحقق من الإنترنت أو CORS');
+      }
+      return ApiResponse.error(msg);
     }
   }
 

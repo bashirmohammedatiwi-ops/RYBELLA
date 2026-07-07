@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -17,7 +15,13 @@ class PushService {
   static const _channelName = 'تجهيز الطلبات';
   static void Function(Map<String, dynamic> data)? onNotificationTap;
 
+  static bool get _isNativeMobile =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
   static Future<bool> _firebaseReady() async {
+    if (kIsWeb) return false;
     try {
       if (Firebase.apps.isEmpty) await Firebase.initializeApp();
       return true;
@@ -28,19 +32,30 @@ class PushService {
   }
 
   static Future<void> init() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const ios = DarwinInitializationSettings();
-    await _local.initialize(
-      const InitializationSettings(android: android, iOS: ios),
-      onDidReceiveNotificationResponse: (details) {
-        final payload = details.payload;
-        if (payload != null && payload.startsWith('order:')) {
-          onNotificationTap?.call({'orderId': payload.split(':').last});
-        }
-      },
-    );
+    if (kIsWeb) {
+      debugPrint('[PushService] Web — push handled by browser later; UI only');
+      return;
+    }
 
-    if (Platform.isAndroid) {
+    try {
+      const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const darwin = DarwinInitializationSettings();
+      await _local.initialize(
+        const InitializationSettings(android: android, iOS: darwin, macOS: darwin),
+        onDidReceiveNotificationResponse: (details) {
+          final payload = details.payload;
+          if (payload != null && payload.startsWith('order:')) {
+            onNotificationTap?.call({'orderId': payload.split(':').last});
+          }
+        },
+      );
+    } catch (e) {
+      debugPrint('[PushService] local notifications init skipped: $e');
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.macOS) return;
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
       await _local
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(const AndroidNotificationChannel(
@@ -76,7 +91,7 @@ class PushService {
   }
 
   static Future<bool> requestAndSubscribe() async {
-    if (!await _firebaseReady()) return false;
+    if (!_isNativeMobile || !await _firebaseReady()) return false;
 
     final messaging = FirebaseMessaging.instance;
     final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
@@ -87,16 +102,16 @@ class PushService {
     final token = await messaging.getToken();
     if (token == null || token.isEmpty) return false;
 
-    final platform = Platform.isIOS ? 'ios' : 'android';
+    final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
     final res = await ApiService.subscribePush(token: token, platform: platform);
     return res.success;
   }
 
   static Future<void> syncAfterLogin() async {
-    if (!await _firebaseReady()) return;
+    if (!_isNativeMobile || !await _firebaseReady()) return;
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null) return;
-    final platform = Platform.isIOS ? 'ios' : 'android';
+    final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
     await ApiService.subscribePush(token: token, platform: platform);
   }
 
@@ -106,6 +121,8 @@ class PushService {
     String? payload,
     bool ongoing = false,
   }) async {
+    if (kIsWeb) return;
+
     final androidDetails = AndroidNotificationDetails(
       _channelId,
       _channelName,
@@ -126,5 +143,8 @@ class PushService {
     );
   }
 
-  static Future<void> cancelAll() => _local.cancelAll();
+  static Future<void> cancelAll() async {
+    if (kIsWeb) return;
+    await _local.cancelAll();
+  }
 }

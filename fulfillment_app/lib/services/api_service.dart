@@ -1,13 +1,18 @@
 import '../core/api_client.dart';
 import '../models/order.dart';
 import '../models/user.dart';
+import '../utils/phone.dart';
 
 class ApiService {
   static final _client = ApiClient.instance;
 
   static Future<ApiResponse> login(String phone, String password) async {
+    final normalized = normalizeIraqiPhone(phone);
+    if (!isValidIraqiPhone(normalized)) {
+      return ApiResponse.error('رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم');
+    }
     final res = await _client.post('/auth/login', body: {
-      'phone': phone.trim(),
+      'phone': normalized,
       'password': password,
     });
     if (res.success && res.data is Map) {

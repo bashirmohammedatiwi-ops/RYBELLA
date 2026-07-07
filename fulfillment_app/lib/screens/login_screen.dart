@@ -15,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
+  String? _localError;
 
   @override
   void dispose() {
@@ -24,12 +25,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
+    setState(() => _localError = null);
     final ok = await context.read<AuthProvider>().login(_phoneCtrl.text, _passCtrl.text);
     if (!mounted) return;
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.read<AuthProvider>().error ?? 'فشل الدخول')),
-      );
+      setState(() => _localError = context.read<AuthProvider>().error ?? 'فشل الدخول');
     }
   }
 
@@ -82,6 +82,24 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 28),
+              if (_localError != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.danger.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.danger.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: AppTheme.danger, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_localError!, style: const TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w600))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               TextField(
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,

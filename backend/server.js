@@ -117,9 +117,23 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
 ];
 
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+      return true;
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  return false;
+}
+
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(null, false);

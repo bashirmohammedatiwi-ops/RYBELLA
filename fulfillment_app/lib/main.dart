@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -14,9 +15,11 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  } catch (_) {}
+  if (!kIsWeb) {
+    try {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    } catch (_) {}
+  }
   await PushService.init();
   PushService.onNotificationTap = (data) {
     final orderId = int.tryParse('${data['orderId']}');

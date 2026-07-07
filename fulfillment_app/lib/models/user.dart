@@ -15,7 +15,7 @@ class StaffUser {
 
   factory StaffUser.fromJson(Map<String, dynamic> json) {
     return StaffUser(
-      id: json['id'] as int,
+      id: (json['id'] as num).toInt(),
       name: json['name'] as String? ?? '',
       email: json['email'] as String?,
       phone: json['phone'] as String?,
