@@ -170,6 +170,8 @@ export const ordersAPI = {
 export const usersAPI = {
   getAll: () => api.get('/users'),
   delete: (id) => api.delete(`/users/${id}`),
+  lookupPhone: (phone) => api.get('/users/lookup', { params: { phone } }),
+  releasePhone: (phone) => api.post('/users/release-phone', { phone }),
 };
 
 export const staffAPI = {

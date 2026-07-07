@@ -3,10 +3,11 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { normalizeIraqiPhone, isValidIraqiPhone } = require('../utils/phone');
 const { purgeUserById } = require('../utils/purgeUser');
-
-function phonePlaceholderEmail(phone) {
-  return `${phone}@phone.rybella.iq`;
-}
+const {
+  phonePlaceholderEmail,
+  clearOrphanCustomerBlockers,
+  findCustomerPhoneBlockers,
+} = require('../utils/customerPhone');
 
 function sanitizeUserResponse(user) {
   if (!user) return user;
@@ -36,12 +37,26 @@ exports.register = async (req, res) => {
       if (!isValidIraqiPhone(normalizedPhone)) {
         return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
       }
-      const [existingPhone] = await db.query(
-        'SELECT id, role FROM users WHERE phone = ?',
-        [normalizedPhone]
+
+      // حسابات عميل يتيمة (بدون طلبات) بعد حذف فاشل من لوحة التحكم
+      await clearOrphanCustomerBlockers(normalizedPhone);
+
+      const blockers = await findCustomerPhoneBlockers(normalizedPhone);
+      if (blockers.length > 0) {
+        const withOrders = blockers.filter((b) => b.order_count > 0);
+        if (withOrders.length > 0) {
+          return res.status(400).json({
+            message: 'رقم الهاتف مستخدم بالفعل — إذا كان لديك حساب سابق فسجّل الدخول',
+          });
+        }
+      }
+
+      const [otherRoles] = await db.query(
+        'SELECT id, role FROM users WHERE phone = ? AND role != ?',
+        [normalizedPhone, 'customer']
       );
-      if (existingPhone.length > 0) {
-        const role = existingPhone[0].role;
+      if (otherRoles.length > 0) {
+        const role = otherRoles[0].role;
         if (role === 'staff') {
           return res.status(400).json({ message: 'رقم الهاتف مستخدم لحساب موظف' });
         }
