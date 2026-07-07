@@ -105,7 +105,8 @@
   border-radius: var(--radius-sm);
   color: var(--primary-dark);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 700;
+  scroll-margin-top: calc(var(--header-h, 56px) + 12px);
 }
 
 /* ─── Layout ─── */
@@ -175,8 +176,45 @@
 }
 
 /* ─── Form fields ─── */
+.checkout-field-anchor {
+  margin-bottom: 1rem;
+  scroll-margin-top: calc(var(--header-h, 56px) + 16px);
+}
+
 .checkout-field {
   margin-bottom: 1rem;
+  scroll-margin-top: calc(var(--header-h, 56px) + 16px);
+}
+
+.checkout-field.has-error label,
+.checkout-field-anchor.has-error + .checkout-field label {
+  color: #b91c1c;
+}
+
+.checkout-field.has-error input,
+.checkout-field.has-error textarea {
+  border-color: #ef4444;
+  background: #fff5f5;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.checkout-field-error {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: #b91c1c;
+}
+
+.checkout-card-coupon.has-error {
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+  scroll-margin-top: calc(var(--header-h, 56px) + 16px);
+}
+
+.checkout-card-coupon.has-error .checkout-coupon-row input {
+  border-color: #ef4444;
+  background: #fff5f5;
 }
 
 .checkout-field label {

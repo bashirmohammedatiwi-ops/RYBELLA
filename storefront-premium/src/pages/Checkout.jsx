@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
@@ -27,6 +27,49 @@ export default function Checkout() {
   const [zoneDeliveryFee, setZoneDeliveryFee] = useState(0)
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(50000)
   const [error, setError] = useState('')
+  const [invalidField, setInvalidField] = useState(null)
+
+  const cityRef = useRef(null)
+  const addressRef = useRef(null)
+  const phoneRef = useRef(null)
+  const couponRef = useRef(null)
+  const errorRef = useRef(null)
+
+  const scrollToField = useCallback((field, { focusSelector } = {}) => {
+    const refs = {
+      city: cityRef,
+      address: addressRef,
+      phone: phoneRef,
+      coupon: couponRef,
+      error: errorRef,
+    }
+    const target = refs[field]?.current
+    if (!target) return
+
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (focusSelector) {
+        const focusable = target.querySelector(focusSelector)
+        focusable?.focus?.({ preventScroll: true })
+      }
+    })
+  }, [])
+
+  const showFieldError = useCallback((field, message, focusSelector) => {
+    setInvalidField(field)
+    setError(message)
+    scrollToField(field, { focusSelector })
+  }, [scrollToField])
+
+  const clearFieldError = useCallback((field) => {
+    setInvalidField((current) => {
+      if (current === field) {
+        setError('')
+        return null
+      }
+      return current
+    })
+  }, [])
 
   useEffect(() => {
     deliveryZonesAPI.getAll().then((r) => setZones(r?.data || [])).catch(() => []).finally(() => setLoading(false))
@@ -42,11 +85,12 @@ export default function Checkout() {
   const handleProvinceChange = (provinceName, fee) => {
     setCity(provinceName)
     setZoneDeliveryFee(fee)
-    setError('')
+    clearFieldError('city')
   }
 
   const handlePhoneChange = (e) => {
     setPhone(normalizeIraqiPhone(e.target.value).slice(0, 11))
+    clearFieldError('phone')
   }
 
   const getItemPrice = (item) => roundDisplayPrice(item.price) ?? item.price ?? 0
@@ -66,34 +110,45 @@ export default function Checkout() {
     try {
       const { data } = await couponsAPI.apply({ code: couponCode.trim(), total_price: total })
       setCouponApplied(data)
-      setError('')
+      clearFieldError('coupon')
     } catch (err) {
       setCouponApplied(null)
-      setError(err.response?.data?.message || 'كود غير صالح')
+      const message = err.response?.data?.message || 'كود غير صالح'
+      showFieldError('coupon', message, 'input')
     }
+  }
+
+  const mapServerErrorToField = (message = '') => {
+    const m = message.toLowerCase()
+    if (/phone|هاتف|جوال|موبايل/.test(m)) return 'phone'
+    if (/address|عنوان/.test(m)) return 'address'
+    if (/city|محافظ|province|zone/.test(m)) return 'city'
+    if (/coupon|كوبون|خصم/.test(m)) return 'coupon'
+    return null
   }
 
   const handlePlaceOrder = async () => {
     if (!city.trim()) {
-      setError('يرجى اختيار المحافظة')
+      showFieldError('city', 'يرجى اختيار المحافظة', '.province-select-trigger')
       return
     }
     if (!address.trim()) {
-      setError('يرجى إدخال العنوان الكامل')
+      showFieldError('address', 'يرجى إدخال العنوان الكامل', '#checkout-address')
       return
     }
     const normalizedPhone = normalizeIraqiPhone(phone)
     if (!isValidIraqiPhone(normalizedPhone)) {
-      setError(IRAQI_PHONE_HINT)
+      showFieldError('phone', IRAQI_PHONE_HINT, '#checkout-phone')
       return
     }
     const list = Array.isArray(items) ? items : []
     const bundleList = Array.isArray(bundles) ? bundles : []
     if (!list.length && !bundleList.length) {
-      setError('سلة التسوق فارغة')
+      showFieldError('error', 'سلة التسوق فارغة')
       return
     }
     setSubmitting(true)
+    setInvalidField(null)
     setError('')
     try {
       const orderItems = list.map((i) => ({
@@ -118,7 +173,21 @@ export default function Checkout() {
       loadCart()
       navigate('/orders')
     } catch (err) {
-      setError(err.response?.data?.message || 'فشل تقديم الطلب')
+      const message = err.response?.data?.message || 'فشل تقديم الطلب'
+      const field = mapServerErrorToField(message)
+      if (field) {
+        const focusMap = {
+          city: '.province-select-trigger',
+          address: '#checkout-address',
+          phone: '#checkout-phone',
+          coupon: 'input',
+        }
+        showFieldError(field, message, focusMap[field])
+      } else {
+        setInvalidField(null)
+        setError(message)
+        scrollToField('error')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -175,7 +244,11 @@ export default function Checkout() {
         <p className="checkout-subtitle">خطوة أخيرة لتصلك منتجاتك بأمان</p>
       </div>
 
-      {error && <div className="checkout-error">{error}</div>}
+      {error && (!invalidField || invalidField === 'error') && (
+        <div ref={errorRef} className="checkout-error" role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="checkout-layout">
         <div className="checkout-main">
@@ -188,30 +261,52 @@ export default function Checkout() {
               </div>
             </div>
 
-            <ProvinceSelect
-              zones={zones}
-              value={city}
-              onChange={handleProvinceChange}
-              disabled={!zones.length}
-              subtotal={subtotal}
-              freeShippingThreshold={freeShippingThreshold}
-            />
+            <div
+              ref={cityRef}
+              className={`checkout-field-anchor${invalidField === 'city' ? ' has-error' : ''}`}
+            >
+              <ProvinceSelect
+                zones={zones}
+                value={city}
+                onChange={handleProvinceChange}
+                disabled={!zones.length}
+                subtotal={subtotal}
+                freeShippingThreshold={freeShippingThreshold}
+                hasError={invalidField === 'city'}
+              />
+              {invalidField === 'city' && error && (
+                <p className="checkout-field-error" role="alert">{error}</p>
+              )}
+            </div>
 
             {!zones.length && (
               <p className="checkout-hint checkout-hint-warn">لا توجد محافظات متاحة للتوصيل حالياً</p>
             )}
 
-            <div className="checkout-field">
+            <div
+              ref={addressRef}
+              className={`checkout-field${invalidField === 'address' ? ' has-error' : ''}`}
+            >
               <label htmlFor="checkout-address">العنوان الكامل</label>
               <input
                 id="checkout-address"
                 placeholder="الحي، الشارع، أقرب نقطة دالة..."
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => {
+                  setAddress(e.target.value)
+                  clearFieldError('address')
+                }}
+                aria-invalid={invalidField === 'address'}
               />
+              {invalidField === 'address' && error && (
+                <p className="checkout-field-error" role="alert">{error}</p>
+              )}
             </div>
 
-            <div className="checkout-field">
+            <div
+              ref={phoneRef}
+              className={`checkout-field${invalidField === 'phone' ? ' has-error' : ''}`}
+            >
               <label htmlFor="checkout-phone">رقم الهاتف</label>
               <input
                 id="checkout-phone"
@@ -223,7 +318,11 @@ export default function Checkout() {
                 maxLength={11}
                 dir="ltr"
                 className="checkout-phone-input"
+                aria-invalid={invalidField === 'phone'}
               />
+              {invalidField === 'phone' && error && (
+                <p className="checkout-field-error" role="alert">{error}</p>
+              )}
             </div>
 
             <div className="checkout-field">
@@ -238,7 +337,10 @@ export default function Checkout() {
             </div>
           </section>
 
-          <section className="checkout-card checkout-card-coupon">
+          <section
+            ref={couponRef}
+            className={`checkout-card checkout-card-coupon${invalidField === 'coupon' ? ' has-error' : ''}`}
+          >
             <div className="checkout-card-head">
               <span className="checkout-step checkout-step-muted">2</span>
               <div>
@@ -250,10 +352,17 @@ export default function Checkout() {
               <input
                 placeholder="أدخلي الكود"
                 value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
+                onChange={(e) => {
+                  setCouponCode(e.target.value)
+                  clearFieldError('coupon')
+                }}
+                aria-invalid={invalidField === 'coupon'}
               />
               <button type="button" onClick={handleApplyCoupon}>تطبيق</button>
             </div>
+            {invalidField === 'coupon' && error && (
+              <p className="checkout-field-error" role="alert">{error}</p>
+            )}
             {couponApplied && (
               <p className="checkout-coupon-success">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">

@@ -1,49 +1,155 @@
 .free-shipping-bar {
-  position: relative;
-  height: 40px;
-  background: var(--primary-soft);
-  border-radius: 14px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin-bottom: 1.25rem;
+  padding: 0.95rem 1rem 0.85rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff5f8 0%, #fff 55%, #fff9fb 100%);
+  border: 1.5px solid rgba(232, 93, 122, 0.18);
+  box-shadow: 0 8px 24px rgba(232, 93, 122, 0.08);
 }
 
 .free-shipping-bar--placeholder {
   visibility: hidden;
   pointer-events: none;
+  min-height: 88px;
 }
 
 .free-shipping-bar.is-complete {
-  background: rgba(76, 175, 80, 0.12);
+  background: linear-gradient(135deg, #f0fdf4 0%, #fff 55%, #f7fff9 100%);
+  border-color: rgba(34, 197, 94, 0.28);
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.1);
+}
+
+.free-shipping-bar-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.free-shipping-bar-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--primary-dark);
+  background: linear-gradient(145deg, #ffe8ef, #fff);
+  border: 1px solid rgba(232, 93, 122, 0.16);
+  box-shadow: 0 4px 12px rgba(232, 93, 122, 0.12);
+}
+
+.free-shipping-bar.is-complete .free-shipping-bar-icon {
+  color: #15803d;
+  background: linear-gradient(145deg, #dcfce7, #fff);
+  border-color: rgba(34, 197, 94, 0.22);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.12);
+}
+
+.free-shipping-bar-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.free-shipping-bar-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.45;
+  color: #1a1218;
+  letter-spacing: -0.01em;
+}
+
+.free-shipping-bar-amount {
+  color: var(--primary-dark);
+  font-size: 1.05rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.free-shipping-bar.is-complete .free-shipping-bar-title {
+  color: #14532d;
+}
+
+.free-shipping-bar-sub {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: #6b4f5a;
+}
+
+.free-shipping-bar.is-complete .free-shipping-bar-sub {
+  color: #166534;
+}
+
+.free-shipping-bar-pct {
+  flex-shrink: 0;
+  min-width: 42px;
+  padding: 0.35rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--primary-dark);
+  background: rgba(232, 93, 122, 0.1);
+  border: 1px solid rgba(232, 93, 122, 0.14);
+}
+
+.free-shipping-bar.is-complete .free-shipping-bar-pct {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.18);
+}
+
+.free-shipping-bar-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(232, 93, 122, 0.1);
+  border: 1px solid rgba(232, 93, 122, 0.08);
+}
+
+.free-shipping-bar.is-complete .free-shipping-bar-track {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.1);
 }
 
 .free-shipping-bar-fill {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  height: 100%;
   border-radius: inherit;
-  transition: width 0.35s ease, background 0.35s ease;
+  background: linear-gradient(90deg, #e85d7a 0%, #f08fa6 55%, #ff9ec0 100%);
+  box-shadow: 0 0 12px rgba(232, 93, 122, 0.35);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: width;
 }
 
 .free-shipping-bar.is-complete .free-shipping-bar-fill {
-  background: linear-gradient(90deg, #66bb6a, #81c784);
+  background: linear-gradient(90deg, #22c55e 0%, #4ade80 55%, #86efac 100%);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
 }
 
-.free-shipping-bar-text {
-  position: relative;
-  z-index: 1;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--primary-dark);
-  padding: 0 12px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
+@media (min-width: 640px) {
+  .free-shipping-bar-title {
+    font-size: 1.05rem;
+  }
+
+  .free-shipping-bar-amount {
+    font-size: 1.1rem;
+  }
+
+  .free-shipping-bar-sub {
+    font-size: 0.86rem;
+  }
 }
 
-.free-shipping-bar.is-complete .free-shipping-bar-text {
-  color: #2e7d32;
+@media (prefers-reduced-motion: reduce) {
+  .free-shipping-bar-fill {
+    transition: none;
+  }
 }

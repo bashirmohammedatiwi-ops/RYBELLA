@@ -3,7 +3,7 @@ import { formatPrice } from '../utils/format'
 import { computeDeliveryFee, qualifiesForFreeShipping } from '../utils/delivery'
 import './ProvinceSelect.css'
 
-export default function ProvinceSelect({ zones, value, onChange, disabled, subtotal = 0, freeShippingThreshold = 50000 }) {
+export default function ProvinceSelect({ zones, value, onChange, disabled, subtotal = 0, freeShippingThreshold = 50000, hasError = false }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
 
@@ -31,7 +31,7 @@ export default function ProvinceSelect({ zones, value, onChange, disabled, subto
   }
 
   return (
-    <div className={`province-select ${open ? 'is-open' : ''} ${value ? 'has-value' : ''}`} ref={rootRef}>
+    <div className={`province-select ${open ? 'is-open' : ''} ${value ? 'has-value' : ''}${hasError ? ' has-error' : ''}`} ref={rootRef}>
       <button
         type="button"
         className="province-select-trigger"
