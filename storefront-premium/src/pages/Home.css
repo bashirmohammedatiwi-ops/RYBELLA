@@ -1,4 +1,20 @@
-/* Clean, elegant home page */
+.home-section-fallback {
+  min-height: 1px;
+}
+
+.home-stories-fallback {
+  min-height: 92px;
+  margin: 0 16px 12px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #f8f4f6 0%, #f3ecef 50%, #f8f4f6 100%);
+  background-size: 200% 100%;
+  animation: home-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes home-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
 
 .home {
   min-height: 100vh;

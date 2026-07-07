@@ -4,8 +4,15 @@ import { authAPI } from '../services/api'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem('user')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  })
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('token')))
 
   useEffect(() => {
     const token = localStorage.getItem('token')

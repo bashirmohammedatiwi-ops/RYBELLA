@@ -3,8 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { productsAPI, categoriesAPI, wishlistAPI, getCachedExplorePage } from '../services/api'
 import { isBarcodeLikeQuery } from '../utils/barcode'
 import { searchByBarcode } from '../utils/barcodeSearch'
-import BarcodeScanner from '../components/BarcodeScanner'
 import BarcodeScanButton from '../components/BarcodeScanButton'
+import LazyBarcodeScanner from '../components/LazyBarcodeScanner'
 import { useAuth } from '../context/AuthContext'
 import ProductCard from '../components/ProductCard'
 import MobileHeader from '../components/MobileHeader'
@@ -276,7 +276,7 @@ export default function Explore() {
             <button type="submit">بحث</button>
           </form>
 
-          <BarcodeScanner
+          <LazyBarcodeScanner
             open={scannerOpen}
             onClose={() => setScannerOpen(false)}
             onDetected={handleBarcodeDetected}

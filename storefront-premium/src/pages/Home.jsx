@@ -1,20 +1,25 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { productsAPI, categoriesAPI, bannersAPI, offersAPI, webSettingsAPI, wishlistAPI, notificationsAPI } from '../services/api'
 import OptimizedImage from '../components/OptimizedImage'
 import { useAuth } from '../context/AuthContext'
 import { useRecentlyViewed } from '../context/RecentlyViewedContext'
 import ProductCard from '../components/ProductCard'
-import HomeOffersSection from '../components/HomeOffersSection'
-import HomeSpotlightAdsSection from '../components/HomeSpotlightAdsSection'
 import HomeCategoriesSection from '../components/HomeCategoriesSection'
-import StoriesBar from '../components/StoriesBar'
 import { formatCount, formatPercent } from '../utils/format'
 import { isBarcodeLikeQuery } from '../utils/barcode'
 import { searchByBarcode } from '../utils/barcodeSearch'
-import BarcodeScanner from '../components/BarcodeScanner'
+import LazyBarcodeScanner from '../components/LazyBarcodeScanner'
 import BarcodeScanButton from '../components/BarcodeScanButton'
 import './Home.css'
+
+const StoriesBar = lazy(() => import('../components/StoriesBar'))
+const HomeSpotlightAdsSection = lazy(() => import('../components/HomeSpotlightAdsSection'))
+const HomeOffersSection = lazy(() => import('../components/HomeOffersSection'))
+
+function HomeSectionFallback({ className = 'home-section-fallback' }) {
+  return <div className={className} aria-hidden="true" />
+}
 
 export default function Home() {
   const [search, setSearch] = useState('')
@@ -186,14 +191,16 @@ export default function Home() {
         </form>
       </header>
 
-      <BarcodeScanner
+      <LazyBarcodeScanner
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onDetected={handleBarcodeDetected}
       />
 
       <main className="home-main">
-        <StoriesBar />
+        <Suspense fallback={<HomeSectionFallback className="home-stories-fallback" />}>
+          <StoriesBar />
+        </Suspense>
         {banners.length > 0 ? (
           <section className="home-banners-section" aria-label="بنرات العروض">
             <div
@@ -288,13 +295,19 @@ export default function Home() {
 
         <HomeCategoriesSection categories={categories} variant="strip" />
 
-        <HomeSpotlightAdsSection
-          products={popular}
-          featured={featured}
-          bestSellers={bestSellers}
-        />
+        <Suspense fallback={<HomeSectionFallback />}>
+          <HomeSpotlightAdsSection
+            products={popular}
+            featured={featured}
+            bestSellers={bestSellers}
+          />
+        </Suspense>
 
-        {showOffers && <HomeOffersSection offers={offers} />}
+        {showOffers && (
+          <Suspense fallback={<HomeSectionFallback />}>
+            <HomeOffersSection offers={offers} />
+          </Suspense>
+        )}
 
         <HomeCategoriesSection categories={categories} variant="section" />
 

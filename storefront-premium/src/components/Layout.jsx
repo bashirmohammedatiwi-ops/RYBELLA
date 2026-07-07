@@ -1,11 +1,8 @@
-import { useLocation } from 'react-router-dom'
-import { webSettingsAPI } from '../services/api'
 import { useState, useEffect } from 'react'
+import { webSettingsAPI } from '../services/api'
 import BottomNav from './BottomNav'
-import BackToTop from './BackToTop'
-import FloatingContact from './FloatingContact'
+import LayoutExtras from './LayoutExtras'
 import ScrollToTop from './ScrollToTop'
-import PushPermissionPrompt from './PushPermissionPrompt'
 import './Layout.css'
 
 export default function Layout({ children }) {
@@ -15,14 +12,13 @@ export default function Layout({ children }) {
     webSettingsAPI.get().then((r) => r?.data && setSettings(r.data)).catch(() => {})
   }, [])
 
-  const showBottomNav = settings?.show_bottom_nav !== '0'
+  const showBottomNav = !settings || settings.show_bottom_nav !== '0'
+  const showAnnouncement = settings?.announcement_bar_enabled === '1' && settings?.announcement_bar
 
   useEffect(() => {
     document.body.classList.toggle('has-bottom-nav', showBottomNav)
     return () => document.body.classList.remove('has-bottom-nav')
   }, [showBottomNav])
-
-  const showAnnouncement = settings?.announcement_bar_enabled === '1' && settings?.announcement_bar
 
   return (
     <div className="app-layout">
@@ -36,9 +32,7 @@ export default function Layout({ children }) {
         {children}
       </main>
       {showBottomNav && <BottomNav />}
-      {settings?.show_back_to_top !== '0' && <BackToTop />}
-      {settings?.show_contact_float !== '0' && <FloatingContact whatsappNumber={settings?.whatsapp_number} />}
-      <PushPermissionPrompt />
+      <LayoutExtras settings={settings} />
     </div>
   )
 }

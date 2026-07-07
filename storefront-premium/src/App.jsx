@@ -4,7 +4,7 @@ import Layout from './components/Layout'
 import RouteFallback from './components/RouteFallback'
 import { useAuth } from './context/AuthContext'
 
-import Home from './pages/Home'
+const Home = lazy(() => import('./pages/Home'))
 
 const Explore = lazy(() => import('./pages/Explore'))
 const Categories = lazy(() => import('./pages/Categories'))

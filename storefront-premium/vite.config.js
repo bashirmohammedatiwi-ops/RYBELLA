@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('@zxing')) return 'vendor-zxing'
             if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
               return 'vendor-react'
             }
