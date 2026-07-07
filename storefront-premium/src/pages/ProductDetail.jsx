@@ -256,8 +256,8 @@ export default function ProductDetail() {
   }
 
   const hasMultipleImages = gallerySlides.length > 1
-  const hasVariants = variants.length > 1
-  const hasColorVariants = hasVariants && variants.some((v) => getVariantColor(v))
+  const hasVariants = variants.length > 0
+  const hasColorVariants = variants.length > 1 && variants.some((v) => getVariantColor(v))
 
   galleryDataRef.current = { gallerySlides, product }
 
@@ -324,6 +324,47 @@ export default function ProductDetail() {
         )}
       </div>
 
+      {hasVariants && (
+        <div className="pd-variants pd-variants--under-hero">
+          <div className="pd-variants-header">
+            <span className="pd-variants-label">درجات اللون</span>
+            {selectedVariant?.shade_name && (
+              <span className="pd-variants-selected">{selectedVariant.shade_name}</span>
+            )}
+          </div>
+          <div className="pd-swatches-wrap">
+            <div className={`pd-swatches ${hasColorVariants ? 'color-mode' : 'text-mode'}`}>
+              {variants.map((v) => {
+                const color = getVariantColor(v)
+                const isActive = selectedVariant?.id === v.id
+                const metallic = color && isMetallicShade(color, v.shade_name)
+                const outOfStock = (v.stock ?? 0) <= 0
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className={`pd-swatch ${isActive ? 'active' : ''} ${color ? 'has-color' : ''} ${metallic ? 'metallic' : ''} ${outOfStock ? 'out-of-stock' : ''}`}
+                    onClick={() => handleSelectVariant(v)}
+                    title={v.shade_name}
+                    style={color ? { '--swatch-color': color } : {}}
+                  >
+                    <span className="pd-swatch-preview">
+                      {color ? (
+                        <span className="pd-swatch-circle" />
+                      ) : (
+                        <span className="pd-swatch-text">{v.shade_name || `#${v.id}`}</span>
+                      )}
+                      {isActive && <span className="pd-swatch-check">✓</span>}
+                    </span>
+                    <span className="pd-swatch-name">{v.shade_name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="pd-body">
         <div className="pd-meta">
           <div className="pd-meta-top">
@@ -349,47 +390,6 @@ export default function ProductDetail() {
             </p>
           </div>
         </div>
-
-        {hasVariants && (
-          <div className="pd-variants">
-            <div className="pd-variants-header">
-              <span className="pd-variants-label">اختر الدرجة</span>
-              {selectedVariant && (
-                <span className="pd-variants-selected">{selectedVariant.shade_name}</span>
-              )}
-            </div>
-            <div className="pd-swatches-wrap">
-              <div className={`pd-swatches ${hasColorVariants ? 'color-mode' : 'text-mode'}`}>
-                {product.variants.map((v) => {
-                  const color = getVariantColor(v)
-                  const isActive = selectedVariant?.id === v.id
-                  const metallic = color && isMetallicShade(color, v.shade_name)
-                  const outOfStock = (v.stock ?? 0) <= 0
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      className={`pd-swatch ${isActive ? 'active' : ''} ${color ? 'has-color' : ''} ${metallic ? 'metallic' : ''} ${outOfStock ? 'out-of-stock' : ''}`}
-                      onClick={() => handleSelectVariant(v)}
-                      title={v.shade_name}
-                      style={color ? { '--swatch-color': color } : {}}
-                    >
-                      <span className="pd-swatch-preview">
-                        {color ? (
-                          <span className="pd-swatch-circle" />
-                        ) : (
-                          <span className="pd-swatch-text">{v.shade_name || `#${v.id}`}</span>
-                        )}
-                        {isActive && <span className="pd-swatch-check">✓</span>}
-                      </span>
-                      <span className="pd-swatch-name">{v.shade_name}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
 
         {product.description && (
           <div className="pd-desc">

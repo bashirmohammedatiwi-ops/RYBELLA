@@ -176,7 +176,7 @@
 }
 
 .pd-meta {
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
 }
 
 .pd-meta-top {
@@ -267,6 +267,25 @@
 /* ─── Variants (Shades) ─── */
 .pd-variants {
   margin-bottom: 1.75rem;
+}
+
+.pd-variants--under-hero {
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 14px 20px 16px;
+  margin-bottom: 0;
+  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+}
+
+.pd-variants--under-hero + .pd-body {
+  padding-top: 20px;
+}
+
+.pd-variants--under-hero .pd-swatches-wrap::after {
+  background: linear-gradient(90deg, #fff 0%, transparent 12%, transparent 88%, #fff 100%);
 }
 
 .pd-variants-header {
