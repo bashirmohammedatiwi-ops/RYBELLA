@@ -14,7 +14,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final stats = context.watch<OrdersProvider>().stats;
     final provider = context.watch<OrdersProvider>();
-    final recent = provider.orders.take(6).toList();
+    final recent = provider.orders.take(5).toList();
 
     return RefreshIndicator(
       onRefresh: () => provider.load(),
@@ -31,25 +31,43 @@ class DashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('لوحة التجهيز', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primarySoft,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.inventory_2_rounded, color: AppTheme.primary, size: 22),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text('لوحة التجهيز', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       Text(
                         stats.pending > 0
                             ? 'لديك ${stats.pending} طلب يحتاج معالجة فورية'
-                            : 'لا توجد طلبات معلّقة — أحسنت!',
+                            : 'لا توجد طلبات معلّقة — أحسنت! 🎉',
                         style: const TextStyle(color: AppTheme.textSecondary, height: 1.4, fontWeight: FontWeight.w600),
                       ),
                       if (stats.pending > 0) ...[
-                        const SizedBox(height: 14),
-                        FilledButton.tonal(
-                          style: FilledButton.styleFrom(backgroundColor: AppTheme.primarySoft, foregroundColor: AppTheme.primaryDark),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.warning,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
                           onPressed: () => provider.setFilter('pending'),
-                          child: const Text('عرض الطلبات المعلّقة'),
+                          icon: const Icon(Icons.bolt_rounded, size: 20),
+                          label: const Text('معالجة الطلبات المعلّقة'),
                         ),
                       ],
                     ],
                   ),
                 ),
+                const SizedBox(width: 12),
                 _PendingRing(count: stats.pending),
               ],
             ),
@@ -134,20 +152,22 @@ class _PendingRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final active = count > 0;
+    final color = active ? AppTheme.warning : AppTheme.primary;
     return Container(
-      width: 86,
-      height: 86,
+      width: 90,
+      height: 90,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: count > 0 ? AppTheme.warningSoft : AppTheme.primarySoft,
-        border: Border.all(color: count > 0 ? AppTheme.warning : AppTheme.primary, width: 2.5),
-        boxShadow: [BoxShadow(color: (count > 0 ? AppTheme.warning : AppTheme.primary).withValues(alpha: 0.2), blurRadius: 14)],
+        color: active ? AppTheme.warningSoft : AppTheme.primarySoft,
+        border: Border.all(color: color, width: 3),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 16)],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('$count', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: count > 0 ? AppTheme.warning : AppTheme.primary)),
-          Text('معلّق', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: count > 0 ? AppTheme.warning : AppTheme.primary)),
+          Text('$count', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: color)),
+          Text('معلّق', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );

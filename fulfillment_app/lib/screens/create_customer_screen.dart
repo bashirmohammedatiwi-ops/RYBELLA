@@ -63,9 +63,10 @@ class _CreateCustomerScreenState extends State<CreateCustomerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.bg,
       appBar: AppBar(
         title: const Text('إنشاء حساب عميل'),
-        backgroundColor: AppTheme.surface,
+        backgroundColor: Colors.transparent,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
       ),
@@ -74,34 +75,48 @@ class _CreateCustomerScreenState extends State<CreateCustomerScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: SoftCard(
+              shadows: const [AppTheme.cardShadow],
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'حساب عميل جديد',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 26),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('حساب عميل جديد', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                              Text('للعملاء الذين يتصلون أو يزورون المتجر', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'للعملاء الذين يتصلون أو يزورون المتجر',
-                      style: TextStyle(color: AppTheme.textMuted),
-                    ),
-                    const SizedBox(height: 20),
-                    if (_error != null) _banner(_error!, AppTheme.danger, AppTheme.dangerSoft),
-                    if (_success != null) _banner(_success!, AppTheme.success, AppTheme.successSoft),
+                    const SizedBox(height: 24),
+                    if (_error != null) _banner(_error!, AppTheme.danger, AppTheme.dangerSoft, Icons.error_outline_rounded),
+                    if (_success != null) _banner(_success!, AppTheme.success, AppTheme.successSoft, Icons.check_circle_rounded),
                     TextFormField(
                       controller: _nameCtrl,
-                      decoration: const InputDecoration(labelText: 'اسم العميل'),
+                      decoration: const InputDecoration(labelText: 'اسم العميل', prefixIcon: Icon(Icons.person_outline_rounded)),
                       textInputAction: TextInputAction.next,
                       validator: (v) => v == null || v.trim().isEmpty ? 'الاسم مطلوب' : null,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _phoneCtrl,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'رقم الهاتف', hintText: '07xxxxxxxxx'),
+                      decoration: const InputDecoration(labelText: 'رقم الهاتف', hintText: '07xxxxxxxxx', prefixIcon: Icon(Icons.phone_rounded)),
                       textInputAction: TextInputAction.next,
                       validator: (v) {
                         final n = normalizeIraqiPhone(v ?? '');
@@ -109,12 +124,13 @@ class _CreateCustomerScreenState extends State<CreateCustomerScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _passCtrl,
                       obscureText: _obscure,
                       decoration: InputDecoration(
                         labelText: 'كلمة المرور',
+                        prefixIcon: const Icon(Icons.lock_rounded),
                         suffixIcon: IconButton(
                           icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                           onPressed: () => setState(() => _obscure = !_obscure),
@@ -122,10 +138,10 @@ class _CreateCustomerScreenState extends State<CreateCustomerScreen> {
                       ),
                       validator: (v) => v == null || v.length < 6 ? '6 أحرف على الأقل' : null,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     FilledButton(
                       onPressed: _loading ? null : _submit,
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                       child: _loading
                           ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Text('إنشاء الحساب'),
@@ -140,13 +156,23 @@ class _CreateCustomerScreenState extends State<CreateCustomerScreen> {
     );
   }
 
-  Widget _banner(String text, Color color, Color bg) {
+  Widget _banner(String text, Color color, Color bg, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-        child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 10),
+            Expanded(child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w700))),
+          ],
+        ),
       ),
     );
   }

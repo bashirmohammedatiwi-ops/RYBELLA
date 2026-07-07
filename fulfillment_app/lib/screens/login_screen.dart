@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: [
                     _buildHero().animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 32),
                     SoftCard(
                       shadows: const [AppTheme.cardShadow],
                       child: Form(
@@ -60,27 +60,50 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text('تسجيل الدخول', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                            const SizedBox(height: 6),
-                            const Text('للموظفين المصرّح لهم فقط', style: TextStyle(color: AppTheme.textMuted)),
-                            const SizedBox(height: 22),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primarySoft,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(Icons.login_rounded, color: AppTheme.primary, size: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('تسجيل الدخول', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                                      Text('للموظفين المصرّح لهم فقط', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
                             if (_localError != null) ...[
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: AppTheme.dangerSoft,
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(16),
                                   border: Border.all(color: AppTheme.danger.withValues(alpha: 0.25)),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.error_outline_rounded, color: AppTheme.danger, size: 20),
-                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(color: AppTheme.danger.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                                      child: const Icon(Icons.error_outline_rounded, color: AppTheme.danger, size: 20),
+                                    ),
+                                    const SizedBox(width: 10),
                                     Expanded(child: Text(_localError!, style: const TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w700))),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 18),
                             ],
                             TextFormField(
                               controller: _phoneCtrl,
@@ -94,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               validator: (v) => (v == null || v.trim().length < 10) ? 'أدخل رقم هاتف صالح' : null,
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                             TextFormField(
                               controller: _passCtrl,
                               obscureText: _obscure,
@@ -108,16 +131,18 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               validator: (v) => (v == null || v.isEmpty) ? 'كلمة المرور مطلوبة' : null,
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 28),
                             FilledButton(
                               onPressed: loading ? null : _submit,
+                              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                               child: loading
                                   ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                   : const Text('دخول'),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 12),
                             OutlinedButton.icon(
                               onPressed: loading ? null : () => PushService.requestAndSubscribe(),
+                              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                               icon: const Icon(Icons.notifications_active_outlined, size: 20),
                               label: const Text('تفعيل الإشعارات'),
                             ),
@@ -139,27 +164,35 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       children: [
         Container(
-          width: 88,
-          height: 88,
+          width: 96,
+          height: 96,
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.35), blurRadius: 20, offset: const Offset(0, 8))],
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 10))],
           ),
-          child: const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 42),
+          child: const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 46),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         ShaderMask(
           shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
           child: const Text(
             'Rybella Fulfillment',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white),
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Colors.white),
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'مركز تجهيز الطلبات',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 15, fontWeight: FontWeight.w600),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppTheme.primarySoft,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: const Text(
+            'مركز تجهيز الطلبات',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );

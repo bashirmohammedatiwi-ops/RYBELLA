@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../providers/orders_provider.dart';
+import '../utils/order_status.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/order_widgets.dart';
 
@@ -28,11 +29,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final stats = provider.stats;
 
     const filters = [
+      ('all', 'الكل', AppTheme.primary),
       ('pending', 'انتظار', AppTheme.warning),
       ('preparing_shipping', 'تجهيز', AppTheme.info),
       ('delivered', 'مُسلّم', AppTheme.success),
       ('cancelled', 'ملغي', AppTheme.danger),
-      ('all', 'الكل', AppTheme.primary),
     ];
 
     int countFor(String f) {
@@ -51,11 +52,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
             padding: const EdgeInsets.fromLTRB(18, 4, 18, 0),
             child: Material(
               color: AppTheme.dangerSoft,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               child: ListTile(
                 dense: true,
-                leading: const Icon(Icons.error_outline, color: AppTheme.danger),
-                title: Text(provider.error!, style: const TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w700)),
+                leading: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(color: AppTheme.danger.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.error_outline, color: AppTheme.danger, size: 20),
+                ),
+                title: Text(provider.error!, style: const TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w700, fontSize: 13)),
                 trailing: IconButton(
                   icon: const Icon(Icons.refresh_rounded),
                   onPressed: () => provider.load(),
@@ -63,43 +68,66 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ),
           ),
+        // شريط إحصائيات سريع
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
-          child: TextField(
-            controller: _searchCtrl,
-            onChanged: (v) {
-              provider.setSearch(v);
-              setState(() {});
-            },
-            decoration: InputDecoration(
-              hintText: 'بحث برقم الطلب، الاسم، المدينة...',
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: provider.search.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        provider.setSearch('');
-                        setState(() {});
-                      },
-                    )
-                  : PopupMenuButton<OrderSort>(
-                      icon: const Icon(Icons.sort_rounded),
-                      onSelected: provider.setSort,
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: OrderSort.newest, child: Text('الأحدث')),
-                        PopupMenuItem(value: OrderSort.oldest, child: Text('الأقدم')),
-                        PopupMenuItem(value: OrderSort.amountHigh, child: Text('الأعلى سعراً')),
-                        PopupMenuItem(value: OrderSort.amountLow, child: Text('الأقل سعراً')),
-                      ],
-                    ),
-              filled: true,
-              fillColor: AppTheme.surface,
+          padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
+          child: Row(
+            children: [
+              _QuickStat(value: stats.pending, label: 'معلّق', color: AppTheme.warning, icon: orderStatusMeta('pending').icon),
+              const SizedBox(width: 8),
+              _QuickStat(value: stats.preparing, label: 'تجهيز', color: AppTheme.info, icon: orderStatusMeta('preparing_shipping').icon),
+              const SizedBox(width: 8),
+              _QuickStat(value: stats.total, label: 'الكل', color: AppTheme.primary, icon: Icons.receipt_long_rounded),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppTheme.borderLight),
+              boxShadow: const [AppTheme.cardShadowSoft],
+            ),
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (v) {
+                provider.setSearch(v);
+                setState(() {});
+              },
+              decoration: InputDecoration(
+                hintText: 'بحث برقم الطلب، الاسم، المدينة...',
+                hintStyle: const TextStyle(fontSize: 14),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary),
+                suffixIcon: provider.search.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          provider.setSearch('');
+                          setState(() {});
+                        },
+                      )
+                    : PopupMenuButton<OrderSort>(
+                        icon: const Icon(Icons.tune_rounded, color: AppTheme.textMuted),
+                        tooltip: 'ترتيب',
+                        onSelected: provider.setSort,
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: OrderSort.newest, child: Text('الأحدث أولاً')),
+                          PopupMenuItem(value: OrderSort.oldest, child: Text('الأقدم أولاً')),
+                          PopupMenuItem(value: OrderSort.amountHigh, child: Text('الأعلى سعراً')),
+                          PopupMenuItem(value: OrderSort.amountLow, child: Text('الأقل سعراً')),
+                        ],
+                      ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
             ),
           ),
         ),
         SizedBox(
-          height: 46,
+          height: 48,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -117,7 +145,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
             },
           ),
         ),
-        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 4),
+          child: Row(
+            children: [
+              Text(
+                '${list.length} طلب',
+                style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.textSecondary, fontSize: 13),
+              ),
+              const Spacer(),
+              if (provider.filter != 'all')
+                GestureDetector(
+                  onTap: () => provider.setFilter('all'),
+                  child: Text('عرض الكل', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primary, fontSize: 13)),
+                ),
+            ],
+          ),
+        ),
         Expanded(
           child: provider.loading && list.isEmpty
               ? const LoadingOverlay(message: 'جاري تحميل الطلبات...')
@@ -127,7 +171,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   child: list.isEmpty
                       ? ListView(
                           children: [
-                            const SizedBox(height: 60),
+                            const SizedBox(height: 48),
                             EmptyState(
                               icon: Icons.inbox_rounded,
                               title: 'لا توجد طلبات',
@@ -149,6 +193,38 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
         ),
       ],
+    );
+  }
+}
+
+class _QuickStat extends StatelessWidget {
+  final int value;
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  const _QuickStat({required this.value, required this.label, required this.color, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 8),
+            Text('$value', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
+            const SizedBox(width: 4),
+            Expanded(child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: color.withValues(alpha: 0.85)), overflow: TextOverflow.ellipsis)),
+          ],
+        ),
+      ),
     );
   }
 }

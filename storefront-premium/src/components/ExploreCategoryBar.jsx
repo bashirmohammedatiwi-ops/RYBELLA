@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import CategoryIconVisual from './CategoryIconVisual'
 import { CATEGORY_RING_TONES } from '../utils/categoryIcon'
-import { IMG_BASE } from '../services/api'
 import './ExploreCategoryBar.css'
 
 function CategoryItem({ to, selected, label, category, index }) {
@@ -39,40 +38,11 @@ function CategoryItem({ to, selected, label, category, index }) {
   )
 }
 
-function SubcategoryPill({ to, selected, label, image }) {
-  const ref = useRef(null)
-
-  useEffect(() => {
-    if (!selected || !ref.current) return
-    ref.current.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-  }, [selected])
-
-  return (
-    <Link
-      ref={ref}
-      to={to}
-      className={`explore-subcat-pill${selected ? ' selected' : ''}`}
-      aria-current={selected ? 'page' : undefined}
-    >
-      {image && (
-        <span className="explore-subcat-pill-img">
-          <img src={`${IMG_BASE}${image}`} alt="" loading="lazy" />
-        </span>
-      )}
-      <span>{label}</span>
-    </Link>
-  )
-}
-
 export default function ExploreCategoryBar({
   categories = [],
-  subcategories = [],
   categoryId,
-  subcategoryId,
   buildUrl,
 }) {
-  const showSubcategories = Boolean(categoryId && subcategories.length > 0)
-
   return (
     <nav className="explore-cat-bar" aria-label="أقسام المنتجات">
       <div className="explore-cat-scroll">
@@ -92,25 +62,6 @@ export default function ExploreCategoryBar({
           />
         ))}
       </div>
-
-      {showSubcategories && (
-        <div className="explore-subcat-scroll">
-          <SubcategoryPill
-            to={buildUrl({ subcategory: null })}
-            selected={!subcategoryId}
-            label="كل الفرعية"
-          />
-          {subcategories.map((sc) => (
-            <SubcategoryPill
-              key={sc.id}
-              to={buildUrl({ subcategory: sc.id })}
-              selected={subcategoryId === String(sc.id)}
-              label={sc.name}
-              image={sc.image}
-            />
-          ))}
-        </div>
-      )}
     </nav>
   )
 }

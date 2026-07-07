@@ -30,6 +30,20 @@ class AppTheme {
   static const info = Color(0xFF4A9FD8);
   static const infoSoft = Color(0xFFEAF5FC);
 
+  /// ألوان بكج العروض — مميزة عن المنتج العادي
+  static const bundle = Color(0xFFE87B2E);
+  static const bundleDark = Color(0xFFC45E18);
+  static const bundleSoft = Color(0xFFFFF3E8);
+  static const bundleGradient = LinearGradient(
+    colors: [Color(0xFFFFF0E0), Color(0xFFFFFAF5)],
+    begin: Alignment.topRight,
+    end: Alignment.bottomLeft,
+  );
+
+  /// ألوان المنتج العادي
+  static const product = Color(0xFF5B6FD8);
+  static const productSoft = Color(0xFFEEF0FF);
+
   static const cardShadow = BoxShadow(
     color: Color(0x14E85D7A),
     blurRadius: 24,

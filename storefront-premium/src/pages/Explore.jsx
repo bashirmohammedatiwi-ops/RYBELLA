@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { productsAPI, categoriesAPI, subcategoriesAPI, wishlistAPI } from '../services/api'
+import { productsAPI, categoriesAPI, wishlistAPI } from '../services/api'
 import { isBarcodeLikeQuery } from '../utils/barcode'
 import { searchByBarcode } from '../utils/barcodeSearch'
 import BarcodeScanner from '../components/BarcodeScanner'
@@ -17,7 +17,6 @@ export default function Explore() {
   const [searchInput, setSearchInput] = useState('')
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
-  const [subcategories, setSubcategories] = useState([])
   const [wishlistIds, setWishlistIds] = useState([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('')
@@ -26,7 +25,6 @@ export default function Explore() {
   const { user } = useAuth()
 
   const categoryId = searchParams.get('category')
-  const subcategoryId = searchParams.get('subcategory')
   const brandId = searchParams.get('brand')
   const tagFilter = searchParams.get('tag')
   const minPrice = searchParams.get('min_price')
@@ -47,10 +45,16 @@ export default function Explore() {
   }, [searchParams, setSearchParams])
 
   useEffect(() => {
+    if (!searchParams.has('subcategory')) return
+    const p = new URLSearchParams(searchParams)
+    p.delete('subcategory')
+    setSearchParams(p, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  useEffect(() => {
     setLoading(true)
     const params = {}
     if (categoryId) params.category_id = categoryId
-    if (subcategoryId) params.subcategory_id = subcategoryId
     if (brandId) params.brand_id = brandId
     if (tagFilter) params.tags = tagFilter
     if (minPrice) params.min_price = minPrice
@@ -63,7 +67,7 @@ export default function Explore() {
       .then((r) => setProducts(r?.data || []))
       .catch(() => setProducts([]))
       .finally(() => setLoading(false))
-  }, [categoryId, subcategoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
+  }, [categoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
 
   useEffect(() => {
     categoriesAPI.getAll().then((r) => setCategories(r?.data || [])).catch(() => [])
@@ -87,14 +91,8 @@ export default function Explore() {
   }
 
   useEffect(() => {
-    subcategoriesAPI.getAll({ category_id: categoryId || undefined })
-      .then((r) => setSubcategories(r?.data || []))
-      .catch(() => [])
-  }, [categoryId])
-
-  useEffect(() => {
     mainScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' })
-  }, [categoryId, subcategoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
+  }, [categoryId, brandId, tagFilter, minPrice, maxPrice, search, featured, sortBy])
 
   const buildUrl = (overrides = {}) => {
     const p = new URLSearchParams(searchParams)
@@ -143,15 +141,14 @@ export default function Explore() {
 
   return (
     <div className="premium-explore">
-      <MobileHeader title="المنتجات" showBack />
-
-      <ExploreCategoryBar
-        categories={categories}
-        subcategories={subcategories}
-        categoryId={categoryId}
-        subcategoryId={subcategoryId}
-        buildUrl={buildUrl}
-      />
+      <div className="premium-explore-top">
+        <MobileHeader title="المنتجات" showBack />
+        <ExploreCategoryBar
+          categories={categories}
+          categoryId={categoryId}
+          buildUrl={buildUrl}
+        />
+      </div>
 
       <div className="premium-explore-main" ref={mainScrollRef}>
         <div className="premium-explore-main-inner">
