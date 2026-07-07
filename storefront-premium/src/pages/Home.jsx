@@ -56,9 +56,19 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (!recentIds?.length) return
-    Promise.all(recentIds.slice(0, 6).map((id) => productsAPI.getById(id).then((r) => r?.data).catch(() => null)))
-      .then((list) => setRecentProducts(list.filter(Boolean)))
+    if (!recentIds?.length) {
+      setRecentProducts([])
+      return
+    }
+    const ids = recentIds.slice(0, 6).join(',')
+    productsAPI.getAll({ product_ids: ids, lite: 1 })
+      .then((r) => {
+        const list = Array.isArray(r?.data) ? r.data : []
+        const order = recentIds.slice(0, 6)
+        const sorted = order.map((id) => list.find((p) => p.id === id)).filter(Boolean)
+        setRecentProducts(sorted)
+      })
+      .catch(() => setRecentProducts([]))
   }, [recentIds?.join(',')])
 
   useEffect(() => {
@@ -290,12 +300,13 @@ export default function Home() {
               <Link to="/explore?sort_by=newest" className="home-section-link">الكل</Link>
             </div>
             <div className="home-products">
-              {newProducts.map((p) => (
+              {newProducts.map((p, index) => (
                 <ProductCard
                   key={p.id}
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
+                  priority={index < 4}
                 />
               ))}
             </div>
@@ -309,12 +320,13 @@ export default function Home() {
               <Link to="/explore" className="home-section-link">الكل</Link>
             </div>
             <div className="home-products">
-              {bestSellerProducts.map((p) => (
+              {bestSellerProducts.map((p, index) => (
                 <ProductCard
                   key={p.id}
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
+                  priority={index < 4}
                 />
               ))}
             </div>

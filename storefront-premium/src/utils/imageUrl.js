@@ -4,13 +4,25 @@ const getApiBase = () => {
   return url.replace(/\/api\/?$/, '') || url
 }
 
+const ALLOWED_WIDTHS = [80, 120, 200, 240, 400, 600, 800, 900, 1000, 1200]
+
 export const IMAGE_PRESETS = {
-  icon: { width: 80, sizes: '64px', widths: [80], single: true, quality: 76 },
-  thumb: { width: 120, sizes: '100px', widths: [120], single: true, quality: 76 },
-  card: { width: 240, sizes: '(max-width: 480px) 46vw, 180px', widths: [240], single: true, quality: 76 },
-  medium: { width: 600, sizes: '(max-width: 768px) 90vw, 400px', widths: [400, 600], single: false, quality: 80 },
-  banner: { width: 900, sizes: '100vw', widths: [600, 900], single: false, quality: 82 },
-  hero: { width: 1000, sizes: '100vw', widths: [800, 1000], single: false, quality: 82 },
+  icon: { width: 80, quality: 76 },
+  thumb: { width: 120, quality: 76 },
+  card: { width: 240, quality: 76 },
+  medium: { width: 600, quality: 80 },
+  banner: { width: 900, quality: 82 },
+  hero: { width: 1000, quality: 82 },
+}
+
+export function snapWidth(width) {
+  const w = Math.max(40, Math.min(1600, Math.round(Number(width) || 240)))
+  let best = ALLOWED_WIDTHS[0]
+  for (const allowed of ALLOWED_WIDTHS) {
+    if (allowed <= w) best = allowed
+    else break
+  }
+  return best
 }
 
 function isOptimizablePath(src) {
@@ -22,33 +34,37 @@ function isOptimizablePath(src) {
   return true
 }
 
-export function getOptimizedImageUrl(src, { width = 240, quality = 76, format = 'webp' } = {}) {
-  if (!src) return ''
-  if (!isOptimizablePath(src)) {
-    if (src.startsWith('http')) return src
-    const base = import.meta.env.DEV ? '' : getApiBase()
-    return `${base}${src}`
-  }
+/** مسار ملف WebP ثابت من الـ cache — يُخدم مباشرة عبر Nginx بدون تحميل على Node */
+export function getCachedImageUrl(src, { width = 240, quality = 76, format = 'webp' } = {}) {
+  if (!isOptimizablePath(src)) return getOriginalImageUrl(src)
+  const w = snapWidth(width)
+  const safeName = src.replace(/^\/uploads\//, '').replace(/[/\\]/g, '__')
+  const baseName = safeName.replace(/\.[^.]+$/, '')
+  const base = import.meta.env.DEV ? '' : getApiBase()
+  return `${base}/uploads/.cache/w${w}_q${quality}_${format}/${baseName}.webp`
+}
+
+/** يُستخدم فقط عند غياب ملف الـ cache — يولّد الملف ثم يُخدم ثابتاً لاحقاً */
+export function getApiImageUrl(src, { width = 240, quality = 76, format = 'webp' } = {}) {
+  if (!isOptimizablePath(src)) return getOriginalImageUrl(src)
   const base = import.meta.env.DEV ? '' : getApiBase()
   const params = new URLSearchParams({
     src,
-    w: String(width),
+    w: String(snapWidth(width)),
     q: String(quality),
     f: format,
   })
   return `${base}/api/img?${params}`
 }
 
-export function getImageSrcSet(src, widths = [240], quality = 76, format = 'webp') {
-  if (!isOptimizablePath(src)) return undefined
-  return widths
-    .map((w) => `${getOptimizedImageUrl(src, { width: w, quality, format })} ${w}w`)
-    .join(', ')
+/** للتوافق */
+export function getOptimizedImageUrl(src, options = {}) {
+  return getCachedImageUrl(src, options)
 }
 
 export function getPresetConfig(preset = 'card') {
   if (typeof preset === 'number') {
-    return { width: preset, sizes: `${preset}px`, widths: [preset], single: true, quality: 76 }
+    return { width: preset, quality: 76 }
   }
   return IMAGE_PRESETS[preset] || IMAGE_PRESETS.card
 }

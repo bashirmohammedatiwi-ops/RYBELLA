@@ -105,15 +105,14 @@ export default function Explore() {
   }, [loading, loadingMore, products.length, total, buildListParams])
 
   useEffect(() => {
-    const root = mainScrollRef.current
     const target = loadMoreRef.current
-    if (!root || !target || loading) return undefined
+    if (!target || loading) return undefined
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) loadMore()
       },
-      { root, rootMargin: '480px 0px', threshold: 0 }
+      { rootMargin: '600px 0px', threshold: 0 }
     )
 
     observer.observe(target)

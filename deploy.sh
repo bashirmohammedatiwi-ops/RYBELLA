@@ -160,7 +160,7 @@ fi
 wait_for_service() {
   local i
   for i in $(seq 1 30); do
-    if docker exec rybella-backend wget -q --spider http://127.0.0.1:4000/api/health 2>/dev/null; then
+    if docker exec rybella-backend wget -q --spider http://127.0.0.1:4000/api/health/live 2>/dev/null; then
       return 0
     fi
     sleep 2
@@ -227,6 +227,11 @@ post_deploy_checks() {
 }
 
 post_deploy_checks || true
+
+if docker ps --format '{{.Names}}' | grep -q '^rybella-backend$'; then
+  echo "==> Warming image thumbnails (background)..."
+  docker exec -d rybella-backend node scripts/warm-upload-images.js 2>/dev/null || true
+fi
 
 echo ""
 echo "==> Status:"

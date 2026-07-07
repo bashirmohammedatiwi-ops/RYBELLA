@@ -32,9 +32,26 @@ api.interceptors.response.use(
 
 export const productsAPI = {
   getAll: (params) => api.get('/products', { params: { ...params, status: params?.status ?? 'published' } }),
-  getPage: (params = {}) => api
-    .get('/products', { params: { status: 'published', lite: 1, meta: 1, ...params } })
-    .then((r) => r.data),
+  getPage: async (params = {}) => {
+    const query = { status: 'published', lite: 1, meta: 1, ...params }
+    try {
+      const r = await api.get('/products', { params: query })
+      const data = r?.data
+      if (data && Array.isArray(data.products)) return data
+      if (Array.isArray(data)) {
+        return { products: data, total: data.length, limit: query.limit, offset: query.offset || 0 }
+      }
+    } catch {
+      /* fallback below */
+    }
+    try {
+      const r = await api.get('/products', { params: { status: 'published', lite: 1, ...params } })
+      const list = Array.isArray(r?.data) ? r.data : []
+      return { products: list, total: list.length, limit: params.limit, offset: params.offset || 0 }
+    } catch {
+      return { products: [], total: 0, limit: params.limit, offset: params.offset || 0 }
+    }
+  },
   getById: (id) => api.get(`/products/${id}`),
   getFilters: () => api.get('/products/filters'),
 }

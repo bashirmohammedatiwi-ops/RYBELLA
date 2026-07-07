@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
- * توليد نسخ WebP مصغّرة لكل صور uploads الموجودة (مرة واحدة بعد النشر).
- * الاستخدام على السيرفر:
+ * توليد نسخ WebP مصغّرة لكل صور uploads (بعد النشر أو عند الحاجة).
  *   docker exec rybella-backend node scripts/warm-upload-images.js
  */
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const { warmImageThumbnails, isSafeUploadPath } = require('../services/imageResizeService');
+const { getOptimizedImage, isSafeUploadPath, snapWidth } = require('../services/imageResizeService');
 
 const uploadsDir = process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads');
+const WIDTHS = [120, 240, 400];
+const CONCURRENCY = 3;
 
 function walk(dir, files = []) {
   if (!fs.existsSync(dir)) return files;
@@ -23,22 +24,42 @@ function walk(dir, files = []) {
   return files;
 }
 
-async function main() {
-  const files = walk(uploadsDir);
-  console.log(`Warming ${files.length} images...`);
-  let done = 0;
-  for (const file of files) {
-    const rel = `/uploads/${path.relative(uploadsDir, file).replace(/\\/g, '/')}`;
-    if (!isSafeUploadPath(rel)) continue;
-    warmImageThumbnails(rel);
-    done += 1;
-    if (done % 25 === 0) {
-      console.log(`Queued ${done}/${files.length}`);
-      await new Promise((r) => setTimeout(r, 500));
+async function warmOne(src) {
+  for (const width of WIDTHS) {
+    const w = snapWidth(width);
+    await getOptimizedImage({ src, width: w, quality: 76, format: 'webp' }).catch(() => {});
+  }
+}
+
+async function runPool(items, worker) {
+  let index = 0;
+  async function next() {
+    while (index < items.length) {
+      const i = index;
+      index += 1;
+      await worker(items[i], i);
     }
   }
-  console.log(`Done. Queued warm for ${done} images.`);
-  setTimeout(() => process.exit(0), 3000);
+  const workers = Array.from({ length: Math.min(CONCURRENCY, items.length) }, () => next());
+  await Promise.all(workers);
+}
+
+async function main() {
+  const files = walk(uploadsDir);
+  const paths = files
+    .map((file) => `/uploads/${path.relative(uploadsDir, file).replace(/\\/g, '/')}`)
+    .filter(isSafeUploadPath);
+
+  console.log(`Warming ${paths.length} images (${WIDTHS.length} sizes each)...`);
+  let done = 0;
+  await runPool(paths, async (src) => {
+    await warmOne(src);
+    done += 1;
+    if (done % 20 === 0 || done === paths.length) {
+      console.log(`Progress: ${done}/${paths.length}`);
+    }
+  });
+  console.log(`Done. Warmed ${done} images.`);
 }
 
 main().catch((e) => {

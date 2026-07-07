@@ -68,10 +68,13 @@ async function prepareProductCatalog() {
 
 exports.getAll = async (req, res) => {
   try {
-    await prepareProductCatalog();
     const { brand_id, category_id, subcategory_id, min_price, max_price, search, status, featured, best_seller, product_ids, tags, color_code, sort_by, limit, offset, lite, meta } = req.query;
     const liteMode = lite === '1' || lite === 'true';
     const wantMeta = meta === '1' || meta === 'true';
+
+    if (!liteMode) {
+      await prepareProductCatalog();
+    }
     let query = `
       SELECT p.*, b.name as brand_name, c.name as category_name, s.name as subcategory_name,
         (SELECT COUNT(*) FROM product_variants pv WHERE pv.product_id = p.id AND pv.stock > 0) as available_variants,

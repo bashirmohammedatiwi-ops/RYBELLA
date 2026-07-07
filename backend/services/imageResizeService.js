@@ -4,13 +4,34 @@ const path = require('path');
 const UPLOADS_DIR = path.resolve(__dirname, '..', 'uploads');
 const CACHE_DIR = path.join(UPLOADS_DIR, '.cache');
 
-const ALLOWED_WIDTHS = [80, 120, 200, 400, 600, 800, 1000, 1200];
+const ALLOWED_WIDTHS = [80, 120, 200, 240, 400, 600, 800, 900, 1000, 1200];
 const DEFAULT_QUALITY = 82;
 const MAX_QUALITY = 95;
 const MIN_QUALITY = 40;
 
 let sharpModule = null;
 let sharpUnavailable = false;
+let sharpActive = 0;
+const SHARP_MAX_CONCURRENT = 2;
+const sharpWaiters = [];
+
+function releaseSharpSlot() {
+  sharpActive = Math.max(0, sharpActive - 1);
+  const next = sharpWaiters.shift();
+  if (next) next();
+}
+
+async function withSharpSlot(fn) {
+  if (sharpActive >= SHARP_MAX_CONCURRENT) {
+    await new Promise((resolve) => sharpWaiters.push(resolve));
+  }
+  sharpActive += 1;
+  try {
+    return await fn();
+  } finally {
+    releaseSharpSlot();
+  }
+}
 
 function getSharp() {
   if (sharpUnavailable) return null;
@@ -110,21 +131,23 @@ async function getOptimizedImage({ src, width, quality, format }) {
     }
   }
 
-  let pipeline = sharp(sourcePath, { failOn: 'none' })
-    .rotate()
-    .resize({
-      width: w,
-      withoutEnlargement: true,
-      fit: 'inside',
-    });
+  const buffer = await withSharpSlot(async () => {
+    let pipeline = sharp(sourcePath, { failOn: 'none' })
+      .rotate()
+      .resize({
+        width: w,
+        withoutEnlargement: true,
+        fit: 'inside',
+      });
 
-  if (fmt === 'jpeg') {
-    pipeline = pipeline.jpeg({ quality: q, mozjpeg: true });
-  } else {
-    pipeline = pipeline.webp({ quality: q, effort: 4 });
-  }
+    if (fmt === 'jpeg') {
+      pipeline = pipeline.jpeg({ quality: q, mozjpeg: true });
+    } else {
+      pipeline = pipeline.webp({ quality: q, effort: 3 });
+    }
 
-  const buffer = await pipeline.toBuffer();
+    return pipeline.toBuffer();
+  });
   fs.mkdirSync(path.dirname(cachePath), { recursive: true });
   fs.writeFileSync(cachePath, buffer);
 
@@ -137,9 +160,9 @@ async function getOptimizedImage({ src, width, quality, format }) {
 
 function warmImageThumbnails(src) {
   if (!isSafeUploadPath(src)) return;
-  const widths = [120, 240, 400];
-  widths.forEach((width) => {
-    getOptimizedImage({ src, width, quality: 76, format: 'webp' }).catch(() => {});
+  [120, 240, 400].forEach((width) => {
+    const w = snapWidth(width);
+    getOptimizedImage({ src, width: w, quality: 76, format: 'webp' }).catch(() => {});
   });
 }
 

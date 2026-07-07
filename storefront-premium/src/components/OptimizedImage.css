@@ -1,42 +1,7 @@
-.optimized-img-wrap {
-  display: block;
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.optimized-img-wrap .optimized-img {
-  position: relative;
-  z-index: 1;
-}
-
-.optimized-img {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.optimized-img.is-loaded {
-  opacity: 1;
-}
-
 .optimized-img-placeholder {
   display: block;
   width: 100%;
   height: 100%;
   min-height: 1px;
-  background: linear-gradient(110deg, #f0f0f0 8%, #fafafa 18%, #f0f0f0 33%);
-  background-size: 200% 100%;
-  animation: optimized-img-shimmer 1s linear infinite;
-}
-
-.optimized-img-wrap .optimized-img-placeholder {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-@keyframes optimized-img-shimmer {
-  to {
-    background-position-x: -200%;
-  }
+  background: #f3f4f6;
 }

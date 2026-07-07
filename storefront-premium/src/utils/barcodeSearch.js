@@ -7,7 +7,7 @@ export async function searchByBarcode(navigate, rawCode, options = {}) {
   if (!q) return false
 
   try {
-    const { data } = await productsAPI.getAll({ search: q })
+    const { data } = await productsAPI.getAll({ search: q, lite: 1, limit: 20 })
     const list = Array.isArray(data) ? data : []
     if (list.length === 1) {
       const product = list[0]
