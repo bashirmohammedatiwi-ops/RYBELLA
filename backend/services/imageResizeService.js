@@ -247,6 +247,164 @@ function warmImageThumbnails(src) {
   });
 }
 
+const ORIGINAL_MAX_WIDTH = Math.max(
+  800,
+  Math.min(2400, parseInt(process.env.IMAGE_MAX_ORIGINAL_WIDTH || '1400', 10))
+);
+const ORIGINAL_JPEG_QUALITY = Math.max(
+  60,
+  Math.min(95, parseInt(process.env.IMAGE_ORIGINAL_JPEG_QUALITY || '82', 10))
+);
+const ORIGINAL_WEBP_QUALITY = Math.max(
+  60,
+  Math.min(95, parseInt(process.env.IMAGE_ORIGINAL_WEBP_QUALITY || '82', 10))
+);
+const COMPRESS_MIN_BYTES = Math.max(
+  0,
+  parseInt(process.env.IMAGE_COMPRESS_MIN_BYTES || '100000', 10)
+);
+
+function clearCacheForSource(src) {
+  if (!isSafeUploadPath(src) || !fs.existsSync(CACHE_DIR)) return 0;
+  const safeName = src.replace(/^\/uploads\//, '').replace(/[/\\]/g, '__');
+  const baseName = safeName.replace(/\.[^.]+$/, '');
+  let removed = 0;
+
+  function walk(dir) {
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name);
+      const stat = fs.statSync(full);
+      if (stat.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (name === `${baseName}.webp` || name === `${baseName}.jpg`) {
+        fs.unlinkSync(full);
+        removed += 1;
+      }
+    }
+  }
+
+  walk(CACHE_DIR);
+  return removed;
+}
+
+function toUploadRelPath(absPath) {
+  const rel = path.relative(UPLOADS_DIR, absPath).replace(/\\/g, '/');
+  if (!rel || rel.startsWith('..') || rel.includes('.cache/')) return null;
+  return `/uploads/${rel}`;
+}
+
+/**
+ * ضغط الصورة الأصلية في مكانها (نفس الاسم — لا حاجة لتحديث قاعدة البيانات).
+ */
+async function compressOriginalFile(absPath, options = {}) {
+  const minBytes = options.minBytes ?? COMPRESS_MIN_BYTES;
+  const maxWidth = options.maxWidth ?? ORIGINAL_MAX_WIDTH;
+  const dryRun = Boolean(options.dryRun);
+
+  if (!absPath || !fs.existsSync(absPath)) {
+    return { skipped: true, reason: 'missing' };
+  }
+
+  const ext = path.extname(absPath).toLowerCase();
+  if (['.svg', '.gif', '.mp4', '.webm', '.mov'].includes(ext)) {
+    return { skipped: true, reason: 'format' };
+  }
+  if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+    return { skipped: true, reason: 'format' };
+  }
+
+  const stat = fs.statSync(absPath);
+  if (stat.size < minBytes) {
+    return { skipped: true, reason: 'small', before: stat.size };
+  }
+
+  const sharp = getSharp();
+  if (!sharp) {
+    return { skipped: true, reason: 'sharp_unavailable' };
+  }
+
+  const meta = await sharp(absPath, { failOn: 'none' }).metadata();
+  const needsResize = (meta.width || 0) > maxWidth || (meta.height || 0) > maxWidth;
+
+  const buffer = await withSharpSlot(async () => {
+    let pipeline = sharp(absPath, { failOn: 'none' }).rotate();
+    if (needsResize) {
+      pipeline = pipeline.resize({
+        width: maxWidth,
+        height: maxWidth,
+        fit: 'inside',
+        withoutEnlargement: true,
+      });
+    }
+
+    if (ext === '.jpg' || ext === '.jpeg') {
+      return pipeline.jpeg({ quality: ORIGINAL_JPEG_QUALITY, mozjpeg: true }).toBuffer();
+    }
+    if (ext === '.webp') {
+      return pipeline.webp({ quality: ORIGINAL_WEBP_QUALITY, effort: 4 }).toBuffer();
+    }
+    if (ext === '.png') {
+      const hasAlpha = meta.hasAlpha;
+      return pipeline.png({
+        compressionLevel: 9,
+        palette: !hasAlpha,
+        quality: 80,
+        effort: 10,
+      }).toBuffer();
+    }
+    return null;
+  });
+
+  if (!buffer) {
+    return { skipped: true, reason: 'format' };
+  }
+
+  const minGain = options.minGain ?? 0.03;
+  if (buffer.length >= stat.size * (1 - minGain) && !needsResize) {
+    return {
+      skipped: true,
+      reason: 'no_gain',
+      before: stat.size,
+      after: buffer.length,
+    };
+  }
+
+  if (dryRun) {
+    return {
+      dryRun: true,
+      before: stat.size,
+      after: buffer.length,
+      saved: stat.size - buffer.length,
+      resized: needsResize,
+    };
+  }
+
+  if (options.backup) {
+    const backupRoot = path.join(UPLOADS_DIR, '.backup-compress');
+    const rel = path.relative(UPLOADS_DIR, absPath);
+    const backupPath = path.join(backupRoot, rel);
+    fs.mkdirSync(path.dirname(backupPath), { recursive: true });
+    if (!fs.existsSync(backupPath)) {
+      fs.copyFileSync(absPath, backupPath);
+    }
+  }
+
+  fs.writeFileSync(absPath, buffer);
+  const src = toUploadRelPath(absPath);
+  const cacheCleared = src ? clearCacheForSource(src) : 0;
+
+  return {
+    compressed: true,
+    before: stat.size,
+    after: buffer.length,
+    saved: stat.size - buffer.length,
+    resized: needsResize,
+    cacheCleared,
+  };
+}
+
 module.exports = {
   getOptimizedImage,
   snapWidth,
@@ -258,6 +416,10 @@ module.exports = {
   getCacheRelPath,
   parseCacheRequestPath,
   resolveCardImageUrl,
+  compressOriginalFile,
+  clearCacheForSource,
+  toUploadRelPath,
   CARD_WIDTH,
   CARD_QUALITY,
+  ORIGINAL_MAX_WIDTH,
 };

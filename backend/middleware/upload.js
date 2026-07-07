@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { compressAfterUpload } = require('./compressUpload');
 
 const uploadDir = process.env.UPLOAD_PATH || './uploads';
 const maxSize = parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024; // 5MB
@@ -34,10 +35,25 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({
+const baseUpload = multer({
   storage,
   limits: { fileSize: maxSize },
   fileFilter
 });
+
+function withCompress(multerMiddleware) {
+  return (req, res, next) => {
+    multerMiddleware(req, res, (err) => {
+      if (err) return next(err);
+      return compressAfterUpload(req, res, next);
+    });
+  };
+}
+
+const upload = {
+  single: (name) => withCompress(baseUpload.single(name)),
+  fields: (fields) => withCompress(baseUpload.fields(fields)),
+  array: (name, maxCount) => withCompress(baseUpload.array(name, maxCount)),
+};
 
 module.exports = upload;

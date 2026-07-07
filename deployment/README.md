@@ -66,12 +66,25 @@ docker compose logs -f
 # تسخين يدوي لصور البطاقات فقط
 docker exec rybella-backend node scripts/warm-upload-images.js --cards-only
 
+# ضغط الصور الموجودة على السيرفر (معاينة بدون تغيير)
+docker exec rybella-backend node scripts/compress-upload-images.js --dry-run
+
+# ضغط فعلي + نسخة احتياطية + إعادة توليد WebP
+docker exec rybella-backend node scripts/compress-upload-images.js --backup --rewarm
+
 # تنظيف ملفات cache اليتيمة (بدون أصل)
 docker exec rybella-backend node scripts/prune-image-cache.js
 
 # تخطي التسخين عند النشر
 SKIP_WARM=1 ./deploy.sh
 ```
+
+**ضغط الصور:** يُصغّر الملفات الأكبر من 100KB إلى عرض أقصى 1400px بجودة ~82% (نفس الاسم — لا يحتاج تحديث قاعدة البيانات). الصور الجديدة تُضغَّط تلقائياً عند الرفع من لوحة التحكم.
+
+متغيرات اختيارية في `deployment/.env`:
+- `IMAGE_MAX_ORIGINAL_WIDTH=1400`
+- `IMAGE_ORIGINAL_JPEG_QUALITY=82`
+- `IMAGE_COMPRESS_MIN_BYTES=100000`
 
 Nginx في متجر الويب يخزّن مؤقتاً:
 - JSON الكتالوج و `/api/storefront/home` (90 ثانية)
