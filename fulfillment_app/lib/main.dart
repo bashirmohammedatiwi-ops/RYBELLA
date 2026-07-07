@@ -51,8 +51,8 @@ class FulfillmentRoot extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        theme: AppTheme.darkTheme.copyWith(
-          textTheme: GoogleFonts.tajawalTextTheme(AppTheme.darkTheme.textTheme),
+        theme: AppTheme.lightTheme.copyWith(
+          textTheme: GoogleFonts.tajawalTextTheme(AppTheme.lightTheme.textTheme),
         ),
         builder: (context, child) => Directionality(
           textDirection: TextDirection.rtl,

@@ -1,94 +1,172 @@
 import 'package:flutter/material.dart';
 
+/// ثيم فاتح — ألوان Rybella الناعمة
 class AppTheme {
   static const primary = Color(0xFFE85D7A);
   static const primaryDark = Color(0xFFC94A5A);
-  static const accent = Color(0xFFFFB347);
-  static const bg = Color(0xFF0B1017);
-  static const surface = Color(0xFF141C27);
-  static const surfaceLight = Color(0xFF1C2735);
-  static const border = Color(0xFF2A3647);
-  static const textPrimary = Color(0xFFF4F7FB);
-  static const textMuted = Color(0xFF8FA0B5);
-  static const success = Color(0xFF3DDC97);
-  static const warning = Color(0xFFFFB347);
-  static const danger = Color(0xFFFF6B6B);
-  static const info = Color(0xFF5BC0EB);
+  static const primarySoft = Color(0xFFFFE8EF);
+  static const primaryMuted = Color(0xFFFFF5F9);
 
-  static ThemeData get darkTheme {
+  static const accent = Color(0xFFFF9E6D);
+  static const accentSoft = Color(0xFFFFF0E8);
+
+  static const bg = Color(0xFFFFFBFC);
+  static const bgGradientEnd = Color(0xFFFFF0F5);
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceAlt = Color(0xFFFFF8FA);
+  static const border = Color(0xFFF5D4DF);
+  static const borderLight = Color(0xFFFCEEF3);
+
+  static const textPrimary = Color(0xFF1F1218);
+  static const textSecondary = Color(0xFF5C3D4A);
+  static const textMuted = Color(0xFF9A7A88);
+
+  static const success = Color(0xFF2EAD7A);
+  static const successSoft = Color(0xFFE8F8F0);
+  static const warning = Color(0xFFE89B3A);
+  static const warningSoft = Color(0xFFFFF6E8);
+  static const danger = Color(0xFFE05454);
+  static const dangerSoft = Color(0xFFFFEEEE);
+  static const info = Color(0xFF4A9FD8);
+  static const infoSoft = Color(0xFFEAF5FC);
+
+  static const cardShadow = BoxShadow(
+    color: Color(0x14E85D7A),
+    blurRadius: 24,
+    offset: Offset(0, 8),
+  );
+
+  static const cardShadowSoft = BoxShadow(
+    color: Color(0x0A000000),
+    blurRadius: 16,
+    offset: Offset(0, 4),
+  );
+
+  static LinearGradient get heroGradient => const LinearGradient(
+        colors: [Color(0xFFFFE4EC), Color(0xFFFFF8FA), Color(0xFFFFFFFF)],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      );
+
+  static LinearGradient get primaryGradient => const LinearGradient(
+        colors: [primary, primaryDark],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  static LinearGradient get pageGradient => const LinearGradient(
+        colors: [bg, bgGradientEnd],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+
+  static ThemeData get lightTheme {
     final base = ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: bg,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primary,
         primary: primary,
         secondary: accent,
         surface: surface,
         error: danger,
+        brightness: Brightness.light,
       ),
     );
 
     return base.copyWith(
       appBarTheme: const AppBarTheme(
-        backgroundColor: bg,
+        backgroundColor: Colors.transparent,
         foregroundColor: textPrimary,
         elevation: 0,
-        centerTitle: true,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          color: textPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+        ),
       ),
       cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: border),
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: borderLight),
         ),
       ),
-      dividerTheme: const DividerThemeData(color: border),
+      dividerTheme: const DividerThemeData(color: borderLight, thickness: 1),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: surfaceLight,
+        backgroundColor: textPrimary,
+        contentTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: textPrimary,
+          foregroundColor: textSecondary,
           side: const BorderSide(color: border),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceLight,
+        fillColor: surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: primary, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: primary, width: 2),
         ),
-        labelStyle: const TextStyle(color: textMuted),
+        labelStyle: const TextStyle(color: textMuted, fontWeight: FontWeight.w600),
         hintStyle: const TextStyle(color: textMuted),
+        prefixIconColor: textMuted,
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        selectedItemColor: primary,
-        unselectedItemColor: textMuted,
-        type: BottomNavigationBarType.fixed,
+        indicatorColor: primarySoft,
         elevation: 0,
+        height: 68,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            color: selected ? primary : textMuted,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(color: selected ? primary : textMuted, size: 24);
+        }),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: surfaceAlt,
+        selectedColor: primarySoft,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        side: const BorderSide(color: borderLight),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
     );
   }

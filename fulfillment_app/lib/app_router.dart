@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/theme.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/app_widgets.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/order_detail_screen.dart';
@@ -13,7 +15,10 @@ class FulfillmentApp extends StatelessWidget {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
         if (auth.loading) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            backgroundColor: AppTheme.bg,
+            body: LoadingOverlay(message: 'جاري التحميل...'),
+          );
         }
         if (!auth.isLoggedIn) return const LoginScreen();
         return const HomeShell();

@@ -42,6 +42,15 @@ flutter build apk --release --dart-define=API_BASE=https://rybellairaq.com
 
 الملف: `build/app/outputs/flutter-apk/app-release.apk`
 
+## TestFlight (iOS)
+
+راجع **[TESTFLIGHT.md](TESTFLIGHT.md)** للخطوات الكاملة.
+
+```bash
+chmod +x scripts/build-testflight.sh
+./scripts/build-testflight.sh
+```
+
 ## متغيرات الخادم (اختياري)
 
 | المتغير | الافتراضي | الوصف |
