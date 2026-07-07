@@ -54,7 +54,7 @@ export default function HomeCategoriesSection({ categories = [], variant = 'sect
     return (
       <section className="hc-top" aria-label="الأقسام">
         <div className="hc-top-scroll">
-          <Link to="/categories" className="hc-top-item hc-top-item--all">
+          <Link to="/explore" className="hc-top-item hc-top-item--all">
             <span className="hc-top-icon hc-top-icon--all">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -77,7 +77,7 @@ export default function HomeCategoriesSection({ categories = [], variant = 'sect
     <section className="hc-bottom" aria-label="الأقسام">
       <header className="hc-bottom-head">
         <h2 className="hc-bottom-title">الأقسام</h2>
-        <Link to="/categories" className="hc-bottom-link">عرض الكل</Link>
+        <Link to="/explore" className="hc-bottom-link">عرض الكل</Link>
       </header>
 
       <div className="hc-bottom-list">
