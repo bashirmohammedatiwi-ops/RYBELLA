@@ -1,3 +1,5 @@
+import '../utils/json_utils.dart';
+
 class OrderStats {
   final int pending;
   final int preparing;
@@ -15,11 +17,11 @@ class OrderStats {
 
   factory OrderStats.fromJson(Map<String, dynamic> json) {
     return OrderStats(
-      pending: (json['pending'] as num?)?.toInt() ?? 0,
-      preparing: (json['preparing'] as num?)?.toInt() ?? 0,
-      delivered: (json['delivered'] as num?)?.toInt() ?? 0,
-      cancelled: (json['cancelled'] as num?)?.toInt() ?? 0,
-      total: (json['total'] as num?)?.toInt() ?? 0,
+      pending: jsonInt(json['pending']),
+      preparing: jsonInt(json['preparing']),
+      delivered: jsonInt(json['delivered']),
+      cancelled: jsonInt(json['cancelled']),
+      total: jsonInt(json['total']),
     );
   }
 }
@@ -67,23 +69,31 @@ class FulfillmentOrder {
     final itemsRaw = json['items'] as List? ?? [];
     final bundlesRaw = json['bundles'] as List? ?? [];
     return FulfillmentOrder(
-      id: json['id'] as int,
-      totalPrice: (json['total_price'] as num?)?.toDouble() ?? 0,
-      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0,
-      discount: (json['discount'] as num?)?.toDouble() ?? 0,
-      finalPrice: (json['final_price'] as num?)?.toDouble() ?? 0,
-      status: _normalizeStatus(json['status'] as String? ?? 'pending'),
+      id: jsonInt(json['id']),
+      totalPrice: jsonDouble(json['total_price']),
+      deliveryFee: jsonDouble(json['delivery_fee']),
+      discount: jsonDouble(json['discount']),
+      finalPrice: jsonDouble(json['final_price']),
+      status: _normalizeStatus(jsonString(json['status'], 'pending')),
       paymentMethod: json['payment_method'] as String?,
-      address: json['address'] as String? ?? '',
-      city: json['city'] as String? ?? '',
+      address: jsonString(json['address']),
+      city: jsonString(json['city']),
       phone: json['phone'] as String?,
       customerName: json['customer_name'] as String?,
       customerPhone: json['customer_phone'] as String?,
       couponCode: json['coupon_code'] as String?,
       cancelReason: json['cancel_reason'] as String?,
-      createdAt: json['created_at'] as String? ?? '',
-      items: itemsRaw.map((e) => OrderLine.fromJson(e as Map<String, dynamic>)).toList(),
-      bundles: bundlesRaw.map((e) => OrderBundle.fromJson(e as Map<String, dynamic>)).toList(),
+      createdAt: jsonString(json['created_at']),
+      items: itemsRaw
+          .map((e) => OrderLine.fromJson(
+                e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e as Map),
+              ))
+          .toList(),
+      bundles: bundlesRaw
+          .map((e) => OrderBundle.fromJson(
+                e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e as Map),
+              ))
+          .toList(),
     );
   }
 
@@ -140,14 +150,14 @@ class OrderLine {
   factory OrderLine.fromJson(Map<String, dynamic> json) {
     final image = json['variant_image'] as String? ?? json['product_image'] as String?;
     return OrderLine(
-      id: json['id'] as int? ?? 0,
-      variantId: json['variant_id'] as int? ?? 0,
+      id: jsonInt(json['id']),
+      variantId: jsonInt(json['variant_id']),
       productName: json['product_name'] as String?,
       shadeName: json['shade_name'] as String?,
       barcode: json['barcode'] as String?,
       image: image,
-      quantity: json['quantity'] as int? ?? 1,
-      price: (json['price'] as num?)?.toDouble() ?? 0,
+      quantity: jsonInt(json['quantity'], 1),
+      price: jsonDouble(json['price']),
     );
   }
 
@@ -172,11 +182,13 @@ class OrderBundle {
   factory OrderBundle.fromJson(Map<String, dynamic> json) {
     final itemsRaw = json['items'] as List? ?? [];
     return OrderBundle(
-      id: json['id'] as int? ?? 0,
-      offerTitle: json['offer_title'] as String? ?? 'عرض',
-      quantity: json['quantity'] as int? ?? 1,
-      totalPrice: (json['total_price'] as num?)?.toDouble() ?? 0,
-      items: itemsRaw.map((e) => OrderLine.fromJson(e as Map<String, dynamic>)).toList(),
+      id: jsonInt(json['id']),
+      offerTitle: jsonString(json['offer_title'], 'عرض'),
+      quantity: jsonInt(json['quantity'], 1),
+      totalPrice: jsonDouble(json['total_price']),
+      items: itemsRaw
+          .map((e) => OrderLine.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

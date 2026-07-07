@@ -46,6 +46,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     return Column(
       children: [
+        if (provider.error != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 4, 18, 0),
+            child: Material(
+              color: AppTheme.dangerSoft,
+              borderRadius: BorderRadius.circular(12),
+              child: ListTile(
+                dense: true,
+                leading: const Icon(Icons.error_outline, color: AppTheme.danger),
+                title: Text(provider.error!, style: const TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w700)),
+                trailing: IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: () => provider.load(),
+                ),
+              ),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
           child: TextField(

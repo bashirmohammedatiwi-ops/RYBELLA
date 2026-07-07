@@ -9,7 +9,7 @@ class OrdersProvider extends ChangeNotifier {
   OrderStats _stats = const OrderStats();
   bool _loading = false;
   String? _error;
-  String _filter = 'pending';
+  String _filter = 'all';
   String _search = '';
   OrderSort _sort = OrderSort.newest;
 
@@ -92,7 +92,7 @@ class OrdersProvider extends ChangeNotifier {
       _stats = results[1] as OrderStats;
       _error = null;
     } catch (e) {
-      _error = e.toString();
+      _error = e is Exception ? e.toString().replaceFirst('Exception: ', '') : e.toString();
     }
 
     _loading = false;

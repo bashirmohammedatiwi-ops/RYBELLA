@@ -34,22 +34,40 @@ class ApiService {
 
   static Future<List<FulfillmentOrder>> getOrders() async {
     final res = await _client.get('/orders');
-    if (!res.success || res.data is! List) return [];
-    return (res.data as List)
-        .map((e) => FulfillmentOrder.fromJson(e as Map<String, dynamic>))
-        .toList();
+    if (!res.success) {
+      throw Exception(res.error ?? 'فشل تحميل الطلبات');
+    }
+    if (res.data is! List) return [];
+    final list = <FulfillmentOrder>[];
+    for (final raw in res.data as List) {
+      if (raw is Map<String, dynamic>) {
+        list.add(FulfillmentOrder.fromJson(raw));
+      } else if (raw is Map) {
+        list.add(FulfillmentOrder.fromJson(Map<String, dynamic>.from(raw)));
+      }
+    }
+    return list;
   }
 
   static Future<FulfillmentOrder?> getOrder(int id) async {
     final res = await _client.get('/orders/$id');
     if (!res.success || res.data is! Map) return null;
-    return FulfillmentOrder.fromJson(res.data as Map<String, dynamic>);
+    final data = res.data is Map<String, dynamic>
+        ? res.data as Map<String, dynamic>
+        : Map<String, dynamic>.from(res.data as Map);
+    return FulfillmentOrder.fromJson(data);
   }
 
   static Future<OrderStats> getStats() async {
     final res = await _client.get('/staff/stats');
-    if (!res.success || res.data is! Map) return const OrderStats();
-    return OrderStats.fromJson(res.data as Map<String, dynamic>);
+    if (!res.success) {
+      throw Exception(res.error ?? 'فشل تحميل الإحصائيات');
+    }
+    if (res.data is! Map) return const OrderStats();
+    final data = res.data is Map<String, dynamic>
+        ? res.data as Map<String, dynamic>
+        : Map<String, dynamic>.from(res.data as Map);
+    return OrderStats.fromJson(data);
   }
 
   static Future<ApiResponse> updateOrderStatus(

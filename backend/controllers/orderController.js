@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { normalizeOrderStatus } = require('../utils/orderStatus');
 const { getFreeShippingThreshold, computeDeliveryFee } = require('../utils/delivery');
 const { ORDER_STATUSES, isValidOrderStatus } = require('../utils/orderStatus');
 const { validateBundleLines } = require('../services/bundleService');
@@ -43,6 +44,7 @@ exports.getById = async (req, res) => {
       return res.status(404).json({ message: 'الطلب غير موجود' });
     }
     const order = orders[0];
+    order.status = normalizeOrderStatus(order.status);
     if (req.user.role !== 'admin' && req.user.role !== 'staff' && order.user_id !== req.user.id) {
       return res.status(403).json({ message: 'غير مصرح' });
     }
@@ -73,6 +75,7 @@ exports.getAll = async (req, res) => {
     const [orders] = await db.query(query, params);
 
     for (const order of orders) {
+      order.status = normalizeOrderStatus(order.status);
       const [items] = await db.query(ORDER_ITEMS_SELECT, [order.id]);
       order.items = items;
       await attachOrderBundles(order);

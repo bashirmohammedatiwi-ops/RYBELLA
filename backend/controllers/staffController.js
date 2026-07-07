@@ -144,7 +144,7 @@ exports.getStats = async (req, res) => {
     const [rows] = await db.query(`
       SELECT
         COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
-        COUNT(*) FILTER (WHERE status = 'preparing_shipping')::int AS preparing,
+        COUNT(*) FILTER (WHERE status IN ('preparing_shipping', 'confirmed', 'processing', 'shipped'))::int AS preparing,
         COUNT(*) FILTER (WHERE status = 'delivered')::int AS delivered,
         COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled,
         COUNT(*)::int AS total
