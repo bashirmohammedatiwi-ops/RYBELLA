@@ -11,7 +11,7 @@ import MobileHeader from '../components/MobileHeader'
 import ExploreCategoryBar from '../components/ExploreCategoryBar'
 import './Explore.css'
 
-const PAGE_SIZE = 36
+const PAGE_SIZE = 24
 
 export default function Explore() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -309,7 +309,7 @@ export default function Explore() {
                   product={p}
                   wishlistIds={wishlistIds}
                   onWishlistToggle={user ? toggleWishlist : undefined}
-                  priority={index < 6}
+                  priority={index < 4}
                 />
               ))}
             </div>

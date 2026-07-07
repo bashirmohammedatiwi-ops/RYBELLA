@@ -30,7 +30,7 @@ api.interceptors.response.use(
   }
 )
 
-const PAGE_SIZE = 36
+const PAGE_SIZE = 24
 
 function normalizePageResponse(data, params = {}) {
   const limit = Number(params.limit) || PAGE_SIZE

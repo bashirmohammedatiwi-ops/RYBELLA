@@ -1,3 +1,9 @@
+.optimized-img-root {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .optimized-img-placeholder {
   display: block;
   width: 100%;

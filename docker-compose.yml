@@ -55,6 +55,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-rybella}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-rybella}
       - PG_POOL_MAX=${PG_POOL_MAX:-50}
       - WEB_CONCURRENCY=${WEB_CONCURRENCY:-2}
+      - SHARP_MAX_CONCURRENT=${SHARP_MAX_CONCURRENT:-4}
       - SQLITE_PATH=/app/data/rybella.db
       - BACKUP_PATH=/app/backups
       - UPLOAD_PATH=/app/uploads

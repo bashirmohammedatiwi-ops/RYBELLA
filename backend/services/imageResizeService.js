@@ -12,7 +12,12 @@ const MIN_QUALITY = 40;
 let sharpModule = null;
 let sharpUnavailable = false;
 let sharpActive = 0;
-const SHARP_MAX_CONCURRENT = 2;
+const SHARP_MAX_CONCURRENT = Math.max(
+  2,
+  Math.min(8, parseInt(process.env.SHARP_MAX_CONCURRENT || '4', 10))
+);
+const CARD_WIDTH = 200;
+const CARD_QUALITY = 72;
 const sharpWaiters = [];
 
 function releaseSharpSlot() {
@@ -95,11 +100,42 @@ function getPublicCacheUrl(src, width = 240, quality = 76, format = 'webp') {
   return getCacheRelPath(src, width, quality, format);
 }
 
-/** للبطاقات: cache إن وُجد وإلا الأصل */
+/** للبطاقات: دائماً رابط WebP مصغّر (يُولَّد عند الطلب إن لم يكن جاهزاً) */
 function resolveCardImageUrl(src) {
   if (!src) return null;
   if (!isSafeUploadPath(src)) return src;
-  return getPublicCacheUrl(src, 240, 76, 'webp') || src;
+  return getCacheRelPath(src, CARD_WIDTH, CARD_QUALITY, 'webp');
+}
+
+/** استخراج المصدر الأصلي من مسار ملف الـ cache عند الطلب المباشر */
+function parseCacheRequestPath(urlPath) {
+  const normalized = String(urlPath || '').replace(/\\/g, '/');
+  const match = normalized.match(/\/uploads\/\.cache\/w(\d+)_q(\d+)_(webp|jpg)\/([^/]+)\.(webp|jpg)$/i);
+  if (!match) return null;
+
+  const [, width, quality, format, baseName] = match;
+  const relPath = baseName.replace(/__/g, '/');
+  const baseAbs = path.resolve(UPLOADS_DIR, relPath);
+
+  const candidates = [baseAbs];
+  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG']) {
+    candidates.push(`${baseAbs}${ext}`);
+  }
+
+  for (const candidate of candidates) {
+    if (!candidate.startsWith(UPLOADS_DIR + path.sep)) continue;
+    if (!fs.existsSync(candidate)) continue;
+    if (candidate.includes(`${path.sep}.cache${path.sep}`)) continue;
+    const src = `/uploads/${path.relative(UPLOADS_DIR, candidate).replace(/\\/g, '/')}`;
+    return {
+      src,
+      width: Number(width),
+      quality: Number(quality),
+      format,
+    };
+  }
+
+  return null;
 }
 
 function shouldSkipOptimization(ext) {
@@ -182,9 +218,10 @@ async function getOptimizedImage({ src, width, quality, format }) {
 
 function warmImageThumbnails(src) {
   if (!isSafeUploadPath(src)) return;
-  [120, 240, 400].forEach((width) => {
+  [CARD_WIDTH, 120, 240, 400].forEach((width) => {
     const w = snapWidth(width);
-    getOptimizedImage({ src, width: w, quality: 76, format: 'webp' }).catch(() => {});
+    const q = w === CARD_WIDTH ? CARD_QUALITY : 76;
+    getOptimizedImage({ src, width: w, quality: q, format: 'webp' }).catch(() => {});
   });
 }
 
@@ -195,5 +232,9 @@ module.exports = {
   ALLOWED_WIDTHS,
   warmImageThumbnails,
   getPublicCacheUrl,
+  getCacheRelPath,
+  parseCacheRequestPath,
   resolveCardImageUrl,
+  CARD_WIDTH,
+  CARD_QUALITY,
 };

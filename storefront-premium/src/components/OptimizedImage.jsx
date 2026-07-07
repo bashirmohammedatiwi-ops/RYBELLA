@@ -1,14 +1,13 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   getCachedImageUrl,
   getApiImageUrl,
   getPresetConfig,
   getOriginalImageUrl,
+  getUploadSource,
   isDirectImageUrl,
 } from '../utils/imageUrl'
 import './OptimizedImage.css'
-
-const FAST_PRESETS = new Set(['card', 'thumb', 'icon'])
 
 export default function OptimizedImage({
   src,
@@ -31,67 +30,102 @@ export default function OptimizedImage({
 }) {
   const [mode, setMode] = useState('primary')
   const [activeSrc, setActiveSrc] = useState(src)
-  const fastPreset = FAST_PRESETS.has(preset)
+  const [inView, setInView] = useState(Boolean(priority || eager))
+  const rootRef = useRef(null)
 
   useEffect(() => {
     setMode('primary')
     setActiveSrc(src)
   }, [src])
 
+  useEffect(() => {
+    if (priority || eager || !enabled) {
+      setInView(true)
+      return undefined
+    }
+
+    const node = rootRef.current
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      setInView(true)
+      return undefined
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '180px 0px', threshold: 0.01 }
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [priority, eager, enabled, src])
+
   const config = useMemo(() => {
     const base = getPresetConfig(preset)
     return {
       width: width ?? base.width,
-      quality: quality ?? base.quality ?? 76,
+      quality: quality ?? base.quality ?? 72,
     }
   }, [preset, width, quality])
 
+  const uploadSource = useMemo(
+    () => getUploadSource(activeSrc, fallbackSrc),
+    [activeSrc, fallbackSrc]
+  )
+
   const imgSrc = useMemo(() => {
-    if (!activeSrc || !enabled) return ''
+    if (!activeSrc || !enabled || !inView) return ''
     const opts = { width: config.width, quality: config.quality }
-    const base = activeSrc
 
-    if (fastPreset || isDirectImageUrl(base)) {
-      return getOriginalImageUrl(base)
+    if (mode === 'original') {
+      return uploadSource ? getOriginalImageUrl(uploadSource) : getOriginalImageUrl(activeSrc)
     }
-
-    if (mode === 'original') return getOriginalImageUrl(fallbackSrc || base)
-    if (mode === 'api') return getApiImageUrl(base, opts)
-    return getCachedImageUrl(base, opts)
-  }, [activeSrc, fallbackSrc, config.width, config.quality, mode, enabled, fastPreset])
+    if (mode === 'api') {
+      return uploadSource ? getApiImageUrl(uploadSource, opts) : getOriginalImageUrl(activeSrc)
+    }
+    if (isDirectImageUrl(activeSrc)) {
+      return getOriginalImageUrl(activeSrc)
+    }
+    if (uploadSource) {
+      return getCachedImageUrl(uploadSource, opts)
+    }
+    return getOriginalImageUrl(activeSrc)
+  }, [activeSrc, uploadSource, config.width, config.quality, mode, enabled, inView])
 
   if (!src || !enabled) {
     return <span className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />
   }
 
   return (
-    <img
-      key={imgSrc}
-      src={imgSrc}
-      alt={alt}
-      className={className}
-      loading={priority || eager ? 'eager' : loading}
-      decoding={decoding}
-      fetchPriority={priority ? 'high' : fetchPriority}
-      draggable={draggable}
-      onClick={onClick}
-      onLoad={onLoad}
-      onError={() => {
-        if (fastPreset) {
-          const original = fallbackSrc || src
-          if (original && activeSrc !== original) {
-            setActiveSrc(original)
-            return
-          }
-          return
-        }
-        setMode((current) => {
-          if (current === 'primary') return 'api'
-          if (current === 'api') return 'original'
-          return current
-        })
-      }}
-      {...rest}
-    />
+    <span ref={rootRef} className="optimized-img-root">
+      {inView && imgSrc ? (
+        <img
+          key={imgSrc}
+          src={imgSrc}
+          alt={alt}
+          className={className}
+          loading={priority || eager ? 'eager' : loading}
+          decoding={decoding}
+          fetchPriority={priority ? 'high' : fetchPriority}
+          draggable={draggable}
+          onClick={onClick}
+          onLoad={onLoad}
+          onError={() => {
+            setMode((current) => {
+              if (current === 'primary') return 'api'
+              if (current === 'api') return 'original'
+              return current
+            })
+          }}
+          {...rest}
+        />
+      ) : (
+        <span className={`optimized-img-placeholder ${className}`.trim()} aria-hidden="true" />
+      )}
+    </span>
   )
 }

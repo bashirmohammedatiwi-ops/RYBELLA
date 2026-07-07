@@ -7,9 +7,9 @@ const getApiBase = () => {
 const ALLOWED_WIDTHS = [80, 120, 200, 240, 400, 600, 800, 900, 1000, 1200]
 
 export const IMAGE_PRESETS = {
-  icon: { width: 80, quality: 76 },
-  thumb: { width: 120, quality: 76 },
-  card: { width: 240, quality: 76 },
+  icon: { width: 80, quality: 72 },
+  thumb: { width: 120, quality: 72 },
+  card: { width: 200, quality: 72 },
   medium: { width: 600, quality: 80 },
   banner: { width: 900, quality: 82 },
   hero: { width: 1000, quality: 82 },
@@ -74,6 +74,13 @@ export function getOriginalImageUrl(src) {
   if (src.startsWith('http')) return src
   const base = import.meta.env.DEV ? '' : getApiBase()
   return `${base}${src}`
+}
+
+/** مسار الرفع الأصلي لبناء روابط الـ cache (ليس ملف .cache) */
+export function getUploadSource(src, fallback) {
+  if (fallback && isOptimizablePath(fallback)) return fallback
+  if (src && isOptimizablePath(src) && !src.includes('/uploads/.cache/')) return src
+  return null
 }
 
 /** رابط جاهز من السيرفر (cache أو أصل) — لا يُعاد تحويله */

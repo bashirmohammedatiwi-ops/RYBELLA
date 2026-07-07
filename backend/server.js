@@ -33,6 +33,7 @@ const backupRoutes = require('./routes/backups');
 const manualDiscountRoutes = require('./routes/manualDiscounts');
 const staffRoutes = require('./routes/staff');
 const imageRoutes = require('./routes/images');
+const { getOptimizedImage, parseCacheRequestPath } = require('./services/imageResizeService');
 
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 const WEB_CONCURRENCY = Math.max(1, parseInt(process.env.WEB_CONCURRENCY || '1', 10));
@@ -144,6 +145,28 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// توليد WebP عند طلب ملف cache غير موجود بعد
+app.use('/uploads', async (req, res, next) => {
+  if (!req.path.startsWith('/.cache/')) return next();
+
+  const relative = req.path.replace(/^\//, '');
+  const absPath = path.join(uploadsDir, relative);
+  if (fs.existsSync(absPath)) return next();
+
+  const parsed = parseCacheRequestPath(`/uploads${req.path}`);
+  if (!parsed) return next();
+
+  try {
+    const result = await getOptimizedImage(parsed);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.type(result.contentType);
+    return res.send(result.buffer);
+  } catch (error) {
+    if (error.status === 404) return res.status(404).end();
+    return next(error);
+  }
+});
 
 // Static files for uploads (long cache for originals)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {

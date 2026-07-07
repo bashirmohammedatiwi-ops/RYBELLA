@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Rybella — تحديث وتشغيل الإنتاج على السيرفر
+# Rybella — نشر إنتاج كامل (بناء + فحوصات + تسخين صور البطاقات)
+#
+# الاستخدام:
+#   ./deploy.sh                  # نشر كامل مع تسخين صور البطاقات
+#   SKIP_WARM=1 ./deploy.sh      # نشر سريع بدون تسخين الصور
+#   AUTO_TUNE=0 ./deploy.sh      # عدم تعديل إعدادات الأداء تلقائياً
+#
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -90,14 +96,6 @@ EOF
   echo "POSTGRES_PASSWORD set in $ENV_FILE"
 fi
 
-if ! grep -q '^PG_POOL_MAX=' "$ENV_FILE" 2>/dev/null; then
-  echo "PG_POOL_MAX=50" >> "$ENV_FILE"
-fi
-
-if ! grep -q '^WEB_CONCURRENCY=' "$ENV_FILE" 2>/dev/null; then
-  echo "WEB_CONCURRENCY=2" >> "$ENV_FILE"
-fi
-
 if ! grep -q '^EXTERNAL_INVENTORY_API_URL=.\+' "$ENV_FILE" 2>/dev/null; then
   cat >> "$ENV_FILE" <<'EOF'
 
@@ -109,6 +107,90 @@ INVENTORY_SYNC_INTERVAL_MIN=15
 EOF
   echo "Added Alhayaa inventory sync defaults to $ENV_FILE — verify email/password."
 fi
+
+detect_cpu_count() {
+  if command -v nproc >/dev/null 2>&1; then
+    nproc
+  elif [ -r /proc/cpuinfo ]; then
+    grep -c ^processor /proc/cpuinfo
+  else
+    echo 2
+  fi
+}
+
+detect_ram_mb() {
+  if [ -r /proc/meminfo ]; then
+    awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo
+  else
+    echo 4096
+  fi
+}
+
+set_env_default() {
+  local key="$1"
+  local val="$2"
+  if ! grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+    echo "${key}=${val}" >> "$ENV_FILE"
+  fi
+}
+
+set_env_tuning() {
+  local key="$1"
+  local val="$2"
+  if [ "${AUTO_TUNE:-1}" = "1" ]; then
+    if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+      sed -i.bak "s|^${key}=.*|${key}=${val}|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
+    else
+      echo "${key}=${val}" >> "$ENV_FILE"
+    fi
+  else
+    set_env_default "$key" "$val"
+  fi
+}
+
+ensure_production_tuning() {
+  local cpus ram workers pool sharp warm
+  cpus="$(detect_cpu_count)"
+  ram="$(detect_ram_mb)"
+
+  if [ "$cpus" -ge 8 ]; then
+    workers=4
+  elif [ "$cpus" -ge 4 ]; then
+    workers=3
+  elif [ "$cpus" -ge 2 ]; then
+    workers=2
+  else
+    workers=1
+  fi
+
+  pool=$((workers * 12))
+  [ "$pool" -gt 48 ] && pool=48
+  [ "$pool" -lt 20 ] && pool=20
+
+  sharp=4
+  warm=5
+  if [ "$ram" -lt 2048 ]; then
+    workers=1
+    pool=15
+    sharp=2
+    warm=3
+  elif [ "$ram" -lt 4096 ]; then
+    sharp=3
+    warm=4
+  elif [ "$cpus" -ge 4 ]; then
+    sharp=6
+    warm=6
+  fi
+
+  set_env_tuning WEB_CONCURRENCY "$workers"
+  set_env_tuning PG_POOL_MAX "$pool"
+  set_env_tuning SHARP_MAX_CONCURRENT "$sharp"
+  set_env_tuning WARM_CONCURRENCY "$warm"
+
+  echo "==> ضبط الإنتاج (زوار كُثُر): CPUs=$cpus RAM=${ram}MB workers=$workers pool=$pool sharp=$sharp"
+}
+
+ensure_production_tuning
 
 migrate_docker_volumes_if_needed() {
   # عند تغيير مجلد التشغيل (deployment/ → جذر المشروع) يُنشئ Docker volumes جديدة فارغة.
@@ -166,6 +248,36 @@ wait_for_service() {
     sleep 2
   done
   return 1
+}
+
+warm_product_images() {
+  if [ "${SKIP_WARM:-0}" = "1" ]; then
+    echo "==> SKIP_WARM=1 — تخطي تسخين الصور"
+    return 0
+  fi
+
+  if ! docker ps --format '{{.Names}}' | grep -q '^rybella-backend$'; then
+    echo "WARN: backend غير شغّال — تخطي تسخين الصور"
+    return 0
+  fi
+
+  local warm_concurrency
+  warm_concurrency="$(grep -E '^WARM_CONCURRENCY=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo 5)"
+  warm_concurrency="${warm_concurrency:-5}"
+
+  echo ""
+  echo "==> [1/2] تسخين صور بطاقات المتجر (قبل دخول الزبائن)..."
+  docker exec -e "WARM_CONCURRENCY=${warm_concurrency}" rybella-backend \
+    node scripts/warm-upload-images.js --cards-only \
+    || echo "WARN: card warm failed — run: docker exec rybella-backend node scripts/warm-upload-images.js --cards-only"
+
+  echo "==> [2/2] تسخين باقي أحجام الصور (خلفية، أولوية منخفضة)..."
+  docker exec -d rybella-backend sh -c \
+    "nice -n 15 ionice -c3 node scripts/warm-upload-images.js --skip-cards >> /tmp/rybella-warm.log 2>&1" \
+    2>/dev/null \
+    || docker exec -d rybella-backend node scripts/warm-upload-images.js --skip-cards \
+    2>/dev/null \
+    || true
 }
 
 post_deploy_checks() {
@@ -228,10 +340,7 @@ post_deploy_checks() {
 
 post_deploy_checks || true
 
-if docker ps --format '{{.Names}}' | grep -q '^rybella-backend$'; then
-  echo "==> Warming image thumbnails (background)..."
-  docker exec -d rybella-backend node scripts/warm-upload-images.js 2>/dev/null || true
-fi
+warm_product_images
 
 echo ""
 echo "==> Status:"
