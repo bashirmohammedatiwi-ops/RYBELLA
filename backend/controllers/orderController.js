@@ -528,8 +528,8 @@ exports.updateByCustomer = async (req, res) => {
     result.status = normalizeOrderStatus(result.status, {
       forCustomer: req.user.role !== 'admin' && req.user.role !== 'staff',
     });
-    const [items] = await db.query(ORDER_ITEMS_SELECT, [orderId]);
-    result.items = items;
+    const [orderItems] = await db.query(ORDER_ITEMS_SELECT, [orderId]);
+    result.items = orderItems;
     await attachOrderBundles(result);
 
     res.json({ message: 'تم تحديث الطلب بنجاح', order: result });
