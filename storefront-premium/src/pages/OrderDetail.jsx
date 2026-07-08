@@ -1,13 +1,82 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ordersAPI, deliveryZonesAPI, webSettingsAPI } from '../services/api'
 import { formatPrice, formatNumber, formatDate } from '../utils/format'
 import { getOrderStatusLabel, getOrderStatusClass, normalizeOrderStatus } from '../utils/orderStatus'
 import { parseFreeShippingThreshold, computeDeliveryFee } from '../utils/delivery'
+import { roundDisplayPrice } from '../utils/pricing'
 import { isValidIraqiPhone, normalizeIraqiPhone, IRAQI_PHONE_HINT } from '../utils/phone'
 import MobileHeader from '../components/MobileHeader'
 import ProvinceSelect from '../components/ProvinceSelect'
+import CartQuantityStepper from '../components/CartQuantityStepper'
 import './OrderDetail.css'
+
+function mapOrderToForm(o, zones) {
+  const zone = zones.find((z) => z.city === o.city)
+  return {
+    address: o.address || '',
+    city: o.city || '',
+    phone: o.phone || '',
+    notes: o.notes || '',
+    zoneFee: zone ? Number(zone.delivery_fee) || 0 : 0,
+    items: (o.items || []).map((item) => ({
+      id: item.id,
+      quantity: Number(item.quantity) || 1,
+      price: Number(item.price) || 0,
+      product_name: item.product_name,
+      shade_name: item.shade_name,
+    })),
+    bundles: (o.bundles || []).map((bundle) => ({
+      id: bundle.id,
+      quantity: Number(bundle.quantity) || 1,
+      baseQty: Number(bundle.quantity) || 1,
+      offer_title: bundle.offer_title,
+      subtotal: Number(bundle.subtotal) || 0,
+      total_price: Number(bundle.total_price) || 0,
+      discount_percent: bundle.discount_percent,
+    })),
+  }
+}
+
+function computeEditPreview(order, form, freeShippingThreshold) {
+  const itemsSubtotal = form.items
+    .filter((item) => item.quantity > 0)
+    .reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+  const bundlesSubtotal = form.bundles
+    .filter((bundle) => bundle.quantity > 0)
+    .reduce((sum, bundle) => {
+      const unit = bundle.subtotal / (bundle.baseQty || 1)
+      return sum + unit * bundle.quantity
+    }, 0)
+
+  const bundlesDiscount = form.bundles
+    .filter((bundle) => bundle.quantity > 0)
+    .reduce((sum, bundle) => {
+      const unit = (bundle.subtotal - bundle.total_price) / (bundle.baseQty || 1)
+      return sum + unit * bundle.quantity
+    }, 0)
+
+  const total_price = itemsSubtotal + bundlesSubtotal
+  const oldItemsSubtotal = (order.items || []).reduce(
+    (sum, item) => sum + Number(item.price) * Number(item.quantity),
+    0
+  )
+  const oldBundlesDiscount = (order.bundles || []).reduce(
+    (sum, bundle) => sum + (Number(bundle.subtotal) - Number(bundle.total_price)),
+    0
+  )
+  const oldCouponDiscount = Math.max(0, (Number(order.discount) || 0) - oldBundlesDiscount)
+  const couponDiscount = oldItemsSubtotal > 0
+    ? (roundDisplayPrice(oldCouponDiscount * (itemsSubtotal / oldItemsSubtotal)) ?? 0)
+    : 0
+  const discount = bundlesDiscount + couponDiscount
+  const delivery_fee = computeDeliveryFee(total_price, form.zoneFee, freeShippingThreshold)
+  const final_price = roundDisplayPrice(total_price + delivery_fee - discount)
+    ?? (total_price + delivery_fee - discount)
+
+  return { total_price, discount, delivery_fee, final_price }
+}
 
 export default function OrderDetail() {
   const { id } = useParams()
@@ -19,7 +88,15 @@ export default function OrderDetail() {
   const [editSuccess, setEditSuccess] = useState('')
   const [zones, setZones] = useState([])
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(50000)
-  const [form, setForm] = useState({ address: '', city: '', phone: '', notes: '', zoneFee: 0 })
+  const [form, setForm] = useState({
+    address: '',
+    city: '',
+    phone: '',
+    notes: '',
+    zoneFee: 0,
+    items: [],
+    bundles: [],
+  })
 
   const loadOrder = () => {
     setLoading(true)
@@ -39,20 +116,21 @@ export default function OrderDetail() {
 
   const canEdit = order && normalizeOrderStatus(order.status) === 'pending'
 
-  const resetFormFromOrder = (o) => {
-    const zone = zones.find((z) => z.city === o.city)
-    setForm({
-      address: o.address || '',
-      city: o.city || '',
-      phone: o.phone || '',
-      notes: o.notes || '',
-      zoneFee: zone ? Number(zone.delivery_fee) || 0 : 0,
-    })
-  }
+  const previewTotals = useMemo(() => {
+    if (!order) return null
+    if (!editing) {
+      return {
+        delivery_fee: Number(order.delivery_fee) || 0,
+        discount: Number(order.discount) || 0,
+        final_price: Number(order.final_price) || 0,
+      }
+    }
+    return computeEditPreview(order, form, freeShippingThreshold)
+  }, [order, editing, form, freeShippingThreshold])
 
   const startEditing = () => {
     if (!order) return
-    resetFormFromOrder(order)
+    setForm(mapOrderToForm(order, zones))
     setEditError('')
     setEditSuccess('')
     setEditing(true)
@@ -68,8 +146,39 @@ export default function OrderDetail() {
     setEditError('')
   }
 
+  const adjustItemQuantity = (itemId, delta) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((item) => {
+        if (item.id !== itemId) return item
+        const next = Math.max(0, item.quantity + delta)
+        return { ...item, quantity: next }
+      }),
+    }))
+    setEditError('')
+  }
+
+  const adjustBundleQuantity = (bundleId, delta) => {
+    setForm((f) => ({
+      ...f,
+      bundles: f.bundles.map((bundle) => {
+        if (bundle.id !== bundleId) return bundle
+        const next = Math.max(0, bundle.quantity + delta)
+        return { ...bundle, quantity: next }
+      }),
+    }))
+    setEditError('')
+  }
+
   const handleSave = async () => {
     if (!order) return
+
+    const activeItems = form.items.filter((item) => item.quantity > 0)
+    const activeBundles = form.bundles.filter((bundle) => bundle.quantity > 0)
+    if (!activeItems.length && !activeBundles.length) {
+      setEditError('يجب أن يحتوي الطلب على منتج واحد على الأقل')
+      return
+    }
     if (!form.city.trim()) {
       setEditError('يرجى اختيار المحافظة')
       return
@@ -93,6 +202,8 @@ export default function OrderDetail() {
         city: form.city.trim(),
         phone: normalizedPhone,
         notes: form.notes.trim(),
+        items: form.items.map((item) => ({ id: item.id, quantity: item.quantity })),
+        bundles: form.bundles.map((bundle) => ({ id: bundle.id, quantity: bundle.quantity })),
       })
       const updated = res?.data?.order || res?.data
       if (updated?.id) setOrder(updated)
@@ -125,12 +236,12 @@ export default function OrderDetail() {
     )
   }
 
-  const previewDeliveryFee = computeDeliveryFee(
-    Number(order.total_price) || 0,
-    form.zoneFee,
-    freeShippingThreshold,
-  )
-  const previewFinal = (Number(order.total_price) || 0) - (Number(order.discount) || 0) + previewDeliveryFee
+  const displayItems = editing
+    ? form.items.filter((item) => item.quantity > 0)
+    : (order.items || [])
+  const displayBundles = editing
+    ? form.bundles.filter((bundle) => bundle.quantity > 0)
+    : (order.bundles || [])
 
   return (
     <div className="premium-order-detail">
@@ -153,7 +264,7 @@ export default function OrderDetail() {
 
         {canEdit && !editing && (
           <button type="button" className="premium-order-edit-btn" onClick={startEditing}>
-            تعديل بيانات التوصيل
+            تعديل الطلب
           </button>
         )}
 
@@ -164,17 +275,128 @@ export default function OrderDetail() {
           </div>
         )}
 
+        {editError && editing && (
+          <div className="premium-order-edit-error premium-order-edit-error--top" role="alert">{editError}</div>
+        )}
+
+        {(order.bundles || []).length > 0 && (
+          <div className="premium-order-detail-section">
+            <h2>الباكجات الحصرية</h2>
+            {editing ? (
+              form.bundles.map((bundle) => (
+                <div
+                  key={bundle.id}
+                  className={`premium-order-bundle premium-order-bundle--edit${bundle.quantity === 0 ? ' is-removed' : ''}`}
+                >
+                  <div className="premium-order-bundle-head">
+                    <strong>{bundle.offer_title}</strong>
+                    {bundle.discount_percent > 0 && (
+                      <span className="premium-order-bundle-discount">خصم {bundle.discount_percent}%</span>
+                    )}
+                  </div>
+                  <div className="premium-order-edit-qty-row">
+                    <span>الكمية</span>
+                    <CartQuantityStepper
+                      value={bundle.quantity}
+                      min={0}
+                      onDecrease={() => adjustBundleQuantity(bundle.id, -1)}
+                      onIncrease={() => adjustBundleQuantity(bundle.id, 1)}
+                    />
+                  </div>
+                  {bundle.quantity > 0 && (
+                    <div className="premium-order-bundle-total">
+                      <span>إجمالي الباكج</span>
+                      <strong>
+                        {formatPrice(
+                          (bundle.total_price / (bundle.baseQty || 1)) * bundle.quantity
+                        )}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              displayBundles.map((bundle) => (
+                <div key={bundle.id} className="premium-order-bundle">
+                  <div className="premium-order-bundle-head">
+                    <strong>{bundle.offer_title}</strong>
+                    <span>× {formatNumber(bundle.quantity)}</span>
+                    {bundle.discount_percent > 0 && (
+                      <span className="premium-order-bundle-discount">خصم {bundle.discount_percent}%</span>
+                    )}
+                  </div>
+                  <ul className="premium-order-bundle-lines">
+                    {(bundle.items || []).map((line) => (
+                      <li key={line.id}>
+                        <span>{line.product_name}{line.shade_name ? ` (${line.shade_name})` : ''}</span>
+                        <span>{formatPrice(line.price)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="premium-order-bundle-total">
+                    <span>إجمالي الباكج</span>
+                    <strong>{formatPrice(bundle.total_price)}</strong>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {(order.items || []).length > 0 && (
+          <div className="premium-order-detail-section">
+            <h2>منتجات منفصلة</h2>
+            <div className="premium-order-items">
+              {editing ? (
+                form.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`premium-order-item premium-order-item--edit${item.quantity === 0 ? ' is-removed' : ''}`}
+                  >
+                    <div className="premium-order-item-info">
+                      <span>
+                        {item.product_name}
+                        {item.shade_name ? ` (${item.shade_name})` : ''}
+                      </span>
+                      {item.quantity > 0 && (
+                        <span className="premium-order-item-line-total">
+                          {formatPrice(item.price * item.quantity)}
+                        </span>
+                      )}
+                    </div>
+                    <CartQuantityStepper
+                      value={item.quantity}
+                      min={0}
+                      onDecrease={() => adjustItemQuantity(item.id, -1)}
+                      onIncrease={() => adjustItemQuantity(item.id, 1)}
+                    />
+                  </div>
+                ))
+              ) : (
+                displayItems.map((item) => (
+                  <div key={item.id} className="premium-order-item">
+                    <span>
+                      {item.product_name}
+                      {item.shade_name ? ` (${item.shade_name})` : ''} × {formatNumber(item.quantity)}
+                    </span>
+                    <span>{formatPrice(item.price * item.quantity)}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="premium-order-detail-section">
           <h2>عنوان التوصيل</h2>
           {editing ? (
             <div className="premium-order-edit-form">
-              {editError && <div className="premium-order-edit-error" role="alert">{editError}</div>}
               <ProvinceSelect
                 zones={zones}
                 value={form.city}
                 onChange={handleProvinceChange}
                 disabled={!zones.length}
-                subtotal={Number(order.total_price) || 0}
+                subtotal={previewTotals?.total_price ?? Number(order.total_price) || 0}
                 freeShippingThreshold={freeShippingThreshold}
               />
               <label className="premium-order-edit-label" htmlFor="order-edit-address">العنوان الكامل</label>
@@ -206,22 +428,6 @@ export default function OrderDetail() {
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                 placeholder="تعليمات إضافية للتوصيل..."
               />
-              {form.city && (
-                <p className="premium-order-edit-hint">
-                  رسوم التوصيل بعد التعديل:{' '}
-                  <strong>{previewDeliveryFee === 0 ? 'مجاني' : formatPrice(previewDeliveryFee)}</strong>
-                  {' — '}
-                  المجموع الكلي: <strong>{formatPrice(previewFinal)}</strong>
-                </p>
-              )}
-              <div className="premium-order-edit-actions">
-                <button type="button" className="premium-order-edit-save" onClick={handleSave} disabled={saving}>
-                  {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
-                </button>
-                <button type="button" className="premium-order-edit-cancel" onClick={cancelEditing} disabled={saving}>
-                  إلغاء
-                </button>
-              </div>
             </div>
           ) : (
             <>
@@ -233,56 +439,37 @@ export default function OrderDetail() {
           )}
         </div>
 
-        {(order.bundles || []).length > 0 && (
-        <div className="premium-order-detail-section">
-          <h2>الباكجات الحصرية</h2>
-          {(order.bundles || []).map((bundle) => (
-            <div key={bundle.id} className="premium-order-bundle">
-              <div className="premium-order-bundle-head">
-                <strong>{bundle.offer_title}</strong>
-                <span>× {formatNumber(bundle.quantity)}</span>
-                {bundle.discount_percent > 0 && <span className="premium-order-bundle-discount">خصم {bundle.discount_percent}%</span>}
-              </div>
-              <ul className="premium-order-bundle-lines">
-                {(bundle.items || []).map((line) => (
-                  <li key={line.id}>
-                    <span>{line.product_name}{line.shade_name ? ` (${line.shade_name})` : ''}</span>
-                    <span>{formatPrice(line.price)}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="premium-order-bundle-total">
-                <span>إجمالي الباكج</span>
-                <strong>{formatPrice(bundle.total_price)}</strong>
-              </div>
+        <div className="premium-order-detail-totals">
+          <div>
+            <span>رسوم التوصيل</span>
+            <span>{formatPrice(previewTotals?.delivery_fee ?? order.delivery_fee ?? 0)}</span>
+          </div>
+          {(previewTotals?.discount ?? order.discount) > 0 && (
+            <div>
+              <span>الخصم</span>
+              <span>-{formatPrice(previewTotals?.discount ?? order.discount)}</span>
             </div>
-          ))}
-        </div>
-        )}
-
-        {(order.items || []).length > 0 && (
-        <div className="premium-order-detail-section">
-          <h2>منتجات منفصلة</h2>
-          <div className="premium-order-items">
-            {order.items?.map((i) => (
-              <div key={i.id} className="premium-order-item">
-                <span>{i.product_name}{i.shade_name ? ` (${i.shade_name})` : ''} × {formatNumber(i.quantity)}</span>
-                <span>{formatPrice(i.price * i.quantity)}</span>
-              </div>
-            ))}
+          )}
+          <div className="premium-order-final">
+            <span>المجموع الكلي</span>
+            <strong>{formatPrice(previewTotals?.final_price ?? order.final_price ?? 0)}</strong>
           </div>
         </div>
+
+        {editing && (
+          <div className="premium-order-edit-actions premium-order-edit-actions--footer">
+            <button type="button" className="premium-order-edit-save" onClick={handleSave} disabled={saving}>
+              {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+            </button>
+            <button type="button" className="premium-order-edit-cancel" onClick={cancelEditing} disabled={saving}>
+              إلغاء
+            </button>
+          </div>
         )}
 
-        <div className="premium-order-detail-totals">
-          <div><span>رسوم التوصيل</span><span>{formatPrice(order.delivery_fee || 0)}</span></div>
-          {order.discount > 0 && <div><span>الخصم</span><span>-{formatPrice(order.discount)}</span></div>}
-          <div className="premium-order-final"><span>المجموع الكلي</span><strong>{formatPrice(order.final_price || 0)}</strong></div>
-        </div>
-
-        {canEdit && (
+        {canEdit && !editing && (
           <p className="premium-order-edit-note">
-            يمكنك تعديل عنوان التوصيل ورقم الهاتف والملاحظات طالما الطلب قيد الانتظار.
+            يمكنك تعديل المنتجات والكميات وعنوان التوصيل طالما الطلب قيد الانتظار.
           </p>
         )}
       </div>

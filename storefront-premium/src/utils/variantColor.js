@@ -36,3 +36,22 @@ export function getProductColorSwatches(variants = [], limit = 4) {
     remaining: Math.max(0, colors.length - limit),
   }
 }
+
+function getShadeKey(v) {
+  const color = getVariantColor(v)
+  if (color) return `c:${color.toLowerCase()}`
+  const name = (v?.shade_name || '').trim().toLowerCase()
+  if (name) return `n:${name}`
+  return null
+}
+
+/** أكثر من تدرج لوني فعلي — لا نعرض درجة واحدة */
+export function hasMultipleColorShades(variants = []) {
+  if (!Array.isArray(variants) || variants.length <= 1) return false
+  const keys = new Set()
+  for (const v of variants) {
+    const key = getShadeKey(v)
+    if (key) keys.add(key)
+  }
+  return keys.size > 1
+}

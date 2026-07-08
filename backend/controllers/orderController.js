@@ -244,10 +244,6 @@ exports.updateStatus = async (req, res) => {
   }
 };
 
-const STOCK_RESTORE_STATUSES = new Set([
-  'pending', 'preparing_shipping', 'confirmed', 'processing', 'shipped',
-]);
-
 async function restoreOrderStock(orderId) {
   const [items] = await db.query(
     'SELECT variant_id, quantity FROM order_items WHERE order_id = ?',
@@ -279,6 +275,179 @@ async function restoreOrderStock(orderId) {
   }
 }
 
+  }
+}
+
+const STOCK_RESTORE_STATUSES = new Set([
+  'pending', 'preparing_shipping', 'confirmed', 'processing', 'shipped',
+]);
+
+async function recalculateOrderTotals(orderId, city) {
+  const [items] = await db.query(
+    'SELECT quantity, price FROM order_items WHERE order_id = ?',
+    [orderId]
+  );
+  const [bundles] = await db.query(
+    'SELECT subtotal, total_price FROM order_bundles WHERE order_id = ?',
+    [orderId]
+  );
+  const [orders] = await db.query('SELECT coupon_code FROM orders WHERE id = ?', [orderId]);
+  const couponCode = orders[0]?.coupon_code;
+
+  const itemsSubtotal = items.reduce(
+    (sum, row) => sum + (Number(row.price) || 0) * (Number(row.quantity) || 0),
+    0
+  );
+  const bundlesSubtotal = bundles.reduce((sum, row) => sum + (Number(row.subtotal) || 0), 0);
+  const bundlesDiscount = bundles.reduce(
+    (sum, row) => sum + ((Number(row.subtotal) || 0) - (Number(row.total_price) || 0)),
+    0
+  );
+
+  let total_price = itemsSubtotal + bundlesSubtotal;
+  let discount = bundlesDiscount;
+
+  if (couponCode) {
+    const [coupon] = await db.query(
+      "SELECT discount_percent FROM coupons WHERE code = ? AND active IS TRUE AND expiration_date > CURRENT_DATE",
+      [couponCode]
+    );
+    if (coupon.length > 0) {
+      discount += roundSalePrice(itemsSubtotal * (coupon[0].discount_percent / 100));
+    }
+  }
+
+  const [zone] = await db.query('SELECT delivery_fee FROM delivery_zones WHERE city = ?', [city]);
+  const zoneFee = zone.length > 0 ? parseFloat(zone[0].delivery_fee) : 5000;
+  const freeShippingThreshold = await getFreeShippingThreshold(db);
+  const delivery_fee = computeDeliveryFee(total_price, zoneFee, freeShippingThreshold);
+  const final_price = roundSalePrice(total_price + delivery_fee - discount);
+
+  return { total_price, discount, delivery_fee, final_price };
+}
+
+async function applyOrderItemUpdates(orderId, itemUpdates) {
+  if (!Array.isArray(itemUpdates) || itemUpdates.length === 0) {
+    return { ok: true };
+  }
+
+  for (const upd of itemUpdates) {
+    const itemId = parseInt(upd.id, 10);
+    const newQty = parseInt(upd.quantity, 10);
+    if (!itemId || Number.isNaN(newQty) || newQty < 0) {
+      return { ok: false, message: 'بيانات المنتجات غير صالحة' };
+    }
+
+    const [rows] = await db.query(
+      'SELECT oi.*, p.name AS product_name FROM order_items oi JOIN product_variants pv ON pv.id = oi.variant_id JOIN products p ON p.id = pv.product_id WHERE oi.id = ? AND oi.order_id = ?',
+      [itemId, orderId]
+    );
+    if (!rows.length) {
+      return { ok: false, message: 'عنصر غير موجود في الطلب' };
+    }
+
+    const item = rows[0];
+    const oldQty = Number(item.quantity) || 0;
+    if (newQty === oldQty) continue;
+
+    if (newQty === 0) {
+      await db.query('UPDATE product_variants SET stock = stock + ? WHERE id = ?', [oldQty, item.variant_id]);
+      await db.query('DELETE FROM order_items WHERE id = ?', [itemId]);
+      continue;
+    }
+
+    const delta = newQty - oldQty;
+    if (delta > 0) {
+      const [variant] = await db.query('SELECT stock FROM product_variants WHERE id = ?', [item.variant_id]);
+      if (!variant.length || variant[0].stock < delta) {
+        return { ok: false, message: `الكمية غير متوفرة: ${item.product_name}` };
+      }
+      await db.query('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [delta, item.variant_id]);
+    } else {
+      await db.query('UPDATE product_variants SET stock = stock + ? WHERE id = ?', [-delta, item.variant_id]);
+    }
+    await db.query('UPDATE order_items SET quantity = ? WHERE id = ?', [newQty, itemId]);
+  }
+
+  return { ok: true };
+}
+
+async function applyOrderBundleUpdates(orderId, bundleUpdates) {
+  if (!Array.isArray(bundleUpdates) || bundleUpdates.length === 0) {
+    return { ok: true };
+  }
+
+  for (const upd of bundleUpdates) {
+    const bundleId = parseInt(upd.id, 10);
+    const newQty = parseInt(upd.quantity, 10);
+    if (!bundleId || Number.isNaN(newQty) || newQty < 0) {
+      return { ok: false, message: 'بيانات الباكجات غير صالحة' };
+    }
+
+    const [rows] = await db.query(
+      'SELECT * FROM order_bundles WHERE id = ? AND order_id = ?',
+      [bundleId, orderId]
+    );
+    if (!rows.length) {
+      return { ok: false, message: 'باكج غير موجود في الطلب' };
+    }
+
+    const bundle = rows[0];
+    const oldQty = Number(bundle.quantity) || 1;
+    if (newQty === oldQty) continue;
+
+    const [lines] = await db.query(
+      'SELECT variant_id FROM order_bundle_items WHERE order_bundle_id = ?',
+      [bundleId]
+    );
+
+    if (newQty === 0) {
+      for (const line of lines) {
+        await db.query('UPDATE product_variants SET stock = stock + ? WHERE id = ?', [oldQty, line.variant_id]);
+      }
+      await db.query('DELETE FROM order_bundles WHERE id = ?', [bundleId]);
+      continue;
+    }
+
+    const delta = newQty - oldQty;
+    if (delta > 0) {
+      for (const line of lines) {
+        const [variant] = await db.query('SELECT stock FROM product_variants WHERE id = ?', [line.variant_id]);
+        if (!variant.length || variant[0].stock < delta) {
+          return { ok: false, message: `الكمية غير متوفرة لباكج: ${bundle.offer_title}` };
+        }
+      }
+      for (const line of lines) {
+        await db.query('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [delta, line.variant_id]);
+      }
+    } else {
+      for (const line of lines) {
+        await db.query('UPDATE product_variants SET stock = stock + ? WHERE id = ?', [-delta, line.variant_id]);
+      }
+    }
+
+    const unitSubtotal = (Number(bundle.subtotal) || 0) / oldQty;
+    const unitTotal = (Number(bundle.total_price) || 0) / oldQty;
+    await db.query(
+      'UPDATE order_bundles SET quantity = ?, subtotal = ?, total_price = ? WHERE id = ?',
+      [newQty, roundSalePrice(unitSubtotal * newQty), roundSalePrice(unitTotal * newQty), bundleId]
+    );
+    await db.query('UPDATE order_bundle_items SET quantity = ? WHERE order_bundle_id = ?', [newQty, bundleId]);
+  }
+
+  return { ok: true };
+}
+
+async function assertOrderHasLines(orderId) {
+  const [itemRows] = await db.query('SELECT COUNT(*)::int AS count FROM order_items WHERE order_id = ?', [orderId]);
+  const [bundleRows] = await db.query('SELECT COUNT(*)::int AS count FROM order_bundles WHERE order_id = ?', [orderId]);
+  const count = (itemRows[0]?.count || 0) + (bundleRows[0]?.count || 0);
+  if (count < 1) {
+    return { ok: false, message: 'يجب أن يحتوي الطلب على منتج واحد على الأقل' };
+  }
+  return { ok: true };
+}
+
 exports.updateByCustomer = async (req, res) => {
   try {
     const orderId = req.params.id;
@@ -297,7 +466,7 @@ exports.updateByCustomer = async (req, res) => {
       return res.status(400).json({ message: 'يمكن تعديل الطلب فقط عندما تكون حالته قيد الانتظار' });
     }
 
-    const { address, city, phone, notes } = req.body;
+    const { address, city, phone, notes, items, bundles } = req.body;
     const newAddress = (address != null ? String(address) : order.address).trim();
     const newCity = (city != null ? String(city) : order.city).trim();
     const newNotes = notes != null ? String(notes).trim() : (order.notes || '');
@@ -313,23 +482,41 @@ exports.updateByCustomer = async (req, res) => {
       return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
     }
 
+    if (items != null) {
+      const itemResult = await applyOrderItemUpdates(orderId, items);
+      if (!itemResult.ok) {
+        return res.status(400).json({ message: itemResult.message });
+      }
+    }
+
+    if (bundles != null) {
+      const bundleResult = await applyOrderBundleUpdates(orderId, bundles);
+      if (!bundleResult.ok) {
+        return res.status(400).json({ message: bundleResult.message });
+      }
+    }
+
+    if (items != null || bundles != null) {
+      const lineCheck = await assertOrderHasLines(orderId);
+      if (!lineCheck.ok) {
+        return res.status(400).json({ message: lineCheck.message });
+      }
+    }
+
     const [zone] = await db.query('SELECT delivery_fee FROM delivery_zones WHERE city = ?', [newCity]);
     if (zone.length === 0) {
       return res.status(400).json({ message: 'المحافظة غير متاحة للتوصيل' });
     }
 
     const zoneFee = parseFloat(zone[0].delivery_fee) || 5000;
-    const freeShippingThreshold = await getFreeShippingThreshold(db);
-    const totalPrice = parseFloat(order.total_price) || 0;
-    const discount = parseFloat(order.discount) || 0;
-    const delivery_fee = computeDeliveryFee(totalPrice, zoneFee, freeShippingThreshold);
-    const final_price = roundSalePrice(totalPrice + delivery_fee - discount);
+    const totals = await recalculateOrderTotals(orderId, newCity);
+    const { total_price, discount, delivery_fee, final_price } = totals;
 
     await db.query(
       `UPDATE orders
-       SET address = ?, city = ?, phone = ?, notes = ?, delivery_fee = ?, final_price = ?, updated_at = CURRENT_TIMESTAMP
+       SET address = ?, city = ?, phone = ?, notes = ?, total_price = ?, discount = ?, delivery_fee = ?, final_price = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [newAddress, newCity, newPhone || null, newNotes || null, delivery_fee, final_price, orderId]
+      [newAddress, newCity, newPhone || null, newNotes || null, total_price, discount, delivery_fee, final_price, orderId]
     );
 
     const [updated] = await db.query(`

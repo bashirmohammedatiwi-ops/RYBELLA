@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import ProductCardImage from './ProductCardImage'
 import { formatNumber, formatCount, formatPercent } from '../utils/format'
 import { getProductCardPricing } from '../utils/pricing'
-import { getProductColorSwatches } from '../utils/variantColor'
+import { getProductColorSwatches, hasMultipleColorShades } from '../utils/variantColor'
 import './ProductCard.css'
 
 function isNewProduct(p) {
@@ -25,7 +25,8 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
   const inStock = product.variants?.some((v) => v.stock > 0) ?? product.in_stock > 0 ?? true
   const variants = product.variants || []
   const { displayed: colorSwatches, remaining: remainingColors, total: totalColors } = getProductColorSwatches(variants)
-  const showColorSwatches = variants.length > 1 && totalColors > 0
+  const multipleShades = hasMultipleColorShades(variants)
+  const showColorSwatches = multipleShades && totalColors > 0
   const shadeCount = variants.filter((v) => v.shade_name).length
   const brandLabel = product.brand_name || product.category_name
 
@@ -131,7 +132,7 @@ export default function ProductCard({ product, wishlistIds = [], onWishlistToggl
                 )}
               </div>
             )}
-            {!showColorSwatches && variants.length > 1 && shadeCount > 1 && (
+            {!showColorSwatches && multipleShades && shadeCount > 1 && (
               <span className="premium-product-shades-count">{shadeCount} درجات</span>
             )}
           </div>

@@ -483,8 +483,9 @@
 
 /* ─── Description ─── */
 .pd-desc {
-  padding: 0.25rem 0 1.5rem;
-  margin-bottom: 1.25rem;
+  padding: 1.25rem 0 1.5rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0;
 }
 
 .pd-desc-card {
@@ -595,6 +596,7 @@
 .pd-actions {
   display: flex;
   gap: 14px;
+  margin-bottom: 0.25rem;
 }
 
 .pd-add-cart {

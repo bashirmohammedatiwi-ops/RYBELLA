@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { formatPrice, formatPercent } from '../utils/format'
 import { getSelectedVariantPricing, roundDisplayPrice, getDefaultProductVariant } from '../utils/pricing'
-import { getVariantColor, isMetallicShade } from '../utils/variantColor'
+import { getVariantColor, isMetallicShade, hasMultipleColorShades } from '../utils/variantColor'
 import MobileHeader from '../components/MobileHeader'
 import OptimizedImage from '../components/OptimizedImage'
 import './ProductDetail.css'
@@ -257,8 +257,8 @@ export default function ProductDetail() {
   }
 
   const hasMultipleImages = gallerySlides.length > 1
-  const hasVariants = variants.length > 0
-  const hasColorVariants = variants.length > 1 && variants.some((v) => getVariantColor(v))
+  const showShadePicker = hasMultipleColorShades(variants)
+  const hasColorVariants = showShadePicker && variants.some((v) => getVariantColor(v))
 
   galleryDataRef.current = { gallerySlides, product }
 
@@ -304,7 +304,7 @@ export default function ProductDetail() {
                     eager={i === galleryIdx}
                     enabled={Math.abs(i - galleryIdx) <= 1}
                   />
-                  {slide.shade_name && (
+                  {slide.shade_name && showShadePicker && (
                     <span className="pd-slide-shade">{slide.shade_name}</span>
                   )}
                 </div>
@@ -331,7 +331,7 @@ export default function ProductDetail() {
         )}
       </div>
 
-      {hasVariants && (
+      {showShadePicker && (
         <div className="pd-variants pd-variants--under-hero">
           <div className="pd-variants-header">
             <span className="pd-variants-label">درجات اللون</span>
@@ -398,18 +398,6 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {product.description && (
-          <div className="pd-desc">
-            <div className="pd-desc-card">
-              <div className="pd-desc-head">
-                <span className="pd-desc-icon" aria-hidden="true">✦</span>
-                <h3>الوصف</h3>
-              </div>
-              <DescriptionContent text={product.description} />
-            </div>
-          </div>
-        )}
-
         <div className="pd-qty">
           <span className="pd-qty-label">الكمية</span>
           <div className="pd-qty-controls">
@@ -436,6 +424,18 @@ export default function ProductDetail() {
             </button>
           )}
         </div>
+
+        {product.description && (
+          <div className="pd-desc">
+            <div className="pd-desc-card">
+              <div className="pd-desc-head">
+                <span className="pd-desc-icon" aria-hidden="true">✦</span>
+                <h3>الوصف</h3>
+              </div>
+              <DescriptionContent text={product.description} />
+            </div>
+          </div>
+        )}
 
         {displayBarcode && (
           <div className="pd-barcode">
