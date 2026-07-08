@@ -352,7 +352,8 @@ export default function ProductDetail() {
                     type="button"
                     className={`pd-swatch ${isActive ? 'active' : ''} ${color ? 'has-color' : ''} ${metallic ? 'metallic' : ''} ${outOfStock ? 'out-of-stock' : ''}`}
                     onClick={() => handleSelectVariant(v)}
-                    title={v.shade_name}
+                    title={outOfStock ? `${v.shade_name || ''} — نفذت الكمية`.trim() : v.shade_name}
+                    aria-label={outOfStock ? `${v.shade_name || 'درجة'} — نفذت الكمية` : v.shade_name}
                     style={color ? { '--swatch-color': color } : {}}
                   >
                     <span className="pd-swatch-preview">
@@ -361,7 +362,10 @@ export default function ProductDetail() {
                       ) : (
                         <span className="pd-swatch-text">{v.shade_name || `#${v.id}`}</span>
                       )}
-                      {isActive && <span className="pd-swatch-check">✓</span>}
+                      {outOfStock && (
+                        <span className="pd-swatch-x" aria-hidden="true">×</span>
+                      )}
+                      {isActive && !outOfStock && <span className="pd-swatch-check">✓</span>}
                     </span>
                     <span className="pd-swatch-name">{v.shade_name}</span>
                   </button>

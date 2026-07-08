@@ -1,10 +1,9 @@
-export const ORDER_STATUSES = ['pending', 'preparing_shipping', 'ready_to_ship', 'shipped', 'delivered', 'cancelled']
+export const ORDER_STATUSES = ['pending', 'preparing_shipping', 'shipped', 'delivered', 'cancelled']
 
 export const ORDER_STATUS_LABELS = {
   pending: 'قيد الانتظار',
   preparing_shipping: 'قيد التجهيز',
-  ready_to_ship: 'تم التجهيز',
-  shipped: 'الشحن',
+  shipped: 'قيد الشحن',
   delivered: 'تم التسليم',
   cancelled: 'ملغي',
 }
@@ -12,7 +11,6 @@ export const ORDER_STATUS_LABELS = {
 export const ORDER_STATUS_COLORS = {
   pending: 'warning',
   preparing_shipping: 'primary',
-  ready_to_ship: 'info',
   shipped: 'secondary',
   delivered: 'success',
   cancelled: 'error',
@@ -21,6 +19,7 @@ export const ORDER_STATUS_COLORS = {
 const LEGACY_STATUS_MAP = {
   confirmed: 'preparing_shipping',
   processing: 'preparing_shipping',
+  ready_to_ship: 'shipped',
 }
 
 export function normalizeOrderStatus(status) {

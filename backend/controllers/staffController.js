@@ -145,14 +145,13 @@ exports.getStats = async (req, res) => {
       SELECT
         COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
         COUNT(*) FILTER (WHERE status IN ('preparing_shipping', 'confirmed', 'processing'))::int AS preparing,
-        COUNT(*) FILTER (WHERE status = 'ready_to_ship')::int AS ready,
-        COUNT(*) FILTER (WHERE status = 'shipped')::int AS shipping,
+        COUNT(*) FILTER (WHERE status IN ('shipped', 'ready_to_ship'))::int AS shipping,
         COUNT(*) FILTER (WHERE status = 'delivered')::int AS delivered,
         COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled,
         COUNT(*)::int AS total
       FROM orders
     `);
-    res.json(rows[0] || { pending: 0, preparing: 0, ready: 0, shipping: 0, delivered: 0, cancelled: 0, total: 0 });
+    res.json(rows[0] || { pending: 0, preparing: 0, shipping: 0, delivered: 0, cancelled: 0, total: 0 });
   } catch (error) {
     console.error('Staff stats error:', error);
     res.status(500).json({ message: 'حدث خطأ في الخادم' });

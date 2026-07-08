@@ -4,7 +4,6 @@ import '../utils/order_status.dart';
 class OrderStats {
   final int pending;
   final int preparing;
-  final int ready;
   final int shipping;
   final int delivered;
   final int cancelled;
@@ -13,7 +12,6 @@ class OrderStats {
   const OrderStats({
     this.pending = 0,
     this.preparing = 0,
-    this.ready = 0,
     this.shipping = 0,
     this.delivered = 0,
     this.cancelled = 0,
@@ -24,7 +22,6 @@ class OrderStats {
     return OrderStats(
       pending: jsonInt(json['pending']),
       preparing: jsonInt(json['preparing']),
-      ready: jsonInt(json['ready']),
       shipping: jsonInt(json['shipping']),
       delivered: jsonInt(json['delivered']),
       cancelled: jsonInt(json['cancelled']),
@@ -108,6 +105,7 @@ class FulfillmentOrder {
     const legacy = {
       'confirmed': 'preparing_shipping',
       'processing': 'preparing_shipping',
+      'ready_to_ship': 'shipped',
     };
     return legacy[status] ?? status;
   }

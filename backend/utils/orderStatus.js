@@ -1,11 +1,10 @@
 /** حالات الطلب — القيم المخزنة في قاعدة البيانات */
-const ORDER_STATUSES = ['pending', 'preparing_shipping', 'ready_to_ship', 'shipped', 'delivered', 'cancelled']
+const ORDER_STATUSES = ['pending', 'preparing_shipping', 'shipped', 'delivered', 'cancelled']
 
 const ORDER_STATUS_LABELS = {
   pending: 'قيد الانتظار',
   preparing_shipping: 'قيد التجهيز',
-  ready_to_ship: 'تم التجهيز',
-  shipped: 'الشحن',
+  shipped: 'قيد الشحن',
   delivered: 'تم التسليم',
   cancelled: 'ملغي',
 }
@@ -14,13 +13,14 @@ const ORDER_STATUS_LABELS = {
 const LEGACY_STATUS_MAP = {
   confirmed: 'preparing_shipping',
   processing: 'preparing_shipping',
+  ready_to_ship: 'shipped',
 }
 
 /** للزبائن: دمج مراحل التجهيز والشحن في حالة واحدة */
 const CUSTOMER_STATUS_MAP = {
   preparing_shipping: 'preparing_shipping',
-  ready_to_ship: 'preparing_shipping',
   shipped: 'preparing_shipping',
+  ready_to_ship: 'preparing_shipping',
   confirmed: 'preparing_shipping',
   processing: 'preparing_shipping',
 }

@@ -100,16 +100,7 @@ class DashboardScreen extends StatelessWidget {
                 onTap: () => provider.setFilter('preparing_shipping'),
               ),
               StatTile(
-                label: 'تم التجهيز',
-                value: stats.ready,
-                color: AppTheme.primary,
-                bg: AppTheme.primarySoft,
-                icon: orderStatusMeta('ready_to_ship').icon,
-                selected: provider.filter == 'ready_to_ship',
-                onTap: () => provider.setFilter('ready_to_ship'),
-              ),
-              StatTile(
-                label: 'الشحن',
+                label: 'قيد الشحن',
                 value: stats.shipping,
                 color: const Color(0xFF7C3AED),
                 bg: const Color(0xFFF3E8FF),

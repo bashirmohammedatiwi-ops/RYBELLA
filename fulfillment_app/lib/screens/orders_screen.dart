@@ -32,15 +32,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ('all', 'الكل', AppTheme.primary),
       ('pending', 'قيد الانتظار', AppTheme.warning),
       ('preparing_shipping', 'قيد التجهيز', AppTheme.info),
-      ('ready_to_ship', 'تم التجهيز', AppTheme.primary),
-      ('shipped', 'الشحن', Color(0xFF7C3AED)),
+      ('shipped', 'قيد الشحن', Color(0xFF7C3AED)),
     ];
 
     int countFor(String f) {
       if (f == 'all') return stats.total;
       if (f == 'pending') return stats.pending;
       if (f == 'preparing_shipping') return stats.preparing;
-      if (f == 'ready_to_ship') return stats.ready;
       if (f == 'shipped') return stats.shipping;
       return 0;
     }
@@ -77,7 +75,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               const SizedBox(width: 8),
               _QuickStat(value: stats.preparing, label: 'قيد التجهيز', color: AppTheme.info, icon: orderStatusMeta('preparing_shipping').icon),
               const SizedBox(width: 8),
-              _QuickStat(value: stats.shipping, label: 'الشحن', color: Color(0xFF7C3AED), icon: orderStatusMeta('shipped').icon),
+              _QuickStat(value: stats.shipping, label: 'قيد الشحن', color: Color(0xFF7C3AED), icon: orderStatusMeta('shipped').icon),
             ],
           ),
         ),

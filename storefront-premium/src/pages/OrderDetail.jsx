@@ -396,7 +396,7 @@ export default function OrderDetail() {
                 value={form.city}
                 onChange={handleProvinceChange}
                 disabled={!zones.length}
-                subtotal={previewTotals?.total_price ?? Number(order.total_price) || 0}
+                subtotal={(previewTotals?.total_price ?? Number(order.total_price)) || 0}
                 freeShippingThreshold={freeShippingThreshold}
               />
               <label className="premium-order-edit-label" htmlFor="order-edit-address">العنوان الكامل</label>

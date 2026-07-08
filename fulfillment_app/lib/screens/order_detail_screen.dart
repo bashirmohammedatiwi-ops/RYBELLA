@@ -199,13 +199,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               status: order.status,
               loading: _updating,
               onPreparing: () => _updateStatus('preparing_shipping'),
-              onReady: () => _updateStatus('ready_to_ship'),
               onShipped: () => _updateStatus('shipped'),
               onDelivered: () => _updateStatus('delivered'),
               onCancel: () => _updateStatus('cancelled'),
               onPending: () => _updateStatus('pending'),
               onBackToPreparing: () => _updateStatus('preparing_shipping'),
-              onBackToReady: () => _updateStatus('ready_to_ship'),
             ),
     );
   }
@@ -494,25 +492,21 @@ class _ActionBar extends StatelessWidget {
   final String status;
   final bool loading;
   final VoidCallback onPreparing;
-  final VoidCallback onReady;
   final VoidCallback onShipped;
   final VoidCallback onDelivered;
   final VoidCallback onCancel;
   final VoidCallback onPending;
   final VoidCallback onBackToPreparing;
-  final VoidCallback onBackToReady;
 
   const _ActionBar({
     required this.status,
     required this.loading,
     required this.onPreparing,
-    required this.onReady,
     required this.onShipped,
     required this.onDelivered,
     required this.onCancel,
     required this.onPending,
     required this.onBackToPreparing,
-    required this.onBackToReady,
   });
 
   @override
@@ -567,32 +561,9 @@ class _ActionBar extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: onReady,
-              icon: const Icon(Icons.check_box_rounded),
-              label: const Text('تم التجهيز'),
-              style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: onPending,
-            icon: const Icon(Icons.undo_rounded, size: 18),
-            label: const Text('إرجاع لقيد الانتظار'),
-          ),
-        ],
-      );
-    }
-
-    if (status == 'ready_to_ship') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
               onPressed: onShipped,
               icon: const Icon(Icons.local_shipping_rounded),
-              label: const Text('تم الشحن'),
+              label: const Text('قيد الشحن'),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF7C3AED),
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -601,9 +572,9 @@ class _ActionBar extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextButton.icon(
-            onPressed: onBackToPreparing,
+            onPressed: onPending,
             icon: const Icon(Icons.undo_rounded, size: 18),
-            label: const Text('إرجاع لقيد التجهيز'),
+            label: const Text('إرجاع لقيد الانتظار'),
           ),
         ],
       );
@@ -627,9 +598,9 @@ class _ActionBar extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextButton.icon(
-            onPressed: onBackToReady,
+            onPressed: onBackToPreparing,
             icon: const Icon(Icons.undo_rounded, size: 18),
-            label: const Text('إرجاع لتم التجهيز'),
+            label: const Text('إرجاع لقيد التجهيز'),
           ),
         ],
       );

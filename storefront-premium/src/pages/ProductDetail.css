@@ -457,13 +457,36 @@
 }
 
 .pd-swatch.out-of-stock {
-  opacity: 0.5;
-  pointer-events: none;
+  opacity: 0.85;
+  cursor: not-allowed;
 }
 
 .pd-swatch.out-of-stock .pd-swatch-preview img,
 .pd-swatch.out-of-stock .pd-swatch-circle {
-  filter: grayscale(0.6);
+  filter: grayscale(0.45);
+}
+
+.pd-swatch-x {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.62);
+  color: #b91c1c;
+  font-size: 1.85rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.pd-swatch.out-of-stock.active .pd-swatch-preview {
+  border-color: #d1d5db;
+  box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.15);
+  transform: none;
 }
 
 /* text-mode: swatches without color - slightly wider */

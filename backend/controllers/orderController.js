@@ -277,8 +277,8 @@ async function restoreOrderStock(orderId) {
 }
 
 const STOCK_RESTORE_STATUSES = new Set([
-  'pending', 'preparing_shipping', 'ready_to_ship', 'shipped',
-  'confirmed', 'processing',
+  'pending', 'preparing_shipping', 'shipped',
+  'confirmed', 'processing', 'ready_to_ship',
 ]);
 
 async function recalculateOrderTotals(orderId, city) {
