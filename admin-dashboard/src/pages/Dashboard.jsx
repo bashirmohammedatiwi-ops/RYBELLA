@@ -13,6 +13,7 @@ import {
   CircularProgress,
   Chip,
   Button,
+  Alert,
 } from '@mui/material';
 import {
   AttachMoney as SalesIcon,
@@ -43,10 +44,12 @@ export default function Dashboard() {
   const [topProducts, setTopProducts] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     const fetch = async () => {
       try {
+        setLoadError('');
         const [sRes, lRes, tRes, cRes] = await Promise.all([
           dashboardAPI.getStats(),
           dashboardAPI.getLowStock?.().catch(() => ({ data: [] })),
@@ -58,7 +61,8 @@ export default function Dashboard() {
         setTopProducts(Array.isArray(tRes?.data) ? tRes.data : []);
         setChartData(Array.isArray(cRes?.data) ? cRes.data : []);
       } catch (e) {
-        setStats({ total_sales: 0, total_orders: 0, total_customers: 0 });
+        setLoadError(e.response?.data?.message || 'تعذّر تحميل إحصائيات لوحة التحكم');
+        setStats({ total_sales: 0, total_orders: 0, total_customers: 0, orders_this_month: 0 });
         setLowStock([]);
         setTopProducts([]);
         setChartData([]);
@@ -122,6 +126,12 @@ export default function Dashboard() {
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 700, color: '#1a1a2e' }}>
         لوحة التحكم
       </Typography>
+
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {loadError}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
@@ -224,7 +234,7 @@ export default function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <SummaryCard
             title="الطلبات"
-            value={s.total_orders || 0}
+            value={s.orders_this_month ?? s.total_orders ?? 0}
             subtitle="هذا الشهر"
           />
         </Grid>
