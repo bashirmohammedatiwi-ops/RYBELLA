@@ -450,7 +450,7 @@ class OrderStatusTimeline extends StatelessWidget {
       );
     }
 
-    final currentIdx = orderFlowSteps.indexOf(currentStatus);
+    final currentIdx = orderFlowSteps.indexOf(currentStatus).clamp(0, orderFlowSteps.length - 1);
 
     return SoftCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -494,7 +494,11 @@ class OrderStatusTimeline extends StatelessWidget {
                 child: Icon(meta.icon, size: current ? 20 : 18, color: active ? meta.color : AppTheme.textMuted),
               ),
               const SizedBox(height: 6),
-              Text(meta.shortLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: active ? meta.color : AppTheme.textMuted)),
+              Text(
+                meta.shortLabel,
+                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: active ? meta.color : AppTheme.textMuted),
+                textAlign: TextAlign.center,
+              ),
             ],
           );
         }),

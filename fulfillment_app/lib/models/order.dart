@@ -1,8 +1,11 @@
 import '../utils/json_utils.dart';
+import '../utils/order_status.dart';
 
 class OrderStats {
   final int pending;
   final int preparing;
+  final int ready;
+  final int shipping;
   final int delivered;
   final int cancelled;
   final int total;
@@ -10,6 +13,8 @@ class OrderStats {
   const OrderStats({
     this.pending = 0,
     this.preparing = 0,
+    this.ready = 0,
+    this.shipping = 0,
     this.delivered = 0,
     this.cancelled = 0,
     this.total = 0,
@@ -19,6 +24,8 @@ class OrderStats {
     return OrderStats(
       pending: jsonInt(json['pending']),
       preparing: jsonInt(json['preparing']),
+      ready: jsonInt(json['ready']),
+      shipping: jsonInt(json['shipping']),
       delivered: jsonInt(json['delivered']),
       cancelled: jsonInt(json['cancelled']),
       total: jsonInt(json['total']),
@@ -101,7 +108,6 @@ class FulfillmentOrder {
     const legacy = {
       'confirmed': 'preparing_shipping',
       'processing': 'preparing_shipping',
-      'shipped': 'preparing_shipping',
     };
     return legacy[status] ?? status;
   }
@@ -110,20 +116,7 @@ class FulfillmentOrder {
 
   String get displayPhone => phone ?? customerPhone ?? '—';
 
-  String get statusLabel {
-    switch (status) {
-      case 'pending':
-        return 'قيد الانتظار';
-      case 'preparing_shipping':
-        return 'قيد التجهيز';
-      case 'delivered':
-        return 'تم التسليم';
-      case 'cancelled':
-        return 'ملغي';
-      default:
-        return status;
-    }
-  }
+  String get statusLabel => orderStatusMeta(status).label;
 }
 
 class OrderLine {

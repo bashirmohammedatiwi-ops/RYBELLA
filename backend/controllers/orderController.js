@@ -45,7 +45,8 @@ exports.getById = async (req, res) => {
       return res.status(404).json({ message: 'الطلب غير موجود' });
     }
     const order = orders[0];
-    order.status = normalizeOrderStatus(order.status);
+    const forCustomer = req.user.role !== 'admin' && req.user.role !== 'staff';
+    order.status = normalizeOrderStatus(order.status, { forCustomer });
     if (req.user.role !== 'admin' && req.user.role !== 'staff' && order.user_id !== req.user.id) {
       return res.status(403).json({ message: 'غير مصرح' });
     }
@@ -76,7 +77,7 @@ exports.getAll = async (req, res) => {
     const [orders] = await db.query(query, params);
 
     for (const order of orders) {
-      order.status = normalizeOrderStatus(order.status);
+      order.status = normalizeOrderStatus(order.status, { forCustomer: !isStaff });
       const [items] = await db.query(ORDER_ITEMS_SELECT, [order.id]);
       order.items = items;
       await attachOrderBundles(order);
@@ -275,11 +276,9 @@ async function restoreOrderStock(orderId) {
   }
 }
 
-  }
-}
-
 const STOCK_RESTORE_STATUSES = new Set([
-  'pending', 'preparing_shipping', 'confirmed', 'processing', 'shipped',
+  'pending', 'preparing_shipping', 'ready_to_ship', 'shipped',
+  'confirmed', 'processing',
 ]);
 
 async function recalculateOrderTotals(orderId, city) {
@@ -526,7 +525,9 @@ exports.updateByCustomer = async (req, res) => {
       WHERE o.id = ?
     `, [orderId]);
     const result = updated[0];
-    result.status = normalizeOrderStatus(result.status);
+    result.status = normalizeOrderStatus(result.status, {
+      forCustomer: req.user.role !== 'admin' && req.user.role !== 'staff',
+    });
     const [items] = await db.query(ORDER_ITEMS_SELECT, [orderId]);
     result.items = items;
     await attachOrderBundles(result);

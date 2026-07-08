@@ -56,7 +56,7 @@ class ReminderService {
     final label = stats.pending == 1 ? 'طلب واحد' : '${stats.pending} طلبات';
     await PushService.showLocal(
       title: 'تذكير بالتجهيز ⏰',
-      body: 'لديك $label بانتظار التجهيز — افتح التطبيق للمتابعة',
+      body: 'لديك $label قيد الانتظار — افتح التطبيق للمتابعة',
       ongoing: true,
     );
   }

@@ -48,8 +48,8 @@ class DashboardScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       Text(
                         stats.pending > 0
-                            ? 'لديك ${stats.pending} طلب يحتاج معالجة فورية'
-                            : 'لا توجد طلبات معلّقة — أحسنت! 🎉',
+                            ? 'لديك ${stats.pending} طلب قيد الانتظار'
+                            : 'لا توجد طلبات قيد الانتظار — أحسنت! 🎉',
                         style: const TextStyle(color: AppTheme.textSecondary, height: 1.4, fontWeight: FontWeight.w600),
                       ),
                       if (stats.pending > 0) ...[
@@ -61,7 +61,7 @@ class DashboardScreen extends StatelessWidget {
                           ),
                           onPressed: () => provider.setFilter('pending'),
                           icon: const Icon(Icons.bolt_rounded, size: 20),
-                          label: const Text('معالجة الطلبات المعلّقة'),
+                          label: const Text('معالجة طلبات قيد الانتظار'),
                         ),
                       ],
                     ],
@@ -82,7 +82,7 @@ class DashboardScreen extends StatelessWidget {
             childAspectRatio: 1.05,
             children: [
               StatTile(
-                label: 'بانتظار التجهيز',
+                label: 'قيد الانتظار',
                 value: stats.pending,
                 color: AppTheme.warning,
                 bg: AppTheme.warningSoft,
@@ -100,22 +100,22 @@ class DashboardScreen extends StatelessWidget {
                 onTap: () => provider.setFilter('preparing_shipping'),
               ),
               StatTile(
-                label: 'تم التسليم',
-                value: stats.delivered,
-                color: AppTheme.success,
-                bg: AppTheme.successSoft,
-                icon: orderStatusMeta('delivered').icon,
-                selected: provider.filter == 'delivered',
-                onTap: () => provider.setFilter('delivered'),
-              ),
-              StatTile(
-                label: 'إجمالي الطلبات',
-                value: stats.total,
+                label: 'تم التجهيز',
+                value: stats.ready,
                 color: AppTheme.primary,
                 bg: AppTheme.primarySoft,
-                icon: Icons.receipt_long_rounded,
-                selected: provider.filter == 'all',
-                onTap: () => provider.setFilter('all'),
+                icon: orderStatusMeta('ready_to_ship').icon,
+                selected: provider.filter == 'ready_to_ship',
+                onTap: () => provider.setFilter('ready_to_ship'),
+              ),
+              StatTile(
+                label: 'الشحن',
+                value: stats.shipping,
+                color: const Color(0xFF7C3AED),
+                bg: const Color(0xFFF3E8FF),
+                icon: orderStatusMeta('shipped').icon,
+                selected: provider.filter == 'shipped',
+                onTap: () => provider.setFilter('shipped'),
               ),
             ],
           ),
@@ -167,7 +167,7 @@ class _PendingRing extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text('$count', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: color)),
-          Text('معلّق', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
+          Text('انتظار', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );

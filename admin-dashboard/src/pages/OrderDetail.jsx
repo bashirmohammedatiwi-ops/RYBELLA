@@ -53,7 +53,9 @@ const paymentLabels = { cash: 'الدفع عند الاستلام', card: 'بط�
 
 const FLOW_STEPS = [
   { key: 'pending', label: 'قيد الانتظار', icon: PendingIcon, color: '#ed6c02' },
-  { key: 'preparing_shipping', label: 'قيد التجهيز والشحن', icon: ShipIcon, color: '#0288d1' },
+  { key: 'preparing_shipping', label: 'قيد التجهيز', icon: ShipIcon, color: '#0288d1' },
+  { key: 'ready_to_ship', label: 'تم التجهيز', icon: ShipIcon, color: '#E85D7A' },
+  { key: 'shipped', label: 'الشحن', icon: ShipIcon, color: '#7c3aed' },
   { key: 'delivered', label: 'تم التسليم', icon: DoneIcon, color: '#2e7d32' },
 ];
 
@@ -544,7 +546,7 @@ export default function OrderDetail() {
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>هذا الإجراء نهائي ولا يمكن التراجع عنه.</Alert>
           <Typography variant="body2" color="text.secondary">
-            {['pending', 'preparing_shipping'].includes(displayStatus)
+            {['pending', 'preparing_shipping', 'ready_to_ship', 'shipped'].includes(displayStatus)
               ? 'سيتم إرجاع الكميات للمخزون تلقائياً.'
               : 'لن يتم تعديل المخزون (الطلب مُسلّم أو ملغي).'}
           </Typography>

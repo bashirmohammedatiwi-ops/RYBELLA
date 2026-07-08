@@ -35,6 +35,22 @@ OrderStatusMeta orderStatusMeta(String status) {
         bg: AppTheme.infoSoft,
         icon: Icons.inventory_2_rounded,
       );
+    case 'ready_to_ship':
+      return const OrderStatusMeta(
+        label: 'تم التجهيز',
+        shortLabel: 'جاهز',
+        color: AppTheme.primary,
+        bg: AppTheme.primarySoft,
+        icon: Icons.check_box_rounded,
+      );
+    case 'shipped':
+      return const OrderStatusMeta(
+        label: 'الشحن',
+        shortLabel: 'شحن',
+        color: Color(0xFF7C3AED),
+        bg: Color(0xFFF3E8FF),
+        icon: Icons.local_shipping_rounded,
+      );
     case 'delivered':
       return const OrderStatusMeta(
         label: 'تم التسليم',
@@ -62,4 +78,10 @@ OrderStatusMeta orderStatusMeta(String status) {
   }
 }
 
-const orderFlowSteps = ['pending', 'preparing_shipping', 'delivered'];
+const orderFlowSteps = [
+  'pending',
+  'preparing_shipping',
+  'ready_to_ship',
+  'shipped',
+  'delivered',
+];

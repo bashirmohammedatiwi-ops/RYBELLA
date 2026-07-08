@@ -60,6 +60,8 @@ const STATUS_META = {
   '': { icon: BagIcon, color: '#5e35b1', bg: '#ede7f6' },
   pending: { icon: PendingIcon, color: '#ed6c02', bg: '#fff3e0' },
   preparing_shipping: { icon: ShipIcon, color: '#0288d1', bg: '#e1f5fe' },
+  ready_to_ship: { icon: ShipIcon, color: '#E85D7A', bg: '#fce4ec' },
+  shipped: { icon: ShipIcon, color: '#7c3aed', bg: '#f3e8ff' },
   delivered: { icon: DoneIcon, color: '#2e7d32', bg: '#e8f5e9' },
   cancelled: { icon: CancelIcon, color: '#d32f2f', bg: '#ffebee' },
 };
@@ -548,7 +550,7 @@ export default function Orders() {
           </Alert>
           <Typography variant="body2" color="text.secondary">
             سيتم حذف الطلب وجميع منتجاته من السجل.
-            {deleteDialog.order && ['pending', 'preparing_shipping'].includes(normalizeOrderStatus(deleteDialog.order.status)) && (
+            {deleteDialog.order && ['pending', 'preparing_shipping', 'ready_to_ship', 'shipped'].includes(normalizeOrderStatus(deleteDialog.order.status)) && (
               <> كما سيتم <strong>إرجاع الكميات للمخزون</strong> تلقائياً.</>
             )}
           </Typography>

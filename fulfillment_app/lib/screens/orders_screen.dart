@@ -30,18 +30,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     const filters = [
       ('all', 'الكل', AppTheme.primary),
-      ('pending', 'انتظار', AppTheme.warning),
-      ('preparing_shipping', 'تجهيز', AppTheme.info),
-      ('delivered', 'مُسلّم', AppTheme.success),
-      ('cancelled', 'ملغي', AppTheme.danger),
+      ('pending', 'قيد الانتظار', AppTheme.warning),
+      ('preparing_shipping', 'قيد التجهيز', AppTheme.info),
+      ('ready_to_ship', 'تم التجهيز', AppTheme.primary),
+      ('shipped', 'الشحن', Color(0xFF7C3AED)),
     ];
 
     int countFor(String f) {
       if (f == 'all') return stats.total;
       if (f == 'pending') return stats.pending;
       if (f == 'preparing_shipping') return stats.preparing;
-      if (f == 'delivered') return stats.delivered;
-      if (f == 'cancelled') return stats.cancelled;
+      if (f == 'ready_to_ship') return stats.ready;
+      if (f == 'shipped') return stats.shipping;
       return 0;
     }
 
@@ -73,11 +73,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
           padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
           child: Row(
             children: [
-              _QuickStat(value: stats.pending, label: 'معلّق', color: AppTheme.warning, icon: orderStatusMeta('pending').icon),
+              _QuickStat(value: stats.pending, label: 'قيد الانتظار', color: AppTheme.warning, icon: orderStatusMeta('pending').icon),
               const SizedBox(width: 8),
-              _QuickStat(value: stats.preparing, label: 'تجهيز', color: AppTheme.info, icon: orderStatusMeta('preparing_shipping').icon),
+              _QuickStat(value: stats.preparing, label: 'قيد التجهيز', color: AppTheme.info, icon: orderStatusMeta('preparing_shipping').icon),
               const SizedBox(width: 8),
-              _QuickStat(value: stats.total, label: 'الكل', color: AppTheme.primary, icon: Icons.receipt_long_rounded),
+              _QuickStat(value: stats.shipping, label: 'الشحن', color: Color(0xFF7C3AED), icon: orderStatusMeta('shipped').icon),
             ],
           ),
         ),

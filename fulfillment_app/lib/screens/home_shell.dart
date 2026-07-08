@@ -158,7 +158,7 @@ class _HomeShellState extends State<HomeShell> {
                                 const SizedBox(width: 6),
                               ],
                               Text(
-                                pending > 0 ? '$pending طلب بانتظار التجهيز' : 'كل شيء تحت السيطرة ✨',
+                                pending > 0 ? '$pending طلب قيد الانتظار' : 'كل شيء تحت السيطرة ✨',
                                 style: TextStyle(
                                   color: pending > 0 ? AppTheme.warning : AppTheme.textMuted,
                                   fontWeight: FontWeight.w700,
