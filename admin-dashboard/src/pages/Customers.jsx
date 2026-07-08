@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Box,
   Table,
@@ -21,8 +21,17 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Chip,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material'
-import { Search as SearchIcon, Delete as DeleteIcon, PersonAdd as PersonAddIcon } from '@mui/icons-material'
+import {
+  Search as SearchIcon,
+  Delete as DeleteIcon,
+  PersonAdd as PersonAddIcon,
+  Block as BlockIcon,
+  CheckCircle as CheckCircleIcon,
+} from '@mui/icons-material'
 import { usersAPI } from '../services/api'
 
 const emptyForm = { name: '', phone: '', password: '' }
@@ -31,10 +40,12 @@ export default function Customers() {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [message, setMessage] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [togglingId, setTogglingId] = useState(null)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState(emptyForm)
@@ -55,6 +66,31 @@ export default function Customers() {
   useEffect(() => {
     loadCustomers()
   }, [])
+
+  const handleToggleDisabled = async (customer) => {
+    const nextDisabled = !customer.is_disabled
+    const label = customer.name || customer.phone || `#${customer.id}`
+    const confirmed = window.confirm(
+      nextDisabled
+        ? `تعطيل حساب "${label}"؟\n\nلن يتمكن من تسجيل الدخول أو استخدام المتجر، لكن طلباته السابقة تبقى في النظام.`
+        : `تفعيل حساب "${label}"؟`
+    )
+    if (!confirmed) return
+
+    setTogglingId(customer.id)
+    setMessage(null)
+    try {
+      const { data } = await usersAPI.setDisabled(customer.id, nextDisabled)
+      setCustomers((prev) => prev.map((c) => (
+        c.id === customer.id ? { ...c, ...(data.user || {}), is_disabled: nextDisabled } : c
+      )))
+      setMessage({ type: 'success', text: data.message || (nextDisabled ? 'تم تعطيل الحساب' : 'تم تفعيل الحساب') })
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'فشل تحديث حالة الحساب' })
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   const handleDelete = async (customer) => {
     const label = customer.name || customer.phone || `#${customer.id}`
@@ -96,14 +132,20 @@ export default function Customers() {
     }
   }
 
-  const filtered = customers.filter((c) => {
+  const filtered = useMemo(() => customers.filter((c) => {
+    if (statusFilter === 'active' && c.is_disabled) return false
+    if (statusFilter === 'disabled' && !c.is_disabled) return false
     if (!search) return true
     const s = search.toLowerCase()
-    return (c.name || '').toLowerCase().includes(s) || (c.email || '').toLowerCase().includes(s) || (c.phone || '').includes(search)
-  })
+    return (c.name || '').toLowerCase().includes(s)
+      || (c.email || '').toLowerCase().includes(s)
+      || (c.phone || '').includes(search)
+  }), [customers, search, statusFilter])
+
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   if (loading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 3 }}>
@@ -116,12 +158,28 @@ export default function Customers() {
             size="small"
             placeholder="بحث..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            onChange={(e) => { setSearch(e.target.value); setPage(0) }}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
             sx={{ minWidth: 200 }}
           />
         </Box>
       </Box>
+
+      <ToggleButtonGroup
+        exclusive
+        size="small"
+        value={statusFilter}
+        onChange={(_, value) => {
+          if (!value) return
+          setStatusFilter(value)
+          setPage(0)
+        }}
+        sx={{ mb: 2 }}
+      >
+        <ToggleButton value="all">الكل</ToggleButton>
+        <ToggleButton value="active">النشطون</ToggleButton>
+        <ToggleButton value="disabled">المعطّلون</ToggleButton>
+      </ToggleButtonGroup>
 
       {message && (
         <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
@@ -138,6 +196,7 @@ export default function Customers() {
               <TableCell>البريد</TableCell>
               <TableCell>الهاتف</TableCell>
               <TableCell>الطلبات</TableCell>
+              <TableCell>الحالة</TableCell>
               <TableCell>التسجيل</TableCell>
               <TableCell align="left">إجراءات</TableCell>
             </TableRow>
@@ -145,19 +204,42 @@ export default function Customers() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                  لا يوجد عملاء نشطون
+                <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  لا يوجد عملاء
                 </TableCell>
               </TableRow>
             ) : paginated.map((c) => (
-              <TableRow key={c.id}>
+              <TableRow
+                key={c.id}
+                sx={c.is_disabled ? { bgcolor: 'action.hover', opacity: 0.92 } : undefined}
+              >
                 <TableCell>{c.id}</TableCell>
                 <TableCell>{c.name}</TableCell>
                 <TableCell>{c.email || '—'}</TableCell>
                 <TableCell>{c.phone || '—'}</TableCell>
                 <TableCell>{c.order_count ?? 0}</TableCell>
+                <TableCell>
+                  <Chip
+                    size="small"
+                    label={c.is_disabled ? 'معطّل' : 'نشط'}
+                    color={c.is_disabled ? 'warning' : 'success'}
+                    variant={c.is_disabled ? 'filled' : 'outlined'}
+                  />
+                </TableCell>
                 <TableCell>{new Date(c.created_at).toLocaleDateString('ar-IQ')}</TableCell>
                 <TableCell align="left">
+                  <Tooltip title={c.is_disabled ? 'تفعيل الحساب' : 'تعطيل الحساب'}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        color={c.is_disabled ? 'success' : 'warning'}
+                        disabled={togglingId === c.id}
+                        onClick={() => handleToggleDisabled(c)}
+                      >
+                        {c.is_disabled ? <CheckCircleIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                   <Tooltip title="حذف العميل">
                     <span>
                       <IconButton
@@ -181,7 +263,7 @@ export default function Customers() {
           page={page}
           onPageChange={(_, p) => setPage(p)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }}
           rowsPerPageOptions={[10, 25, 50]}
           labelRowsPerPage="صفوف لكل صفحة"
         />

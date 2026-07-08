@@ -5,6 +5,7 @@ const { auth, adminAuth, staffOrAdminAuth } = require('../middleware/auth');
 
 router.get('/', auth, adminAuth, userController.getAll);
 router.post('/', auth, staffOrAdminAuth, userController.create);
+router.patch('/:id/disabled', auth, adminAuth, userController.setDisabled);
 router.get('/:id', auth, userController.getById);
 router.delete('/:id', auth, adminAuth, userController.delete);
 

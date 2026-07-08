@@ -9,7 +9,7 @@ class OrdersProvider extends ChangeNotifier {
   OrderStats _stats = const OrderStats();
   bool _loading = false;
   String? _error;
-  String _filter = 'all';
+  String _filter = 'pending';
   String _search = '';
   OrderSort _sort = OrderSort.newest;
 
@@ -22,9 +22,7 @@ class OrdersProvider extends ChangeNotifier {
   OrderSort get sort => _sort;
 
   List<FulfillmentOrder> get filteredOrders {
-    var list = _filter == 'all'
-        ? List<FulfillmentOrder>.from(_orders)
-        : _orders.where((o) => o.status == _filter).toList();
+    var list = _orders.where((o) => o.status == _filter).toList();
 
     final q = _search.trim().toLowerCase();
     if (q.isNotEmpty) {

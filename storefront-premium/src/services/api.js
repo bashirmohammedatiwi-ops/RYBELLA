@@ -141,7 +141,8 @@ export const ordersAPI = {
   create: (data) => api.post('/orders', data),
   getAll: () => api.get('/orders'),
   getById: (id) => api.get(`/orders/${id}`),
-  update: (id, data) => api.put(`/orders/${id}`, data),
+  loadToCart: (id) => api.post(`/orders/${id}/to-cart`),
+  replaceFromCart: (id, data) => api.put(`/orders/${id}/from-cart`, data),
 }
 export const wishlistAPI = {
   getAll: () => api.get('/wishlist'),

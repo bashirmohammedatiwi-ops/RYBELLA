@@ -308,6 +308,13 @@ export default function OrderDetail() {
             color={getOrderStatusColor(order.status)}
             sx={{ fontWeight: 600, px: 1 }}
           />
+          {order.customer_modified_at && (
+            <Chip
+              label="طلب معدّل"
+              color="warning"
+              sx={{ fontWeight: 700, px: 1 }}
+            />
+          )}
         </Box>
         <Button
           color="error"
@@ -321,6 +328,12 @@ export default function OrderDetail() {
       </Box>
 
       {statusError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setStatusError('')}>{statusError}</Alert>}
+
+      {order.customer_modified_at && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          عدّل العميل هذا الطلب — آخر تعديل: {formatDate(order.customer_modified_at)}
+        </Alert>
+      )}
 
       {/* شريط الحالات */}
       <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'grey.200' }}>

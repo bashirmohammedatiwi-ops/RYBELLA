@@ -13,7 +13,7 @@ import './Checkout.css'
 
 export default function Checkout() {
   const { user } = useAuth()
-  const { items, bundles, loadCart } = useCart()
+  const { items, bundles, loadCart, editingOrderId, clearEditingOrder } = useCart()
   const navigate = useNavigate()
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -81,6 +81,23 @@ export default function Checkout() {
   useEffect(() => {
     if (user?.phone) setPhone(user.phone)
   }, [user?.phone])
+
+  useEffect(() => {
+    if (!editingOrderId || !zones.length) return
+    ordersAPI.getById(editingOrderId)
+      .then((r) => {
+        const order = r?.data
+        if (!order) return
+        setAddress(order.address || '')
+        setCity(order.city || '')
+        setPhone(order.phone || user?.phone || '')
+        setNotes(order.notes || '')
+        if (order.coupon_code) setCouponCode(order.coupon_code)
+        const zone = zones.find((z) => z.city === order.city)
+        if (zone) setZoneDeliveryFee(Number(zone.delivery_fee) || 0)
+      })
+      .catch(() => {})
+  }, [editingOrderId, user?.phone, zones])
 
   const handleProvinceChange = (provinceName, fee) => {
     setCity(provinceName)
@@ -160,7 +177,7 @@ export default function Checkout() {
         quantity: b.quantity || 1,
         lines: (b.lines || []).map((l) => ({ variant_id: l.variant_id, quantity: 1 })),
       }))
-      await ordersAPI.create({
+      const payload = {
         items: orderItems,
         bundles: orderBundles,
         address: address.trim(),
@@ -169,7 +186,17 @@ export default function Checkout() {
         notes: notes.trim() || null,
         payment_method: 'cash',
         coupon_code: couponApplied ? couponCode.trim() : null,
-      })
+      }
+
+      if (editingOrderId) {
+        await ordersAPI.replaceFromCart(editingOrderId, payload)
+        clearEditingOrder()
+        loadCart()
+        navigate(`/orders/${editingOrderId}`)
+        return
+      }
+
+      await ordersAPI.create(payload)
       loadCart()
       navigate('/orders')
     } catch (err) {
@@ -240,8 +267,12 @@ export default function Checkout() {
       <MobileHeader title="إتمام الطلب" showBack showCart={false} />
 
       <div className="checkout-hero">
-        <h1 className="checkout-title">إتمام الطلب</h1>
-        <p className="checkout-subtitle">خطوة أخيرة لتصلك منتجاتك بأمان</p>
+        <h1 className="checkout-title">{editingOrderId ? `تعديل الطلب #${formatNumber(editingOrderId)}` : 'إتمام الطلب'}</h1>
+        <p className="checkout-subtitle">
+          {editingOrderId
+            ? 'راجعي التعديلات ثم أكّدي الطلب لحفظها'
+            : 'خطوة أخيرة لتصلك منتجاتك بأمان'}
+        </p>
       </div>
 
       {error && (!invalidField || invalidField === 'error') && (
@@ -441,7 +472,9 @@ export default function Checkout() {
               onClick={handlePlaceOrder}
               disabled={submitting || !zones.length}
             >
-              {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
+              {submitting
+                ? (editingOrderId ? 'جاري حفظ التعديلات...' : 'جاري تأكيد الطلب...')
+                : (editingOrderId ? 'حفظ تعديلات الطلب' : 'تأكيد الطلب')}
             </button>
 
             <p className="checkout-payment-note">الدفع عند الاستلام</p>

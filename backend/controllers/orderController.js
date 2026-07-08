@@ -276,6 +276,281 @@ async function restoreOrderStock(orderId) {
   }
 }
 
+async function getOrCreateCart(userId) {
+  let [carts] = await db.query('SELECT id FROM cart WHERE user_id = ?', [userId]);
+  if (carts.length === 0) {
+    const [result] = await db.query('INSERT INTO cart (user_id) VALUES (?)', [userId]);
+    return result.insertId;
+  }
+  return carts[0].id;
+}
+
+async function clearUserCart(userId) {
+  const cartId = await getOrCreateCart(userId);
+  await db.query('DELETE FROM cart_items WHERE cart_id = ?', [cartId]);
+  await db.query('DELETE FROM cart_bundles WHERE cart_id = ?', [cartId]);
+  return cartId;
+}
+
+async function assertEditablePendingOrder(orderId, userId, { allowStaff = false } = {}) {
+  const [orders] = await db.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+  if (!orders.length) {
+    return { ok: false, status: 404, message: 'الطلب غير موجود' };
+  }
+  const order = orders[0];
+  if (!allowStaff && order.user_id !== userId) {
+    return { ok: false, status: 403, message: 'غير مصرح' };
+  }
+  if (normalizeOrderStatus(order.status) !== 'pending') {
+    return { ok: false, status: 400, message: 'يمكن تعديل الطلب فقط عندما تكون حالته قيد الانتظار' };
+  }
+  return { ok: true, order };
+}
+
+async function buildOrderPayloadFromCartBody(body) {
+  const lineItems = Array.isArray(body.items) ? body.items : [];
+  const bundleOrders = Array.isArray(body.bundles) ? body.bundles : [];
+  const { address, city, coupon_code } = body;
+
+  if ((!lineItems.length && !bundleOrders.length) || !address || !city) {
+    return { ok: false, status: 400, message: 'عناصر الطلب والعنوان والمدينة مطلوبة' };
+  }
+
+  const [zone] = await db.query('SELECT delivery_fee FROM delivery_zones WHERE city = ?', [city]);
+  if (!zone.length) {
+    return { ok: false, status: 400, message: 'المحافظة غير متاحة للتوصيل' };
+  }
+
+  const zoneFee = parseFloat(zone[0].delivery_fee) || 5000;
+  const freeShippingThreshold = await getFreeShippingThreshold(db);
+
+  let total_price = 0;
+  let discount = 0;
+  const orderItems = [];
+  const orderBundles = [];
+
+  for (const item of lineItems) {
+    const qty = parseInt(item.quantity, 10) || 0;
+    if (!item.variant_id || qty < 1) continue;
+    const [variant] = await db.query('SELECT price, stock, product_id FROM product_variants WHERE id = ?', [item.variant_id]);
+    if (variant.length === 0) {
+      return { ok: false, status: 400, message: `المنتج غير موجود: ${item.variant_id}` };
+    }
+    if (variant[0].stock < qty) {
+      return { ok: false, status: 400, message: `الكمية غير متوفرة للمنتج: ${item.variant_id}` };
+    }
+    const unitPrice = roundSalePrice(variant[0].price);
+    total_price += unitPrice * qty;
+    orderItems.push({
+      variant_id: item.variant_id,
+      quantity: qty,
+      price: unitPrice,
+      product_id: variant[0].product_id,
+    });
+  }
+
+  for (const bundle of bundleOrders) {
+    const qty = parseInt(bundle.quantity, 10) || 1;
+    const validation = await validateBundleLines(bundle.offer_id, bundle.lines);
+    if (!validation.ok) {
+      return { ok: false, status: 400, message: validation.message };
+    }
+    const bundleSubtotal = validation.pricing.subtotal * qty;
+    const bundleDiscount = validation.pricing.discount * qty;
+    const bundleTotal = validation.pricing.unitTotal * qty;
+    total_price += bundleSubtotal;
+    discount += bundleDiscount;
+    orderBundles.push({
+      offer_id: bundle.offer_id,
+      offer_title: validation.offer.title,
+      discount_percent: validation.offer.discount_percent || 0,
+      quantity: qty,
+      subtotal: bundleSubtotal,
+      total_price: bundleTotal,
+      lines: validation.lines,
+    });
+  }
+
+  if (!orderItems.length && !orderBundles.length) {
+    return { ok: false, status: 400, message: 'يجب أن يحتوي الطلب على منتج واحد على الأقل' };
+  }
+
+  if (coupon_code) {
+    const [coupon] = await db.query(
+      "SELECT discount_percent FROM coupons WHERE code = ? AND active IS TRUE AND expiration_date > CURRENT_DATE",
+      [coupon_code]
+    );
+    if (coupon.length > 0) {
+      discount = roundSalePrice(total_price * (coupon[0].discount_percent / 100));
+    }
+  }
+
+  const delivery_fee = computeDeliveryFee(total_price, zoneFee, freeShippingThreshold);
+  const final_price = roundSalePrice(total_price + delivery_fee - discount);
+
+  return {
+    ok: true,
+    orderItems,
+    orderBundles,
+    total_price,
+    discount,
+    delivery_fee,
+    final_price,
+    coupon_code: coupon_code || null,
+  };
+}
+
+async function insertOrderLines(orderId, orderItems, orderBundles) {
+  for (const item of orderItems) {
+    await db.query(
+      'INSERT INTO order_items (order_id, variant_id, quantity, price) VALUES (?, ?, ?, ?)',
+      [orderId, item.variant_id, item.quantity, item.price]
+    );
+    await db.query('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [item.quantity, item.variant_id]);
+  }
+
+  for (const bundle of orderBundles) {
+    const [bundleResult] = await db.query(
+      `INSERT INTO order_bundles (order_id, offer_id, offer_title, discount_percent, quantity, subtotal, total_price)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [orderId, bundle.offer_id, bundle.offer_title, bundle.discount_percent, bundle.quantity, bundle.subtotal, bundle.total_price]
+    );
+    for (const line of bundle.lines) {
+      await db.query(
+        `INSERT INTO order_bundle_items (order_bundle_id, variant_id, product_name, shade_name, quantity, price)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [bundleResult.insertId, line.variant_id, line.product_name, line.shade_name, bundle.quantity, line.price]
+      );
+      await db.query('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [bundle.quantity, line.variant_id]);
+    }
+  }
+}
+
+async function removeOrderLines(orderId) {
+  await db.query('DELETE FROM order_bundles WHERE order_id = ?', [orderId]);
+  await db.query('DELETE FROM order_items WHERE order_id = ?', [orderId]);
+}
+
+exports.loadOrderToCart = async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const access = await assertEditablePendingOrder(orderId, req.user.id);
+    if (!access.ok) {
+      return res.status(access.status).json({ message: access.message });
+    }
+    const order = access.order;
+
+    const cartId = await clearUserCart(req.user.id);
+
+    const [items] = await db.query('SELECT variant_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
+    for (const item of items) {
+      await db.query(
+        'INSERT INTO cart_items (cart_id, variant_id, quantity) VALUES (?, ?, ?)',
+        [cartId, item.variant_id, item.quantity]
+      );
+    }
+
+    const [bundleRows] = await db.query('SELECT id, offer_id, quantity FROM order_bundles WHERE order_id = ?', [orderId]);
+    for (const bundle of bundleRows) {
+      const [lines] = await db.query('SELECT variant_id FROM order_bundle_items WHERE order_bundle_id = ?', [bundle.id]);
+      const [bundleResult] = await db.query(
+        'INSERT INTO cart_bundles (cart_id, offer_id, quantity) VALUES (?, ?, ?)',
+        [cartId, bundle.offer_id, bundle.quantity]
+      );
+      for (const line of lines) {
+        await db.query(
+          'INSERT INTO cart_bundle_items (cart_bundle_id, variant_id) VALUES (?, ?)',
+          [bundleResult.insertId, line.variant_id]
+        );
+      }
+    }
+
+    res.json({
+      message: 'تمت إعادة الطلب إلى السلة',
+      order_id: orderId,
+      order: {
+        id: order.id,
+        address: order.address,
+        city: order.city,
+        phone: order.phone,
+        notes: order.notes,
+        coupon_code: order.coupon_code,
+      },
+    });
+  } catch (error) {
+    console.error('Load order to cart error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
+
+exports.replaceFromCart = async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const access = await assertEditablePendingOrder(orderId, req.user.id);
+    if (!access.ok) {
+      return res.status(access.status).json({ message: access.message });
+    }
+
+    const normalizedPhone = req.body.phone != null ? normalizeIraqiPhone(req.body.phone) : null;
+    if (req.body.phone != null && !isValidIraqiPhone(normalizedPhone)) {
+      return res.status(400).json({ message: 'رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم' });
+    }
+
+    const payload = await buildOrderPayloadFromCartBody({
+      ...req.body,
+      address: String(req.body.address || '').trim(),
+      city: String(req.body.city || '').trim(),
+    });
+    if (!payload.ok) {
+      return res.status(payload.status).json({ message: payload.message });
+    }
+
+    await restoreOrderStock(orderId);
+    await removeOrderLines(orderId);
+    await insertOrderLines(orderId, payload.orderItems, payload.orderBundles);
+
+    const notes = req.body.notes != null ? String(req.body.notes).trim() : null;
+    await db.query(
+      `UPDATE orders
+       SET total_price = ?, delivery_fee = ?, discount = ?, final_price = ?,
+           address = ?, city = ?, phone = ?, notes = ?, coupon_code = ?,
+           customer_modified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        payload.total_price,
+        payload.delivery_fee,
+        payload.discount,
+        payload.final_price,
+        req.body.address,
+        req.body.city,
+        normalizedPhone || req.body.phone || null,
+        notes,
+        payload.coupon_code,
+        orderId,
+      ]
+    );
+
+    await clearUserCart(req.user.id);
+
+    const [updated] = await db.query(`
+      SELECT o.*, u.name as customer_name, u.phone as customer_phone
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.id = ?
+    `, [orderId]);
+    const result = updated[0];
+    result.status = normalizeOrderStatus(result.status, { forCustomer: true });
+    const [orderItems] = await db.query(ORDER_ITEMS_SELECT, [orderId]);
+    result.items = orderItems;
+    await attachOrderBundles(result);
+
+    res.json({ message: 'تم تحديث الطلب بنجاح', order: result });
+  } catch (error) {
+    console.error('Replace order from cart error:', error);
+    res.status(500).json({ message: 'حدث خطأ في الخادم' });
+  }
+};
+
 const STOCK_RESTORE_STATUSES = new Set([
   'pending', 'preparing_shipping', 'shipped',
   'confirmed', 'processing', 'ready_to_ship',

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone TEXT,
     role TEXT DEFAULT 'customer' CHECK (role IN ('admin', 'customer', 'staff')),
     deleted_at TIMESTAMPTZ,
+    is_disabled BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -136,6 +137,7 @@ CREATE TABLE IF NOT EXISTS orders (
     notes TEXT,
     coupon_code TEXT,
     cancel_reason TEXT,
+    customer_modified_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

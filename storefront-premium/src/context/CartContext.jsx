@@ -9,10 +9,11 @@ import {
   useMemo,
 } from 'react'
 import { useAuth } from './AuthContext'
-import { cartAPI } from '../services/api'
+import { cartAPI, ordersAPI } from '../services/api'
 import { roundDisplayPrice } from '../utils/pricing'
 
 const CART_KEY = 'rybella_guest_cart'
+const EDIT_ORDER_KEY = 'rybella_editing_order_id'
 const SERVER_SYNC_MS = 500
 const CartContext = createContext(null)
 
@@ -105,6 +106,11 @@ export function CartProvider({ children }) {
   const { user } = useAuth()
   const [{ items, bundles }, dispatch] = useReducer(cartReducer, { items: [], bundles: [] })
   const [loading, setLoading] = useState(false)
+  const [editingOrderId, setEditingOrderId] = useState(() => {
+    const raw = sessionStorage.getItem(EDIT_ORDER_KEY)
+    const parsed = parseInt(raw || '', 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+  })
 
   const itemsRef = useRef(items)
   const bundlesRef = useRef(bundles)
@@ -436,6 +442,22 @@ export function CartProvider({ children }) {
     setLoading(false)
   }
 
+  const clearEditingOrder = useCallback(() => {
+    setEditingOrderId(null)
+    sessionStorage.removeItem(EDIT_ORDER_KEY)
+  }, [])
+
+  const startOrderEdit = useCallback(async (orderId) => {
+    if (!user) throw new Error('يجب تسجيل الدخول لتعديل الطلب')
+    const { data } = await ordersAPI.loadToCart(orderId)
+    setEditingOrderId(orderId)
+    sessionStorage.setItem(EDIT_ORDER_KEY, String(orderId))
+    itemSyncRef.current.clear()
+    bundleSyncRef.current.clear()
+    await fetchServerCart()
+    return data
+  }, [user, fetchServerCart])
+
   const totalCount = useMemo(() => (
     items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
     + bundles.reduce((sum, bundle) => sum + (Number(bundle.quantity) || 0), 0)
@@ -455,6 +477,9 @@ export function CartProvider({ children }) {
       loadCart,
       mergeGuestCart,
       totalCount,
+      editingOrderId,
+      startOrderEdit,
+      clearEditingOrder,
     }}
     >
       {children}

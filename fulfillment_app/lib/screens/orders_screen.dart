@@ -29,14 +29,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final stats = provider.stats;
 
     const filters = [
-      ('all', 'الكل', AppTheme.primary),
       ('pending', 'قيد الانتظار', AppTheme.warning),
       ('preparing_shipping', 'قيد التجهيز', AppTheme.info),
-      ('shipped', 'قيد الشحن', Color(0xFF7C3AED)),
+      ('shipped', 'قيد الشحن', const Color(0xFF7C3AED)),
     ];
 
     int countFor(String f) {
-      if (f == 'all') return stats.total;
       if (f == 'pending') return stats.pending;
       if (f == 'preparing_shipping') return stats.preparing;
       if (f == 'shipped') return stats.shipping;
@@ -145,19 +143,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 10, 18, 4),
-          child: Row(
-            children: [
-              Text(
-                '${list.length} طلب',
-                style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.textSecondary, fontSize: 13),
-              ),
-              const Spacer(),
-              if (provider.filter != 'all')
-                GestureDetector(
-                  onTap: () => provider.setFilter('all'),
-                  child: Text('عرض الكل', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primary, fontSize: 13)),
-                ),
-            ],
+          child: Text(
+            '${list.length} طلب',
+            style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.textSecondary, fontSize: 13),
           ),
         ),
         Expanded(

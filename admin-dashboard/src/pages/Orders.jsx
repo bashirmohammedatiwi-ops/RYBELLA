@@ -385,6 +385,16 @@ export default function Orders() {
                       label={`${lineCount} منتج`}
                       sx={{ mt: 0.75, height: 22, fontSize: 11 }}
                     />
+                    {order.customer_modified_at && (
+                      <Tooltip title={`آخر تعديل: ${formatDate(order.customer_modified_at)}`}>
+                        <Chip
+                          size="small"
+                          label="طلب معدّل"
+                          color="warning"
+                          sx={{ mt: 0.75, height: 22, fontSize: 11, fontWeight: 700 }}
+                        />
+                      </Tooltip>
+                    )}
                   </Box>
 
                   {/* العميل + المدينة */}

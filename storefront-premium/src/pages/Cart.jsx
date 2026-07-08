@@ -20,6 +20,8 @@ export default function Cart() {
     removeItem,
     removeBundle,
     totalCount,
+    editingOrderId,
+    clearEditingOrder,
   } = useCart()
 
   const getItemId = (item) => (item.id != null ? item.id : item.variant_id)
@@ -74,6 +76,17 @@ export default function Cart() {
     <div className="cart-page">
       <MobileHeader title="السلة" showBack showCart={false} />
       <div className="cart-content">
+        {editingOrderId && (
+          <div className="cart-edit-banner">
+            <div>
+              <strong>تعديل الطلب #{formatNumber(editingOrderId)}</strong>
+              <p>عدّلي المنتجات والكميات ثم أكملي الدفع لحفظ التعديلات.</p>
+            </div>
+            <button type="button" className="cart-edit-cancel" onClick={clearEditingOrder}>
+              إلغاء
+            </button>
+          </div>
+        )}
         <div className="cart-header">
           <h2 className="cart-title">سلة التسوق</h2>
           <span className="cart-badge">{formatNumber(totalCount)} {totalCount === 1 ? 'عنصر' : 'عناصر'}</span>

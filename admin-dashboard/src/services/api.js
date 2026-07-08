@@ -170,6 +170,7 @@ export const ordersAPI = {
 export const usersAPI = {
   getAll: () => api.get('/users'),
   create: (data) => api.post('/users', data),
+  setDisabled: (id, disabled) => api.patch(`/users/${id}/disabled`, { disabled }),
   delete: (id) => api.delete(`/users/${id}`),
 };
 

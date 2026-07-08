@@ -37,16 +37,36 @@ async function softDeleteCustomer(userId) {
   return updated;
 }
 
-/** شرط SQL: حساب نشط (غير محذوف) */
-const ACTIVE_USER = 'deleted_at IS NULL';
+/** شرط SQL: حساب نشط (غير محذوف وغير معطّل) */
+const ACTIVE_USER = 'deleted_at IS NULL AND COALESCE(is_disabled, FALSE) = FALSE';
 
 function isActiveUserWhere(alias = '') {
-  if (!alias) return 'deleted_at IS NULL';
-  return `${alias}.deleted_at IS NULL`;
+  const prefix = alias ? `${alias}.` : '';
+  return `${prefix}deleted_at IS NULL AND COALESCE(${prefix}is_disabled, FALSE) = FALSE`;
+}
+
+async function setCustomerDisabled(userId, disabled) {
+  const [users] = await db.query(
+    'SELECT id, role, deleted_at FROM users WHERE id = ?',
+    [userId]
+  );
+  if (!users.length || users[0].deleted_at) {
+    const err = new Error('USER_NOT_FOUND');
+    err.code = 'USER_NOT_FOUND';
+    throw err;
+  }
+  if (users[0].role !== 'customer') {
+    const err = new Error('NOT_CUSTOMER');
+    err.code = 'NOT_CUSTOMER';
+    throw err;
+  }
+  await db.query('UPDATE users SET is_disabled = ? WHERE id = ?', [!!disabled, userId]);
+  return !disabled;
 }
 
 module.exports = {
   softDeleteCustomer,
+  setCustomerDisabled,
   ACTIVE_USER,
   isActiveUserWhere,
   phonePlaceholderEmail,

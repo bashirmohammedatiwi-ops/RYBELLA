@@ -67,6 +67,8 @@ async function runMigrations() {
       ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'customer', 'staff'));
     EXCEPTION WHEN others THEN NULL;
     END $$`,
+    'ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_modified_at TIMESTAMPTZ',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS is_disabled BOOLEAN DEFAULT FALSE',
   ];
   for (const sql of migrations) {
     await getPool().query(sql);

@@ -113,8 +113,8 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 22),
           SectionHeader(
             title: 'آخر الطلبات',
-            action: recent.isNotEmpty ? 'عرض الكل' : null,
-            onAction: recent.isNotEmpty ? () => provider.setFilter('all') : null,
+            action: recent.isNotEmpty ? 'عرض الطلبات' : null,
+            onAction: recent.isNotEmpty ? () => provider.setFilter('pending') : null,
           ),
           if (recent.isEmpty)
             const EmptyState(
