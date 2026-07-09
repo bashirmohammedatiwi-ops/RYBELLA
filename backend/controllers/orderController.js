@@ -228,6 +228,10 @@ exports.updateStatus = async (req, res) => {
       return res.status(400).json({ message: 'سبب الإلغاء مطلوب عند إلغاء الطلب' });
     }
 
+    if (status === 'delivered' && req.user.role === 'staff') {
+      return res.status(403).json({ message: 'لا يمكن لموظف التجهيز تأكيد التسليم' });
+    }
+
     await db.query(
       'UPDATE orders SET status = ?, cancel_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [status, status === 'cancelled' ? reason : null, req.params.id]

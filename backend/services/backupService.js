@@ -25,8 +25,9 @@ const uploadsDir = resolveUploadsDir();
 const MAX_BACKUPS = Math.max(1, parseInt(process.env.BACKUP_MAX_COUNT || '15', 10));
 const TOKEN_TTL_MS = 10 * 60 * 1000;
 
-/** @type {Map<string, { filename: string, expiresAt: number }>} */
-const downloadTokens = new Map();
+function getSigningSecret() {
+  return process.env.JWT_SECRET || 'rybella_dev_secret_change_in_production';
+}
 
 function ensureBackupsDir() {
   if (!fs.existsSync(backupsDir)) {
@@ -184,30 +185,31 @@ function deleteBackup(filename) {
   fs.unlinkSync(filepath);
 }
 
-function pruneExpiredTokens() {
-  const now = Date.now();
-  for (const [token, entry] of downloadTokens) {
-    if (entry.expiresAt <= now) downloadTokens.delete(token);
-  }
-}
-
 function createDownloadToken(filename) {
   getBackupPath(filename);
-  pruneExpiredTokens();
-  const token = crypto.randomBytes(24).toString('hex');
-  downloadTokens.set(token, { filename, expiresAt: Date.now() + TOKEN_TTL_MS });
-  return token;
+  const exp = Date.now() + TOKEN_TTL_MS;
+  const payload = JSON.stringify({ filename, exp });
+  const sig = crypto.createHmac('sha256', getSigningSecret()).update(payload).digest('hex');
+  return Buffer.from(JSON.stringify({ payload, sig })).toString('base64url');
 }
 
 function resolveDownloadToken(token) {
   if (!token || typeof token !== 'string') return null;
-  pruneExpiredTokens();
-  const entry = downloadTokens.get(token);
-  if (!entry || entry.expiresAt <= Date.now()) {
-    downloadTokens.delete(token);
+  try {
+    const parsed = JSON.parse(Buffer.from(token, 'base64url').toString('utf8'));
+    const payload = parsed?.payload;
+    const sig = parsed?.sig;
+    if (!payload || !sig) return null;
+    const expected = crypto.createHmac('sha256', getSigningSecret()).update(payload).digest('hex');
+    if (sig !== expected) return null;
+    const { filename, exp } = JSON.parse(payload);
+    if (!filename || !exp || Date.now() > Number(exp)) return null;
+    if (!isSafeBackupFilename(filename)) return null;
+    getBackupPath(filename);
+    return filename;
+  } catch {
     return null;
   }
-  return entry.filename;
 }
 
 function streamBackupFile(filename, res) {
@@ -217,7 +219,16 @@ function streamBackupFile(filename, res) {
   res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
   res.setHeader('Content-Length', stat.size);
   res.setHeader('Cache-Control', 'no-store');
-  fs.createReadStream(filepath).pipe(res);
+  const stream = fs.createReadStream(filepath);
+  stream.on('error', (err) => {
+    console.error('[backup] stream error:', err.message);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'تعذّر تحميل النسخة الاحتياطية' });
+    } else {
+      res.end();
+    }
+  });
+  stream.pipe(res);
 }
 
 function getBackupsDir() {

@@ -200,7 +200,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               loading: _updating,
               onPreparing: () => _updateStatus('preparing_shipping'),
               onShipped: () => _updateStatus('shipped'),
-              onDelivered: () => _updateStatus('delivered'),
               onCancel: () => _updateStatus('cancelled'),
               onPending: () => _updateStatus('pending'),
               onBackToPreparing: () => _updateStatus('preparing_shipping'),
@@ -493,7 +492,6 @@ class _ActionBar extends StatelessWidget {
   final bool loading;
   final VoidCallback onPreparing;
   final VoidCallback onShipped;
-  final VoidCallback onDelivered;
   final VoidCallback onCancel;
   final VoidCallback onPending;
   final VoidCallback onBackToPreparing;
@@ -503,7 +501,6 @@ class _ActionBar extends StatelessWidget {
     required this.loading,
     required this.onPreparing,
     required this.onShipped,
-    required this.onDelivered,
     required this.onCancel,
     required this.onPending,
     required this.onBackToPreparing,
@@ -581,28 +578,10 @@ class _ActionBar extends StatelessWidget {
     }
 
     if (status == 'shipped') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onDelivered,
-              icon: const Icon(Icons.check_circle_rounded),
-              label: const Text('تم التسليم'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.success,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: onBackToPreparing,
-            icon: const Icon(Icons.undo_rounded, size: 18),
-            label: const Text('إرجاع لقيد التجهيز'),
-          ),
-        ],
+      return TextButton.icon(
+        onPressed: onBackToPreparing,
+        icon: const Icon(Icons.undo_rounded, size: 18),
+        label: const Text('إرجاع لقيد التجهيز'),
       );
     }
 

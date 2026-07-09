@@ -28,7 +28,8 @@ exports.createDownloadLink = async (req, res) => {
   try {
     const token = backupService.createDownloadToken(req.params.filename);
     res.json({
-      url: `/api/backups/file?token=${token}`,
+      token,
+      url: `/api/backups/file?token=${encodeURIComponent(token)}`,
       expiresInSeconds: 600,
     });
   } catch (error) {

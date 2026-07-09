@@ -87,16 +87,14 @@ export default function Backups() {
     setMsg('');
     try {
       const res = await backupAPI.getDownloadLink(filename);
-      const url = res.data?.url;
-      if (!url) throw new Error('no url');
+      const relative = res.data?.url;
+      if (!relative) throw new Error('no url');
+      const downloadUrl = relative.startsWith('http')
+        ? relative
+        : `${window.location.origin}${relative}`;
+
       setMsg(`بدء تحميل ${filename} — راقبي شريط التحميل في المتصفح (قد يستغرق دقائق للملفات الكبيرة)`);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      window.location.assign(downloadUrl);
     } catch (e) {
       setError(e.response?.data?.message || 'تعذّر بدء التحميل');
     } finally {
